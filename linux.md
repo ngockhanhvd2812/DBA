@@ -12,6 +12,14 @@
     - [**6.1. Mối quan hệ tổng quan**](#61-mối-quan-hệ-tổng-quan)
     - [**6.2. Quy trình kiểm tra quyền truy cập**](#62-quy-trình-kiểm-tra-quyền-truy-cập)
     - [**6.3. Quy trình thay đổi quyền**](#63-quy-trình-thay-đổi-quyền)
+  - [**7. Quy trình làm việc với Trình quản lý gói**](#7-quy-trình-làm-việc-với-trình-quản-lý-gói)
+  - [**8. Giám sát và Điều khiển Tiến trình**](#8-giám-sát-và-điều-khiển-tiến-trình)
+  - [**9. Công cụ Mạng cơ bản**](#9-công-cụ-mạng-cơ-bản)
+  - [**10. Shell Script**](#10-shell-script)
+    - [**10.1. Vòng đời của một Shell Script**](#101-vòng-đời-của-một-shell-script)
+    - [**10.2. Luồng dữ liệu trong Shell**](#102-luồng-dữ-liệu-trong-shell)
+    - [**10.3. Tìm kiếm với find và grep**](#103-tìm-kiếm-với-find-và-grep)
+    - [**10.4. Quản lý Dịch vụ hệ thống với systemd**](#104-quản-lý-dịch-vụ-hệ-thống-với-systemd)
 
 
 # **I. TỔNG QUAN VỀ LINUX**
@@ -650,4 +658,347 @@ sequenceDiagram
             'noteTextColor': '#2e7d32'
         }
     }}%%
+``` 
+
+## **7. Quy trình làm việc với Trình quản lý gói**
+
+```mermaid
+flowchart TD
+    subgraph main ["Quy trình làm việc với Trình quản lý gói (APT)"]
+        A["Internet"] 
+        B["<b>Repositories (Kho chứa phần mềm)</b><br/><i>Các máy chủ chứa hàng ngàn gói phần mềm đã được kiểm duyệt</i>"]
+        C["Máy tính Linux của bạn"]
+        
+        A -- chứa --> B
+        B -- "Danh sách phần mềm" --> C
+        
+        subgraph terminal ["Tương tác của Người dùng qua Terminal"]
+            D{Bạn muốn làm gì?}
+            
+            D -- "Cài một phần mềm mới" --> E1["(1) Cập nhật danh sách gói<br/>sudo apt update"]
+            E1 --> E2["(2) Tìm kiếm tên gói<br/>apt search firefox"]
+            E2 --> E3["(3) Cài đặt gói<br/>sudo apt install firefox"]
+            E3 --> F["✅ Hoàn thành"]
+            
+            D -- "Gỡ bỏ một phần mềm" --> G1["sudo apt remove firefox"]
+            G1 -- "Gỡ cả cấu hình?" --> G2["sudo apt purge firefox"]
+            G1 --> F
+            G2 --> F
+
+            D -- "Nâng cấp toàn bộ hệ thống" --> H1["sudo apt update"]
+            H1 --> H2["sudo apt upgrade"]
+            H2 --> F
+        end
+
+        C -- "Người dùng ra lệnh" --> D
+        
+        Note["💡 <b>Lưu ý:</b><br/>- Fedora/CentOS: dnf<br/>- Arch: pacman"]
+    end
+
+    style main fill:#f0f8ff,stroke:#69c,stroke-width:2px
+    style terminal fill:#fff8dc,stroke:#c96,stroke-width:2px
+    style Note fill:#ffffe0,stroke:#cc0,stroke-width:1px
+    
+    classDef repo fill:#cce5ff,stroke:#4a90e2,stroke-width:1px
+    classDef cmd fill:#e8f5e9,stroke:#43a047,stroke-width:1px
+    classDef done fill:#dff0d8,stroke:#3c763d,stroke-width:2px
+    
+    class B repo
+    class E1,E2,E3,G1,G2,H1,H2 cmd
+    class F done
+```
+
+## **8. Giám sát và Điều khiển Tiến trình**
+
+```mermaid
+graph TD
+    subgraph "Giám sát và Điều khiển Tiến trình"
+        
+        A["Hệ thống Linux đang chạy nhiều Tiến trình (Processes)"]
+        
+        A --> B{"Nhiệm vụ của bạn là gì?"}
+        
+        B -- "Giám sát hệ thống" --> C["Chọn công cụ giám sát"]
+        C --> C1["<b>ps aux</b><br/><i>Xem 'ảnh chụp' tất cả tiến trình tại một thời điểm.</i>"]
+        C --> C2["<b>top</b> hoặc <b>htop</b><br/><i>Xem các tiến trình và tài nguyên (CPU, RAM) theo thời gian thực.</i>"]
+        
+        C1 & C2 -- "Kết quả cho thấy" --> D["Danh sách các tiến trình, mỗi tiến trình có một <b>PID (Process ID)</b> duy nhất"]
+        D -- "Ví dụ: Firefox (PID: 1234) đang bị treo" --> E{"Cần phải dừng tiến trình này"}
+
+        B -- "Điều khiển tiến trình" --> E
+        
+        E --> F["Sử dụng lệnh <b>kill</b> với PID đã xác định"]
+        
+        F --> G{Chọn phương pháp dừng}
+        G -- "Gửi yêu cầu dừng lịch sự (Mặc định)<br/><i>Cho phép tiến trình dọn dẹp trước khi thoát</i>" --> H1["kill 1234 (Gửi tín hiệu SIGTERM)"]
+        G -- "❗️ Buộc dừng ngay lập tức<br/><i>Khi tiến trình không phản hồi yêu cầu dừng</i>" --> H2["kill -9 1234 (Gửi tín hiệu SIGKILL)"]
+        
+        H1 & H2 --> I["✅ Tiến trình đã được dừng"]
+        
+        %% Định nghĩa màu sắc
+        classDef startNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+        classDef monitorNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+        classDef processNode fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
+        classDef killNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+        classDef danger fill:#ffdede,stroke:#c44,stroke-width:3px,color:#000
+        classDef success fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+        classDef decision fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
+        
+        %% Áp dụng màu sắc
+        class A startNode
+        class B,E,G decision
+        class C,C1,C2 monitorNode
+        class D,F processNode
+        class H1 killNode
+        class H2 danger
+        class I success
+
+    end
+
+``` 
+
+## **9. Công cụ Mạng cơ bản**
+```mermaid 
+graph LR
+    subgraph "Hộp công cụ Mạng trên Linux"
+        
+        subgraph "Chẩn đoán & Kiểm tra"
+            direction TB
+            T1("<b>Kiểm tra Cấu hình Mạng Nội bộ</b>") -- Dùng lệnh --> C1("ip address / ifconfig")
+            C1 -- "Cho biết" --> R1("Địa chỉ IP, Địa chỉ MAC của bạn")
+            
+            T2("<b>Kiểm tra Kết nối tới Máy chủ xa</b>") -- Dùng lệnh --> C2("ping google.com")
+            C2 -- "Cho biết" --> R2("Máy chủ có phản hồi không?<br/>Độ trễ mạng là bao nhiêu?")
+        end
+        
+        subgraph "Tương tác & Truyền tải Dữ liệu"
+            direction TB
+            T3("<b>Tải file từ Internet</b>") -- Dùng lệnh --> C3("wget [URL]")
+            C3 -- "Kết quả" --> R3("Tải về một file hoặc toàn bộ website")
+            
+            T4("<b>Truyền tải dữ liệu (Linh hoạt)</b>") -- Dùng lệnh --> C4("curl [URL]")
+            C4 -- "Kết quả" --> R4("Hiển thị nội dung, kiểm tra API, tải file...")
+        end
+        
+        subgraph "Truy cập & Điều khiển từ xa"
+            direction TB
+            T5("<b>Đăng nhập an toàn vào máy khác</b>") -- Dùng lệnh --> C5("ssh user@hostname")
+            YourPC["🖥️ Máy của bạn"] -- "ssh aivietnam@server.com" --> RemoteServer["💻 Máy chủ Linux ở xa"]
+            C5 -- "Kết quả" --> R5("Bạn có một Terminal đang chạy<br/>trên máy chủ từ xa")
+        end
+        
+    end
+
+    %% Định nghĩa các class màu sắc
+    classDef taskNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000,font-weight:bold
+    classDef commandNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000,font-family:monospace
+    classDef resultNode fill:#e8f5e8,stroke:#388e3c,stroke-width:2px,color:#000
+    classDef networkCheck fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef dataTransfer fill:#fce4ec,stroke:#c2185b,stroke-width:2px,color:#000
+    classDef remoteAccess fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    classDef computerNode fill:#fff9c4,stroke:#f9a825,stroke-width:3px,color:#000,font-weight:bold
+    
+    %% Áp dụng màu sắc cho từng nhóm
+    
+    %% Nhóm Chẩn đoán & Kiểm tra - Màu tím
+    class T1,T2 networkCheck
+    class C1,C2 commandNode
+    class R1,R2 resultNode
+    
+    %% Nhóm Tương tác & Truyền tải - Màu hồng
+    class T3,T4 dataTransfer
+    class C3,C4 commandNode
+    class R3,R4 resultNode
+    
+    %% Nhóm Truy cập từ xa - Màu xanh lá
+    class T5 remoteAccess
+    class C5 commandNode
+    class R5 resultNode
+    class YourPC,RemoteServer computerNode
+```
+
+## **10. Shell Script**
+
+### **10.1. Vòng đời của một Shell Script**
+
+```mermaid
+%%{init: {'theme':'base'}}%%
+timeline
+    title Vòng đời của một Shell Script
+    
+    section Giai đoạn Chuẩn bị
+        Ý tưởng 💡 : Tạo script chào hỏi
+                   : Hiển thị ngày giờ hệ thống
+        
+    section Giai đoạn Phát triển  
+        Soạn thảo 📝 : nano welcome.sh
+                     : Viết nội dung script
+        Code Script 💻 : #!/bin/bash
+                       : USER_NAME=$(whoami)
+                       : echo "Chào mừng, $USER_NAME!"
+                       : date
+        
+    section Giai đoạn Triển khai
+        Cấp quyền 🔐 : chmod +x welcome.sh
+                     : Cho phép thực thi file
+        
+    section Giai đoạn Vận hành
+        Thực thi ⚡ : ./welcome.sh
+                   : Chạy script
+        Kết quả 📄 : Chào mừng, aivietnam!
+                   : Th 5, 23 thg 5 2024 10-30-00 +07
+        Hoàn thành ✅ : Script chạy thành công
+
+``` 
+
+### **10.2. Luồng dữ liệu trong Shell**
+
+```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#FFF9C4', 'primaryTextColor': '#333', 'primaryBorderColor': '#F57F17', 'lineColor': '#666', 'secondaryColor': '#FFF9C4', 'tertiaryColor': '#FFFDE7'}}}%%
+graph TD
+    subgraph "Luồng dữ liệu trong Shell"
+
+        %% Standard Flow
+        subgraph "Luồng Mặc định"
+            A["Lệnh ls -l"] -- "Đầu ra chuẩn (stdout)" --> B["Màn hình Terminal"]
+        end
+
+        %% Redirection
+        subgraph "Chuyển hướng Đầu ra (Redirection)"
+            C["Lệnh ls -l"]
+            
+            C -- "Ghi đè vào file<br/>>" --> D1["ls -l > file_list.txt"]
+            D1 --> F1["📄<br/><b>file_list.txt</b><br/><i>Nội dung cũ bị xóa</i>"]
+
+            C -- "Nối vào cuối file<br/>>" --> D2["date >> file_list.txt"]
+            D2 --> F2["📄<br/><b>file_list.txt</b><br/><i>Ngày giờ được thêm vào cuối file</i>"]
+        end
+
+        %% Piping
+        subgraph "Đường ống (Piping) - Kết hợp các lệnh"
+            P1["Lệnh 1<br/>ps aux"] -- "stdout (danh sách tiến trình)" --> P_Pipe["<b>|</b>"]
+            P_Pipe -- "trở thành stdin của lệnh 2" --> P2["Lệnh 2<br/>grep nginx"]
+            P2 -- "stdout (chỉ các dòng chứa nginx)" --> P3["Màn hình Terminal"]
+            
+            P_Flow("<b>Quy trình:</b><br/>ps aux | grep nginx<br/><i>Liệt kê tất cả tiến trình, sau đó lọc ra những dòng có chứa nginx</i>")
+        end
+        
+    end
+
+    %% Warm Pastel Styling
+    classDef commandStyle fill:#FFE0B2,stroke:#FF8A65,stroke-width:2px,color:#D84315
+    classDef terminalStyle fill:#E8F5E8,stroke:#66BB6A,stroke-width:2px,color:#2E7D32
+    classDef fileStyle fill:#F3E5F5,stroke:#BA68C8,stroke-width:2px,color:#7B1FA2
+    classDef pipeStyle fill:#E1F5FE,stroke:#29B6F6,stroke-width:3px,color:#0277BD
+    classDef flowStyle fill:#FFF3E0,stroke:#FFB74D,stroke-width:2px,color:#F57C00
+    classDef redirectStyle fill:#FCE4EC,stroke:#F06292,stroke-width:2px,color:#C2185B
+
+    class A,C,P1,P2 commandStyle
+    class B,P3 terminalStyle
+    class F1,F2 fileStyle
+    class P_Pipe pipeStyle
+    class P_Flow flowStyle
+    class D1,D2 redirectStyle
+```
+### **10.3. Tìm kiếm với find và grep**
+
+```mermaid
+graph TD
+    subgraph "Chương 15: Cẩm nang Tìm kiếm"
+        Start("Tôi cần tìm...") --> Decision{"...một FILE/THƯ MỤC<br/>hay<br/>...NỘI DUNG bên trong file?"}
+
+        Decision -- "Tìm file/thư mục<br/>(dựa trên tên, loại, kích thước, thời gian...)" --> FindCMD["Sử dụng lệnh find"]
+        subgraph "Ví dụ với find"
+            direction LR
+            FindCMD --> F1["Tìm theo tên:<br/>find /home -name '*.log'"]
+            FindCMD --> F2["Tìm theo loại (thư mục):<br/>find . -type d -name 'config'"]
+            FindCMD --> F3["Tìm file được sửa trong 7 ngày qua:<br/>find . -mtime -7"]
+        end
+
+        Decision -- "Tìm một đoạn VĂN BẢN<br/>bên trong file" --> GrepCMD["Sử dụng lệnh grep"]
+        subgraph "Ví dụ với grep"
+            direction LR
+            GrepCMD --> G1["Tìm chữ 'error' trong một file:<br/>grep 'error' /var/log/syslog"]
+            GrepCMD --> G2["Tìm không phân biệt hoa/thường (-i):<br/>grep -i 'database' config.ini"]
+            GrepCMD --> G3["❗️ Tìm đệ quy trong mọi file (-r):<br/>grep -r 'API_KEY' /var/www/"]
+        end
+        
+        subgraph "Kỹ năng tối thượng: Kết hợp find và grep"
+            Combo("Tìm tất cả file .conf có chứa chữ 'port'")
+            ComboFlow["find /etc -name '*.conf' -exec grep -H 'port' {} \\;"]
+            Combo -- "Thực hiện bằng cách" --> ComboFlow
+        end
+
+        FindCMD & GrepCMD --> Combo
+        
+    end
+
+    %% Colorful Styling with proper yellow background
+    classDef startNode fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#000
+    classDef decisionNode fill:#fff9c4,stroke:#f9a825,stroke-width:3px,color:#000
+    classDef findNode fill:#fff3e0,stroke:#ff9800,stroke-width:3px,color:#000
+    classDef grepNode fill:#f3e5f5,stroke:#9c27b0,stroke-width:3px,color:#000
+    classDef exampleNode fill:#ffcdd2,stroke:#f44336,stroke-width:2px,color:#000
+    classDef comboNode fill:#e8f5e8,stroke:#4caf50,stroke-width:3px,color:#000
+    classDef comboFlowNode fill:#e1f5fe,stroke:#03a9f4,stroke-width:2px,color:#000
+    classDef importantNode fill:#ffdede,stroke:#c44,stroke-width:3px,color:#000
+    
+    class Start startNode
+    class Decision decisionNode
+    class FindCMD findNode
+    class GrepCMD grepNode
+    class F1,F2,F3 exampleNode
+    class G1,G2 exampleNode
+    class G3 importantNode
+    class Combo comboNode
+    class ComboFlow comboFlowNode
+
+```
+
+### **10.4. Quản lý Dịch vụ hệ thống với systemd**
+
+```mermaid
+stateDiagram-v2
+    direction LR
+    
+    [*] --> Inactive : Gỡ cài đặt / Disable
+    
+    state "Vòng đời Dịch vụ (Service Lifecycle)" as Lifecycle {
+        Inactive: Dịch vụ không chạy và sẽ không tự khởi động
+        Active: Dịch vụ đang chạy
+        
+        Inactive --> Active : systemctl start [service]
+        Active --> Inactive : systemctl stop [service]
+        
+        Active --> Active : systemctl restart [service]
+        
+        state "Trạng thái Bật/Tắt khi khởi động" as BootStatus {
+            direction TB
+            Enabled: Tự động chạy khi boot máy
+            Disabled: Không tự động chạy
+            
+            Disabled --> Enabled : systemctl enable [service]
+            Enabled --> Disabled : systemctl disable [service]
+        }
+    }
+
+    state "Lệnh kiểm tra quan trọng" as Status {
+         [*] --> CheckStatus : systemctl status [service]
+         CheckStatus: Xem trạng thái hiện tại (active/inactive),<br/>log gần nhất, và trạng thái enabled/disabled.
+    }
+
+    %% Styling to match the yellow background theme
+    classDef activeState fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#000
+    classDef inactiveState fill:#ffdede,stroke:#c44,stroke-width:2px,color:#000
+    classDef enabledState fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    classDef disabledState fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef statusState fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    
+    class Active activeState
+    class Inactive inactiveState
+    class Enabled enabledState
+    class Disabled disabledState
+    class CheckStatus statusState
+
+
 ``` 
