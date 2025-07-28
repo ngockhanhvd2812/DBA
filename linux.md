@@ -2,7 +2,7 @@
 
 ## **1. Giới thiệu và Bắt đầu**
 
-- **Giải thích các khái niệm nền tảng và các bước đầu tiên để tiếp cận Linux**
+### **1.1. Giới thiệu và Bắt đầu**
 ```mermaid
 graph TD
     subgraph "Giới thiệu và Bắt đầu"
@@ -60,7 +60,7 @@ graph TD
     style P4 fill:#f5f5f5,stroke:#999
 ``` 
 
-- **Sơ đồ phân rã cấu trúc của một hệ điều hành Linux và mối quan hệ giữa các thành phần cốt lõi của nó.**
+### **1.2. Phân rã hệ điều hành Linux**
 
 ```mermaid
 graph TD
@@ -336,36 +336,37 @@ graph TD
 ``` 
 
 ## **5. Hệ thống file**
-- **Sơ đồ này trực quan hóa cấu trúc thư mục tiêu chuẩn của Linux và cách các lệnh điều hướng giúp bạn di chuyển trong đó.**
+
+### **5.1. Khám phá Hệ thống File Linux**
 
 ```mermaid
-graph TD
-    subgraph "Khám phá Hệ thống File Linux"
+flowchart TD
+    subgraph "🌳 Khám phá Hệ thống File Linux"
         
         %% Filesystem Structure
-        subgraph "Cấu trúc Cây thư mục (Một vài thư mục quan trọng)"
-            Root("/")
-            Root --> home("/home<br/><i>Thư mục nhà của người dùng</i>")
-            Root --> bin_sbin("/bin & /sbin<br/><i>Chứa các lệnh thiết yếu</i>")
-            Root --> etc("/etc<br/><i>Chứa file cấu hình hệ thống</i>")
-            Root --> var("/var<br/><i>Chứa dữ liệu thay đổi thường xuyên (logs, web...)</i>")
-            Root --> usr("/usr<br/><i>Chứa phần mềm và dữ liệu của người dùng</i>")
-            home --> user_dir("/home/ten_ban<br/><i>Đây là nơi bạn bắt đầu! (~)</i>")
+        subgraph "📂 Cấu trúc Cây thư mục (Một vài thư mục quan trọng)"
+            Root("📀 /")
+            Root --> home("🏠 /home<br/><i>Thư mục nhà của người dùng</i>")
+            Root --> bin_sbin("⚙️ /bin & /sbin<br/><i>Chứa các lệnh thiết yếu</i>")
+            Root --> etc("📑 /etc<br/><i>Chứa file cấu hình hệ thống</i>")
+            Root --> var("📝 /var<br/><i>Dữ liệu thay đổi thường xuyên (logs, web...)</i>")
+            Root --> usr("📦 /usr<br/><i>Phần mềm và dữ liệu của người dùng</i>")
+            home --> user_dir("👤 /home/ten_ban<br/><i>Đây là nơi bạn bắt đầu! (~)</i>")
         end
 
         %% Navigation Commands Workflow
-        subgraph "Quy trình Điều hướng trong Terminal"
+        subgraph "🖥️ Quy trình Điều hướng trong Terminal"
             direction LR
-            Start("Bạn đang ở /home/ten_ban")
-            Start -- "Kiểm tra vị trí hiện tại?" --> Q1["<b>pwd</b><br/>(print working directory)"]
+            Start("📍 Bạn đang ở <b>/home/ten_ban</b>")
+            Start -- "Kiểm tra vị trí hiện tại?" --> Q1["<b>pwd</b><br/><i>(print working directory)</i>"]
             Q1 -- "Output: /home/ten_ban" --> Start
             
             Start -- "Xem có gì bên trong?" --> Q2["<b>ls</b>"]
-            Q2 -- "Xem chi tiết hơn (quyền, kích thước...)" --> Q2_opt1["ls -lh"]
+            Q2 -- "Xem chi tiết hơn (quyền, kích thước...)" --> Q2_opt1["<b>ls -lh</b>"]
             Q2_opt1 --> Start
             
             Start -- "Muốn đi vào thư mục 'Documents'" --> Q3["<b>cd Documents</b><br/><i>(Đường dẫn tương đối)</i>"]
-            Q3 --> New_Location("Bạn đang ở /home/ten_ban/Documents")
+            Q3 --> New_Location("📂 Bạn đang ở <b>/home/ten_ban/Documents</b>")
             
             New_Location -- "Muốn quay về thư mục cha" --> Q4["<b>cd ..</b>"]
             Q4 --> Start
@@ -374,12 +375,56 @@ graph TD
             Q5 --> Start
             
             Start -- "Muốn đi thẳng tới thư mục cấu hình" --> Q6["<b>cd /etc</b><br/><i>(Đường dẫn tuyệt đối)</i>"]
-            Q6 --> Etc_Location("Bạn đang ở /etc")
+            Q6 --> Etc_Location("📑 Bạn đang ở <b>/etc</b>")
         end
     end
+
+    %% 🔥 Class definitions (màu nền kiểu vàng nhạt)
+    classDef rootNode fill:#FFD700,stroke:#333,stroke-width:1px;
+    classDef homeNode fill:#FFB347,stroke:#333;
+    classDef binNode fill:#FF6961,stroke:#333;
+    classDef etcNode fill:#77DD77,stroke:#333;
+    classDef varNode fill:#84DFFF,stroke:#333;
+    classDef usrNode fill:#CBA6F7,stroke:#333;
+    classDef userNode fill:#FF85C1,stroke:#333;
+
+    classDef start fill:#FFF3B0,stroke:#333;
+    classDef cmd1 fill:#FFAFCC,stroke:#333;
+    classDef cmd2 fill:#FFD6A5,stroke:#333;
+    classDef cmd2_opt fill:#FFDAC1,stroke:#333;
+    classDef cmd3 fill:#CAFFBF,stroke:#333;
+    classDef newLoc fill:#B5EAD7,stroke:#333;
+    classDef cmd4 fill:#FF9AA2,stroke:#333;
+    classDef cmd5 fill:#F1C6E7,stroke:#333;
+    classDef cmd6 fill:#9BF6FF,stroke:#333;
+    classDef etcLoc fill:#BDE0FE,stroke:#333;
+
+    %% Assign classes
+    class Root rootNode;
+    class home homeNode;
+    class bin_sbin binNode;
+    class etc etcNode;
+    class var varNode;
+    class usr usrNode;
+    class user_dir userNode;
+
+    class Start start;
+    class Q1 cmd1;
+    class Q2 cmd2;
+    class Q2_opt1 cmd2_opt;
+    class Q3 cmd3;
+    class New_Location newLoc;
+    class Q4 cmd4;
+    class Q5 cmd5;
+    class Q6 cmd6;
+    class Etc_Location etcLoc;
+
+    %% 🎨 Styling mũi tên
+    linkStyle default stroke:#FF5733,stroke-width:2px,fill:none;
+
 ``` 
 
-- **Sơ đồ  mô tả quy trình Create, Read, Update, Delete (Tạo, Đọc, Cập nhật, Xóa) đối với file và thư mục bằng các lệnh cơ bản.**
+### **5.2. Vòng đời File & Thư mục**
 ```mermaid
 flowchart TD
     subgraph "Vòng đời File & Thư mục"
@@ -409,7 +454,6 @@ flowchart TD
         
         H_Delete_File & H_Delete_Dir --> I_End(Kết thúc vòng đời)
 
-        %% Thêm màu sắc cho các node
         classDef start fill:#d4f1f9,stroke:#05a,stroke-width:2px;
         classDef command fill:#e6f7ff,stroke:#07c,stroke-width:1px;
         classDef state fill:#e6ffe6,stroke:#292,stroke-width:1px;
@@ -428,7 +472,8 @@ flowchart TD
 
 ## **6. Người dùng và quyền hạn**
 
-- **Sơ đồ mối quan hệ tổng quan**
+### **6.1. Mối quan hệ tổng quan**
+
 ```mermaid
 graph TD
     U[User<br/>username, UID, homeDirectory] 
@@ -460,7 +505,6 @@ graph TD
     CMD2 -.-> F
     CMD3 -.-> F
     
-    %% Styling với màu sắc
     classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
     classDef groupClass fill:#f3e5f5,stroke:#4a148c,stroke-width:3px,color:#000
     classDef fileClass fill:#fff3e0,stroke:#e65100,stroke-width:3px,color:#000
@@ -480,3 +524,114 @@ graph TD
     class CMD1,CMD2,CMD3 commandClass
 ``` 
 
+### **6.2. Quy trình kiểm tra quyền truy cập**
+```mermaid
+flowchart TD
+    Start([Yêu cầu truy cập file]) --> CheckUser{Kiểm tra User}
+    
+    CheckUser --> IsOwner{User là<br/>chủ sở hữu?}
+    IsOwner -->|Có| CheckOwnerPerm[Kiểm tra Owner Permission]
+    IsOwner -->|Không| CheckGroup{User thuộc<br/>Group sở hữu?}
+    
+    CheckGroup -->|Có| CheckGroupPerm[Kiểm tra Group Permission]
+    CheckGroup -->|Không| CheckOtherPerm[Kiểm tra Other Permission]
+    
+    CheckOwnerPerm --> OwnerResult{Có quyền?}
+    CheckGroupPerm --> GroupResult{Có quyền?}
+    CheckOtherPerm --> OtherResult{Có quyền?}
+    
+    OwnerResult -->|Có| Allow([Cho phép truy cập])
+    OwnerResult -->|Không| Deny([Từ chối truy cập])
+    
+    GroupResult -->|Có| Allow
+    GroupResult -->|Không| Deny
+    
+    OtherResult -->|Có| Allow
+    OtherResult -->|Không| Deny
+    
+    Deny --> UseSudo{Sử dụng sudo?}
+    UseSudo -->|Có| Allow
+    UseSudo -->|Không| End([Kết thúc])
+    
+    Allow --> End
+    
+    classDef startEndClass fill:#e3f2fd,stroke:#0d47a1,stroke-width:3px,color:#000
+    classDef decisionClass fill:#fff3e0,stroke:#ef6c00,stroke-width:3px,color:#000
+    classDef processClass fill:#f1f8e9,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef ownerClass fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef groupClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000
+    classDef otherClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+    classDef allowClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px,color:#000
+    classDef denyClass fill:#ffebee,stroke:#d32f2f,stroke-width:3px,color:#000
+    classDef sudoClass fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    
+    class Start,End startEndClass
+    class CheckUser,IsOwner,CheckGroup,OwnerResult,GroupResult,OtherResult,UseSudo decisionClass
+    class CheckOwnerPerm ownerClass
+    class CheckGroupPerm groupClass
+    class CheckOtherPerm otherClass
+    class Allow allowClass
+    class Deny denyClass
+``` 
+
+### **6.3. Quy trình thay đổi quyền**
+```mermaid
+sequenceDiagram
+    participant U as 👤 User
+    participant S as 🖥️ System
+    participant F as 📁 File
+    participant P as 🔐 Permission
+    
+    Note over U,P: Quy trình thay đổi quyền file với chmod
+    
+    U->>+S: chmod 755 filename
+    S->>+F: Kiểm tra quyền hiện tại
+    F->>-S: Trả về thông tin quyền cũ
+    
+    S->>S: Phân tích mode (755)
+    Note over S: Owner: rwx (7)<br/>Group: r-x (5)<br/>Other: r-x (5)
+    
+    alt Cập nhật quyền Owner
+        S->>+P: Thiết lập Owner Permission = rwx
+        P->>-S: Cập nhật thành công
+    end
+    
+    alt Cập nhật quyền Group  
+        S->>+P: Thiết lập Group Permission = r-x
+        P->>-S: Cập nhật thành công
+    end
+    
+    alt Cập nhật quyền Other
+        S->>+P: Thiết lập Other Permission = r-x
+        P->>-S: Cập nhật thành công
+    end
+    
+    S->>+F: Áp dụng tất cả quyền mới
+    F->>F: Lưu thay đổi vào metadata
+    F->>-S: Hoàn tất cập nhật
+    
+    S->>-U: Lệnh chmod thực hiện thành công
+    
+    Note over U,P: File hiện có quyền 755 (rwxr-xr-x)
+    
+    %%{init: {
+        'theme': 'base',
+        'themeVariables': {
+            'primaryColor': '#e8f4fd',
+            'primaryTextColor': '#1565c0',
+            'primaryBorderColor': '#1976d2',
+            'lineColor': '#42a5f5',
+            'secondaryColor': '#fff8e1',
+            'tertiaryColor': '#f3e5f5',
+            'background': '#fafafa',
+            'actorBkg': '#e1f5fe',
+            'actorBorder': '#0277bd',
+            'actorTextColor': '#01579b',
+            'activationBkgColor': '#ffecb3',
+            'activationBorderColor': '#ff8f00',
+            'noteBkgColor': '#e8f5e8',
+            'noteBorderColor': '#4caf50',
+            'noteTextColor': '#2e7d32'
+        }
+    }}%%
+``` 
