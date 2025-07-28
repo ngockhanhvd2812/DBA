@@ -2,10 +2,10 @@
 
 ## **1. Giới thiệu và Bắt đầu**
 
-- Giải thích các khái niệm nền tảng và các bước đầu tiên để tiếp cận Linux
+- **Giải thích các khái niệm nền tảng và các bước đầu tiên để tiếp cận Linux**
 ```mermaid
 graph TD
-    subgraph "Phần 1: Giới thiệu và Bắt đầu"
+    subgraph "Giới thiệu và Bắt đầu"
         direction LR
         %% Chapters
         C1("Chương 1: Linux là gì?")
@@ -60,11 +60,11 @@ graph TD
     style P4 fill:#f5f5f5,stroke:#999
 ``` 
 
-- Sơ đồ phân rã cấu trúc của một hệ điều hành Linux và mối quan hệ giữa các thành phần cốt lõi của nó.
+- **Sơ đồ phân rã cấu trúc của một hệ điều hành Linux và mối quan hệ giữa các thành phần cốt lõi của nó.**
 
 ```mermaid
 graph TD
-    subgraph "Chương 1 (Chi tiết): Phân rã một hệ điều hành Linux"
+    subgraph "Phân rã hệ điều hành Linux"
         
         A["Người dùng"] -- "Tương tác qua" --> B{Shell / Giao diện Đồ họa}
         style A fill:#ffe6e6,stroke:#333,stroke-width:2px
@@ -111,10 +111,10 @@ graph TD
 ---
 
 ## **2. Giao diện Dòng lệnh (CLI)**
-- Đây là phần quan trọng nhất, tập trung vào các lệnh cơ bản để tương tác với hệ thống.
+- **Đây là phần quan trọng nhất, tập trung vào các lệnh cơ bản để tương tác với hệ thống.**
 ```mermaid
 graph TD
-    subgraph "Phần 2: Giao diện Dòng lệnh (CLI)"
+    subgraph "Giao diện Dòng lệnh (CLI)"
         %% Chapters
         C4("Chương 4: Hello, Shell!")
         C5("Chương 5: Điều hướng Hệ thống file")
@@ -195,10 +195,10 @@ graph TD
 ---
 
 ## **3. Quản trị Hệ thống Cơ bản**
-- Sơ đồ này mô tả các tác vụ quản trị thiết yếu như quản lý người dùng, phần mềm và tiến trình.
+- **Sơ đồ này mô tả các tác vụ quản trị thiết yếu như quản lý người dùng, phần mềm và tiến trình.**
 ```mermaid
 flowchart TD
-    subgraph "Phần 3: Quản trị Hệ thống Cơ bản"
+    subgraph "Quản trị Hệ thống Cơ bản"
         %% Chapters
         C8("Chương 8: Người dùng & Quyền hạn")
         C9("Chương 9: Quản lý Phần mềm")
@@ -269,7 +269,7 @@ flowchart TD
 ``` 
 ---
 ## **4. Mạng và các Công cụ Nâng cao** 
-- Giới thiệu về mạng, tự động hóa với script và giao diện đồ họa
+- **Giới thiệu về mạng, tự động hóa với script và giao diện đồ họa**
 ```mermaid 
 graph TD
     subgraph "Phần 4: Mạng & Nâng cao"
@@ -334,3 +334,149 @@ graph TD
     style G3c fill:#fff3e0,stroke:#e65100
     style G4 fill:#fff3e0,stroke:#e65100
 ``` 
+
+## **5. Hệ thống file**
+- **Sơ đồ này trực quan hóa cấu trúc thư mục tiêu chuẩn của Linux và cách các lệnh điều hướng giúp bạn di chuyển trong đó.**
+
+```mermaid
+graph TD
+    subgraph "Khám phá Hệ thống File Linux"
+        
+        %% Filesystem Structure
+        subgraph "Cấu trúc Cây thư mục (Một vài thư mục quan trọng)"
+            Root("/")
+            Root --> home("/home<br/><i>Thư mục nhà của người dùng</i>")
+            Root --> bin_sbin("/bin & /sbin<br/><i>Chứa các lệnh thiết yếu</i>")
+            Root --> etc("/etc<br/><i>Chứa file cấu hình hệ thống</i>")
+            Root --> var("/var<br/><i>Chứa dữ liệu thay đổi thường xuyên (logs, web...)</i>")
+            Root --> usr("/usr<br/><i>Chứa phần mềm và dữ liệu của người dùng</i>")
+            home --> user_dir("/home/ten_ban<br/><i>Đây là nơi bạn bắt đầu! (~)</i>")
+        end
+
+        %% Navigation Commands Workflow
+        subgraph "Quy trình Điều hướng trong Terminal"
+            direction LR
+            Start("Bạn đang ở /home/ten_ban")
+            Start -- "Kiểm tra vị trí hiện tại?" --> Q1["<b>pwd</b><br/>(print working directory)"]
+            Q1 -- "Output: /home/ten_ban" --> Start
+            
+            Start -- "Xem có gì bên trong?" --> Q2["<b>ls</b>"]
+            Q2 -- "Xem chi tiết hơn (quyền, kích thước...)" --> Q2_opt1["ls -lh"]
+            Q2_opt1 --> Start
+            
+            Start -- "Muốn đi vào thư mục 'Documents'" --> Q3["<b>cd Documents</b><br/><i>(Đường dẫn tương đối)</i>"]
+            Q3 --> New_Location("Bạn đang ở /home/ten_ban/Documents")
+            
+            New_Location -- "Muốn quay về thư mục cha" --> Q4["<b>cd ..</b>"]
+            Q4 --> Start
+            
+            New_Location -- "Muốn quay về thư mục nhà từ bất cứ đâu" --> Q5["<b>cd ~</b> hoặc <b>cd</b>"]
+            Q5 --> Start
+            
+            Start -- "Muốn đi thẳng tới thư mục cấu hình" --> Q6["<b>cd /etc</b><br/><i>(Đường dẫn tuyệt đối)</i>"]
+            Q6 --> Etc_Location("Bạn đang ở /etc")
+        end
+    end
+``` 
+
+- **Sơ đồ  mô tả quy trình Create, Read, Update, Delete (Tạo, Đọc, Cập nhật, Xóa) đối với file và thư mục bằng các lệnh cơ bản.**
+```mermaid
+flowchart TD
+    subgraph "Vòng đời File & Thư mục"
+    
+        A_Start(Bắt đầu)
+        
+        A_Start --> B_Create{"Bạn muốn tạo gì?"}
+        B_Create -- "File rỗng" --> C1["touch report.txt"]
+        B_Create -- "Thư mục" --> C2["mkdir projects"]
+        
+        C1 --> D_State1("File report.txt tồn tại")
+        C2 --> D_State2("Thư mục projects tồn tại")
+        
+        D_State1 -- "Xem nhanh nội dung" --> E1["cat report.txt"]
+        D_State1 -- "Xem nội dung theo trang" --> E2["less report.txt"]
+        D_State1 -- "Chỉnh sửa nội dung" --> E3["nano report.txt"]
+        E1 & E2 & E3 --> D_State1
+        
+        D_State1 -- "Sao chép file" --> F1["cp report.txt report_backup.txt"]
+        D_State1 -- "Đổi tên file" --> F2["mv report.txt final_report.txt"]
+        D_State1 -- "Di chuyển file vào thư mục projects" --> F3["mv report.txt projects/"]
+        
+        F1 & F2 & F3 --> G_Managed("File đã được quản lý")
+        
+        G_Managed -- "Xóa file<br/>(Hành động không thể hoàn tác!)" --> H_Delete_File["rm final_report.txt"]
+        D_State2 -- "Xóa thư mục<br/>(Phải rỗng hoặc dùng -r)" --> H_Delete_Dir["rm -r projects"]
+        
+        H_Delete_File & H_Delete_Dir --> I_End(Kết thúc vòng đời)
+
+        %% Thêm màu sắc cho các node
+        classDef start fill:#d4f1f9,stroke:#05a,stroke-width:2px;
+        classDef command fill:#e6f7ff,stroke:#07c,stroke-width:1px;
+        classDef state fill:#e6ffe6,stroke:#292,stroke-width:1px;
+        classDef decision fill:#fff9e6,stroke:#d90,stroke-width:1px;
+        classDef danger fill:#ffdede,stroke:#c44,stroke-width:2px;
+        classDef endNode fill:#f9f9f9,stroke:#999,stroke-width:1px;
+
+        class A_Start start;
+        class I_End endNode;
+        class C1,C2,E1,E2,E3,F1,F2,F3 command;
+        class D_State1,D_State2,G_Managed state;
+        class B_Create decision;
+        class H_Delete_File,H_Delete_Dir danger;
+    end
+```  
+
+## **6. Người dùng và quyền hạn**
+
+- **Sơ đồ mối quan hệ tổng quan**
+```mermaid
+graph TD
+    U[User<br/>username, UID, homeDirectory] 
+    G[Group<br/>groupname, GID]
+    F[File<br/>filename, permissions]
+    P[Permission<br/>READ, WRITE, EXECUTE]
+    
+    OP[Owner Permission]
+    GP[Group Permission] 
+    OT[Other Permission]
+    
+    CMD1[sudo: Thực thi với quyền root]
+    CMD2[chmod: Thay đổi quyền]
+    CMD3[chown: Thay đổi chủ sở hữu]
+    
+    U ---|là thành viên của| G
+    U ---|sở hữu| F
+    G ---|sở hữu| F
+    
+    F --- OP
+    F --- GP
+    F --- OT
+    
+    OP ---|kế thừa| P
+    GP ---|kế thừa| P
+    OT ---|kế thừa| P
+    
+    CMD1 -.-> U
+    CMD2 -.-> F
+    CMD3 -.-> F
+    
+    %% Styling với màu sắc
+    classDef userClass fill:#e1f5fe,stroke:#01579b,stroke-width:3px,color:#000
+    classDef groupClass fill:#f3e5f5,stroke:#4a148c,stroke-width:3px,color:#000
+    classDef fileClass fill:#fff3e0,stroke:#e65100,stroke-width:3px,color:#000
+    classDef permissionClass fill:#e8f5e8,stroke:#1b5e20,stroke-width:3px,color:#000
+    classDef ownerPermClass fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef groupPermClass fill:#fff8e1,stroke:#f57f17,stroke-width:2px,color:#000
+    classDef otherPermClass fill:#fce4ec,stroke:#880e4f,stroke-width:2px,color:#000
+    classDef commandClass fill:#f1f8e9,stroke:#33691e,stroke-width:2px,color:#000
+    
+    class U userClass
+    class G groupClass
+    class F fileClass
+    class P permissionClass
+    class OP ownerPermClass
+    class GP groupPermClass
+    class OT otherPermClass
+    class CMD1,CMD2,CMD3 commandClass
+``` 
+
