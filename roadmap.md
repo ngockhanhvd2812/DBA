@@ -1,3 +1,12 @@
+- [**I. Lộ trình tổng quan**](#i-lộ-trình-tổng-quan)
+  - [**1. Foundation (3 tháng)**](#1-foundation-3-tháng)
+  - [**2. Junior DBA – Setup \& Vận Hành Oracle (6 tháng)**](#2-junior-dba--setup--vận-hành-oracle-6-tháng)
+  - [**3. Mid-Level DBA – Tối Ưu \& Bảo Vệ (9 tháng)**](#3-mid-level-dba--tối-ưu--bảo-vệ-9-tháng)
+  - [**4. Senior DBA – Cloud \& Tự Động Hóa (Liên tục)**](#4-senior-dba--cloud--tự-động-hóa-liên-tục)
+- [**II. Giai Đoạn 1: FOUNDATION**](#ii-giai-đoạn-1-foundation)
+
+---
+
 # **I. Lộ trình tổng quan**
 ```mermaid
 gitGraph
@@ -376,7 +385,7 @@ gitGraph
   commit id: "🎤 Solution Presentation"
 ``` 
 
-# **Giai Đoạn 1: FOUNDATION**
+# **II. Giai Đoạn 1: FOUNDATION**
 
 - Sơ đồ này trình bày thứ tự liên kết các phần nội dung học với công cụ mở rộng như nmap/sqlite3. Mục tiêu học là thành thạo terminal và scripting cơ bản với port scan. Sau khi học xong, người học đạt kỹ năng debug hệ thống độc lập, sẵn sàng cho Oracle với lab test nmap/query
 
