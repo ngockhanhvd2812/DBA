@@ -1,12 +1,3 @@
-- [**I. Lộ trình tổng quan**](#i-lộ-trình-tổng-quan)
-  - [**1. Foundation (3 tháng)**](#1-foundation-3-tháng)
-  - [**2. Junior DBA – Setup \& Vận Hành Oracle (6 tháng)**](#2-junior-dba--setup--vận-hành-oracle-6-tháng)
-  - [**3. Mid-Level DBA – Tối Ưu \& Bảo Vệ (9 tháng)**](#3-mid-level-dba--tối-ưu--bảo-vệ-9-tháng)
-  - [**4. Senior DBA – Cloud \& Tự Động Hóa (Liên tục)**](#4-senior-dba--cloud--tự-động-hóa-liên-tục)
-- [**II. Giai Đoạn 1: FOUNDATION**](#ii-giai-đoạn-1-foundation)
-
----
-
 # **I. Lộ trình tổng quan**
 ```mermaid
 gitGraph
@@ -383,36 +374,4 @@ gitGraph
   commit id: "🔒 Trivy Security Scan"
   commit id: "💼 Tư Vấn Migration"
   commit id: "🎤 Solution Presentation"
-``` 
-
-# **II. Giai Đoạn 1: FOUNDATION**
-
-- Sơ đồ này trình bày thứ tự liên kết các phần nội dung học với công cụ mở rộng như nmap/sqlite3. Mục tiêu học là thành thạo terminal và scripting cơ bản với port scan. Sau khi học xong, người học đạt kỹ năng debug hệ thống độc lập, sẵn sàng cho Oracle với lab test nmap/query
-
-```mermaid
-sequenceDiagram
-    participant KT as Kiến Thức Nền Tảng
-    participant CD as Cài Đặt Linux
-    participant QT as Quản Trị Linux
-    participant MB as Mạng và Bảo Mật
-    participant BS as Bash Scripting
-    participant KQ as Kết Quả
-
-    rect rgb(255, 221, 193)
-        KT->>CD: CPU, RAM, Disk, OS Kernel
-    end
-    rect rgb(255, 214, 165)
-        CD->>QT: VMware, Terminal Commands
-    end
-    rect rgb(253, 255, 182)
-        QT->>MB: User Management, Services
-    end
-    rect rgb(202, 255, 191)
-        MB->>BS: Network, Security, Monitoring
-    end
-    rect rgb(155, 246, 255)
-        BS->>KQ: Scripting, SQL Basics
-    end
-    
-    Note right of BS: Milestone: Lab VM + Scripts + SQL
 ``` 
