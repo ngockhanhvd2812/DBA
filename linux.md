@@ -1,5 +1,8 @@
-# Phần 1: Giới thiệu và Bắt đầu
-**Giải thích các khái niệm nền tảng và các bước đầu tiên để tiếp cận Linux**
+# **I. TỔNG QUAN VỀ LINUX**
+
+## **1. Giới thiệu và Bắt đầu**
+
+- Giải thích các khái niệm nền tảng và các bước đầu tiên để tiếp cận Linux
 ```mermaid
 graph TD
     subgraph "Phần 1: Giới thiệu và Bắt đầu"
@@ -32,16 +35,83 @@ graph TD
         P2 --> P3("Đăng nhập lần đầu") --> P4("Khám phá Giao diện Desktop")
         P3 -- "Mật khẩu không hiển thị khi gõ<br/>(Đây là tính năng bảo mật)" --> P2
     end
-    
+
     %% Relationships
     C1 -- Nền tảng cho --> C2
     C2 -- Điều kiện cần để --> C3
+
+    %% Styles
+    style C1 fill:#ffebcc,stroke:#cc6600,stroke-width:2px
+    style C2 fill:#e6f2ff,stroke:#3366cc,stroke-width:2px
+    style C3 fill:#e6ffe6,stroke:#33cc33,stroke-width:2px
+    style K1 fill:#fff2cc,stroke:#cc9900
+    style K2 fill:#fff2cc,stroke:#cc9900
+    style K3 fill:#fff2cc,stroke:#cc9900
+    style D1 fill:#ffffcc,stroke:#cccc00,stroke-dasharray: 5 5
+    style D_Ubuntu fill:#f2dede,stroke:#a94442
+    style D_Mint fill:#dff0d8,stroke:#3c763d
+    style D_Fedora fill:#d9edf7,stroke:#31708f
+    style I1 fill:#fcf8e3,stroke:#8a6d3b
+    style I2 fill:#fcf8e3,stroke:#8a6d3b
+    style I3 fill:#fcf8e3,stroke:#8a6d3b
+    style P1 fill:#f5f5f5,stroke:#999
+    style P2 fill:#f5f5f5,stroke:#999
+    style P3 fill:#f5f5f5,stroke:#999
+    style P4 fill:#f5f5f5,stroke:#999
+``` 
+
+- Sơ đồ phân rã cấu trúc của một hệ điều hành Linux và mối quan hệ giữa các thành phần cốt lõi của nó.
+
+```mermaid
+graph TD
+    subgraph "Chương 1 (Chi tiết): Phân rã một hệ điều hành Linux"
+        
+        A["Người dùng"] -- "Tương tác qua" --> B{Shell / Giao diện Đồ họa}
+        style A fill:#ffe6e6,stroke:#333,stroke-width:2px
+        style B fill:#99ccff,stroke:#333,stroke-width:2px
+
+        subgraph "Không gian Người dùng (User Space)"
+            B -- "Gửi yêu cầu tới" --> C["Các công cụ và ứng dụng"]
+            style C fill:#fff2b3,stroke:#333,stroke-width:2px
+
+            C -- "Ví dụ" --> D["Trình duyệt Web, Trình gõ văn bản, Lệnh (ls, cp)..."]
+            style D fill:#ffffcc,stroke:#333,stroke-width:1.5px
+
+            D -- "Sử dụng các thư viện hệ thống (GNU Core Utilities)" --> E["System Libraries (glibc)"]
+            style E fill:#ccffcc,stroke:#333,stroke-width:2px
+        end
+
+        E -- "Giao tiếp qua System Calls" --> F{Kernel Linux}
+
+        subgraph "Không gian Nhân (Kernel Space) - TRÁI TIM HỆ THỐNG"
+            F -- "Quản lý toàn bộ phần cứng" --> G["Phần cứng Máy tính"]
+            style F fill:#ff99ff,stroke:#333,stroke-width:4px
+
+            F -- "Chịu trách nhiệm" --> F1["Quản lý Tiến trình (CPU)"]
+            F -- "Chịu trách nhiệm" --> F2["Quản lý Bộ nhớ (RAM)"]
+            F -- "Chịu trách nhiệm" --> F3["Quản lý Hệ thống File (Ổ đĩa)"]
+            F -- "Chịu trách nhiệm" --> F4["Quản lý Thiết bị (Chuột, Bàn phím...)"]
+
+            style F1 fill:#ffcccc,stroke:#333
+            style F2 fill:#ffcccc,stroke:#333
+            style F3 fill:#ffcccc,stroke:#333
+            style F4 fill:#ffcccc,stroke:#333
+        end
+
+        G --> H["CPU, RAM, Ổ cứng, Card mạng, ..."]
+        style G fill:#d9d9d9,stroke:#333
+        style H fill:#f2f2f2,stroke:#333
+
+        %% Note
+        Note1("<b>Tổng kết:</b><br/>Một <b>Bản phân phối (Distro)</b> như Ubuntu<br/>sẽ đóng gói tất cả các thành phần này<br/>(Kernel, Shell, Công cụ, Ứng dụng)<br/>thành một hệ điều hành hoàn chỉnh.")
+        style Note1 fill:#ccf2ff,stroke:#333,stroke-width:1.5px
+    end
 ``` 
 
 ---
 
-# Phần 2: Giao diện Dòng lệnh (CLI)
-**Đây là phần quan trọng nhất, tập trung vào các lệnh cơ bản để tương tác với hệ thống.** 
+## **2. Giao diện Dòng lệnh (CLI)**
+- Đây là phần quan trọng nhất, tập trung vào các lệnh cơ bản để tương tác với hệ thống.
 ```mermaid
 graph TD
     subgraph "Phần 2: Giao diện Dòng lệnh (CLI)"
@@ -94,11 +164,38 @@ graph TD
                 V2 --> V2b("<b>vim/vi [file]</b><br/>Trình soạn thảo mạnh mẽ<br/>nhưng cần thời gian học")
         end
     end
+
+    %% Styles
+    style C4 fill:#fde9d9,stroke:#d38c1f
+    style C5 fill:#e1f5fe,stroke:#039be5
+    style C6 fill:#f1f8e9,stroke:#689f38
+    style C7 fill:#fff3e0,stroke:#fb8c00
+    style L1 fill:#fffde7,stroke:#f9a825
+    style L2 fill:#fffde7,stroke:#f9a825
+    style L2_opt1 fill:#fff9c4,stroke:#fbc02d
+    style L2_opt2 fill:#fff9c4,stroke:#fbc02d
+    style L3 fill:#fffde7,stroke:#f9a825
+    style L3_ex1 fill:#e8f5e9,stroke:#43a047
+    style L3_ex2 fill:#e8f5e9,stroke:#43a047
+    style L3_ex3 fill:#e8f5e9,stroke:#43a047
+    style M1 fill:#e0f7fa,stroke:#006064
+    style M2 fill:#e0f7fa,stroke:#006064
+    style M3 fill:#fce4ec,stroke:#880e4f
+    style M4 fill:#fce4ec,stroke:#880e4f
+    style M5 fill:#fce4ec,stroke:#880e4f
+    style M6 fill:#fce4ec,stroke:#880e4f
+    style M6_warn fill:#ffebee,stroke:#c62828
+    style V1 fill:#ede7f6,stroke:#512da8
+    style V1a fill:#ede7f6,stroke:#512da8
+    style V1b fill:#ede7f6,stroke:#512da8
+    style V2 fill:#f3e5f5,stroke:#7b1fa2
+    style V2a fill:#f3e5f5,stroke:#7b1fa2
+    style V2b fill:#f3e5f5,stroke:#7b1fa2
 ```  
 ---
 
-# Phần 3: Quản trị Hệ thống Cơ bản
-**Sơ đồ này mô tả các tác vụ quản trị thiết yếu như quản lý người dùng, phần mềm và tiến trình.** 
+## **3. Quản trị Hệ thống Cơ bản**
+- Sơ đồ này mô tả các tác vụ quản trị thiết yếu như quản lý người dùng, phần mềm và tiến trình.
 ```mermaid
 flowchart TD
     subgraph "Phần 3: Quản trị Hệ thống Cơ bản"
@@ -114,7 +211,7 @@ flowchart TD
         P1 --> P2("<b>r (read)</b> - w (write) - <b>x (execute)</b><br/>Đọc - Ghi - Thực thi")
         P1 --> P3("Phân quyền cho: <b>User - Group - Others</b>")
         P1 --> P4("Các lệnh thay đổi quyền")
-            P4 --> P4a("<b>chmod [quyền] [file]</b><br/>Thay đổi quyền truy cập<br/><i>(vd: chmod 755 script.sh)</i>")
+            P4 --> P4a("<b>chmod [quyền] [file]</b><br/><i>(vd: chmod 755 script.sh)</i>")
             P4 --> P4b("<b>chown [user] [file]</b><br/>Thay đổi chủ sở hữu")
 
         %% Chapter 9 Details
@@ -123,29 +220,56 @@ flowchart TD
             PM2 -- Debian/Ubuntu --> APT("<b>apt</b>")
             PM2 -- Fedora/CentOS --> DNF("<b>dnf / yum</b>")
             PM2 -- Arch --> PACMAN("<b>pacman</b>")
-        
+
         APT --> APT_Flow
-        subgraph APT_Flow [Quy trình quản lý phần mềm với APT]
+        subgraph APT_Flow [Quy trình với APT]
             direction LR
-            A1("sudo apt update<br/><i>Cập nhật danh sách gói</i>") --> A2("apt search [tên]<br/><i>Tìm kiếm gói</i>")
-            A2 --> A3("sudo apt install [tên_gói]<br/><i>Cài đặt phần mềm</i>")
-            A3 --> A4("sudo apt remove [tên_gói]<br/><i>Gỡ bỏ phần mềm</i>")
+            A1("sudo apt update") --> A2("apt search")
+            A2 --> A3("sudo apt install")
+            A3 --> A4("sudo apt remove")
         end
-        
+
         %% Chapter 10 Details
         C10 --> PR1("Tiến trình (Process) là gì?")
         PR1 -- "Là một chương trình đang chạy" --> PR2
         C10 --> PR3("Các lệnh giám sát")
-            PR3 --> PR3a("<b>ps aux</b><br/>Xem tất cả tiến trình đang chạy")
-            PR3 --> PR3b("<b>top / htop</b><br/>Xem tài nguyên hệ thống<br/>(CPU, RAM) theo thời gian thực")
+            PR3 --> PR3a("ps aux")
+            PR3 --> PR3b("top / htop")
         C10 --> PR4("Dừng một tiến trình")
-            PR4 --> PR4a("<b>kill [PID]</b><br/>Gửi tín hiệu dừng (PID lấy từ ps/top)")
-            PR4a -- "Nếu không hiệu quả" --> PR4b("<b>kill -9 [PID]</b><br/>Buộc dừng ngay lập tức")
+            PR4 --> PR4a("kill [PID]")
+            PR4a -- "Nếu không hiệu quả" --> PR4b("kill -9 [PID]")
     end
+
+    %% Styles
+    style C8 fill:#fff2e6,stroke:#d46b00
+    style C9 fill:#e6f7ff,stroke:#3399ff
+    style C10 fill:#e6ffe6,stroke:#33cc33
+    style U1 fill:#fff5e6,stroke:#e67300
+    style U2 fill:#fff5e6,stroke:#e67300
+    style P1 fill:#fafafa,stroke:#999
+    style P2 fill:#fafafa,stroke:#999
+    style P3 fill:#fafafa,stroke:#999
+    style P4 fill:#fafafa,stroke:#999
+    style P4a fill:#f0f0f0,stroke:#666
+    style P4b fill:#f0f0f0,stroke:#666
+    style PM1 fill:#e6f7ff,stroke:#3399ff
+    style APT fill:#d9edf7,stroke:#31708f
+    style DNF fill:#f2dede,stroke:#a94442
+    style PACMAN fill:#dff0d8,stroke:#3c763d
+    style A1 fill:#fcf8e3,stroke:#8a6d3b
+    style A2 fill:#fcf8e3,stroke:#8a6d3b
+    style A3 fill:#fcf8e3,stroke:#8a6d3b
+    style A4 fill:#fcf8e3,stroke:#8a6d3b
+    style PR1 fill:#f9f9f9,stroke:#999
+    style PR3a fill:#f9f9f9,stroke:#999
+    style PR3b fill:#f9f9f9,stroke:#999
+    style PR4a fill:#fff0f0,stroke:#c00
+    style PR4b fill:#fff0f0,stroke:#c00
+
 ``` 
 ---
-# Phần 4: Mạng và các Công cụ Nâng cao
-**Giới thiệu về mạng, tự động hóa với script và giao diện đồ họa.** 
+## **4. Mạng và các Công cụ Nâng cao** 
+- Giới thiệu về mạng, tự động hóa với script và giao diện đồ họa
 ```mermaid 
 graph TD
     subgraph "Phần 4: Mạng & Nâng cao"
@@ -156,32 +280,57 @@ graph TD
 
         %% Chapter 11 Details
         C11 --> N1("Các lệnh kiểm tra mạng")
-        N1 --> N1a("<b>ip address / ifconfig</b><br/>Xem địa chỉ IP")
-        N1 --> N1b("<b>ping [địa_chỉ_ip / tên_miền]</b><br/>Kiểm tra kết nối tới máy chủ khác")
-        
-        C11 --> N2("<b>SSH (Secure Shell)</b><br/>Đăng nhập và điều khiển<br/>máy tính khác từ xa qua CLI")
+        N1 --> N1a("ip address / ifconfig")
+        N1 --> N1b("ping [địa_chỉ_ip / tên_miền]")
+
+        C11 --> N2("SSH (Secure Shell)")
         N2 -- "Cú pháp" --> N2a("ssh [user]@[địa_chỉ_ip]")
-        MyPC["Máy tính của bạn"] -- ssh user@server.com --> Server["Máy chủ Linux ở xa"]
+        MyPC["Máy của bạn"] -- ssh --> Server["Máy chủ Linux"]
 
         %% Chapter 12 Details
-        C12 --> S1("Shell Script là gì?<br/><i>Một file văn bản chứa<br/>chuỗi các câu lệnh Linux</i>")
-        S1 --> S2("Cấu trúc một script đơn giản")
+        C12 --> S1("Shell Script là gì?")
+        S1 --> S2("Cấu trúc script")
         S2 --> S2_File
         subgraph S2_File [my_script.sh]
-            S2a("<b>#!/bin/bash</b> (Shebang)")
+            S2a("#!/bin/bash")
             S2b("echo 'Hello, World!'")
             S2c("date")
         end
-        S2_File -- "Bước 1: Cấp quyền thực thi" --> S3("chmod +x my_script.sh")
-        S3 -- "Bước 2: Chạy script" --> S4("./my_script.sh")
-        
+        S2_File -- "Cấp quyền" --> S3("chmod +x my_script.sh")
+        S3 -- "Chạy" --> S4("./my_script.sh")
+
         %% Chapter 13 Details
-        C13 --> G1("Giao diện đồ họa (GUI) hoạt động thế nào?")
-        G1 --> G2("<b>Desktop Environment (DE)</b><br/>Bộ sưu tập các thành phần<br/>tạo nên giao diện người dùng")
+        C13 --> G1("GUI hoạt động thế nào?")
+        G1 --> G2("Desktop Environment (DE)")
         G2 --> G3("Các DE phổ biến")
-            G3 --> G3a("<b>GNOME</b><br/>Hiện đại, đơn giản (mặc định trên Ubuntu, Fedora)")
-            G3 --> G3b("<b>KDE Plasma</b><br/>Linh hoạt, nhiều tùy chỉnh, đẹp mắt")
-            G3 --> G3c("<b>XFCE</b><br/>Nhẹ, nhanh, phù hợp máy cấu hình yếu")
-        C13 --> G4("Các ứng dụng đồ họa thường dùng<br/><i>(Trình duyệt, Office, Media Player...)</i>")
+            G3 --> G3a("GNOME")
+            G3 --> G3b("KDE Plasma")
+            G3 --> G3c("XFCE")
+        C13 --> G4("Các ứng dụng đồ họa thường dùng")
     end
+
+    %% Styles
+    style C11 fill:#e8f4f8,stroke:#0277bd
+    style C12 fill:#f3e8ff,stroke:#6a1b9a
+    style C13 fill:#fffde7,stroke:#f9a825
+    style N1 fill:#e1f5fe,stroke:#0288d1
+    style N1a fill:#e1f5fe,stroke:#0288d1
+    style N1b fill:#e1f5fe,stroke:#0288d1
+    style N2 fill:#e1f5fe,stroke:#0288d1
+    style N2a fill:#e1f5fe,stroke:#0288d1
+    style MyPC fill:#f9fbe7,stroke:#afb42b
+    style Server fill:#f9fbe7,stroke:#afb42b
+    style S1 fill:#fce4ec,stroke:#ad1457
+    style S2 fill:#fce4ec,stroke:#ad1457
+    style S2a fill:#fce4ec,stroke:#ad1457
+    style S2b fill:#fce4ec,stroke:#ad1457
+    style S2c fill:#fce4ec,stroke:#ad1457
+    style S3 fill:#fbe9e7,stroke:#bf360c
+    style S4 fill:#fbe9e7,stroke:#bf360c
+    style G1 fill:#fff3e0,stroke:#e65100
+    style G2 fill:#fff3e0,stroke:#e65100
+    style G3a fill:#fff3e0,stroke:#e65100
+    style G3b fill:#fff3e0,stroke:#e65100
+    style G3c fill:#fff3e0,stroke:#e65100
+    style G4 fill:#fff3e0,stroke:#e65100
 ``` 
