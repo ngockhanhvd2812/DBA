@@ -1,32 +1,464 @@
-- [**I. TỔNG QUAN VỀ LINUX**](#i-tổng-quan-về-linux)
-  - [**1. Giới thiệu và Bắt đầu**](#1-giới-thiệu-và-bắt-đầu)
-    - [**1.1. Giới thiệu và Bắt đầu**](#11-giới-thiệu-và-bắt-đầu)
-    - [**1.2. Phân rã hệ điều hành Linux**](#12-phân-rã-hệ-điều-hành-linux)
-  - [**2. Giao diện Dòng lệnh (CLI)**](#2-giao-diện-dòng-lệnh-cli)
-  - [**3. Quản trị Hệ thống Cơ bản**](#3-quản-trị-hệ-thống-cơ-bản)
-  - [**4. Mạng và các Công cụ Nâng cao**](#4-mạng-và-các-công-cụ-nâng-cao)
-  - [**5. Hệ thống file**](#5-hệ-thống-file)
-    - [**5.1. Khám phá Hệ thống File Linux**](#51-khám-phá-hệ-thống-file-linux)
-    - [**5.2. Vòng đời File \& Thư mục**](#52-vòng-đời-file--thư-mục)
-  - [**6. Người dùng và quyền hạn**](#6-người-dùng-và-quyền-hạn)
-    - [**6.1. Mối quan hệ tổng quan**](#61-mối-quan-hệ-tổng-quan)
-    - [**6.2. Quy trình kiểm tra quyền truy cập**](#62-quy-trình-kiểm-tra-quyền-truy-cập)
-    - [**6.3. Quy trình thay đổi quyền**](#63-quy-trình-thay-đổi-quyền)
-  - [**7. Quy trình làm việc với Trình quản lý gói**](#7-quy-trình-làm-việc-với-trình-quản-lý-gói)
-  - [**8. Giám sát và Điều khiển Tiến trình**](#8-giám-sát-và-điều-khiển-tiến-trình)
-  - [**9. Công cụ Mạng cơ bản**](#9-công-cụ-mạng-cơ-bản)
-  - [**10. Shell Script**](#10-shell-script)
-    - [**10.1. Vòng đời của một Shell Script**](#101-vòng-đời-của-một-shell-script)
-    - [**10.2. Luồng dữ liệu trong Shell**](#102-luồng-dữ-liệu-trong-shell)
-    - [**10.3. Tìm kiếm với find và grep**](#103-tìm-kiếm-với-find-và-grep)
-    - [**10.4. Quản lý Dịch vụ hệ thống với systemd**](#104-quản-lý-dịch-vụ-hệ-thống-với-systemd)
+# Lộ Trình Học Linux Cho Người Mới Bắt Đầu
 
+## **I. Giới Thiệu Và Nền Tảng Linux (Tuần 1: 2 ngày)**  
+🎯 **Mục tiêu**: Hiểu Linux là gì, tại sao dùng. 
+**Nội dung học**:  
+1. 🐧 **Linux là gì?**  
+   - Lịch sử ngắn gọn: từ Unix đến Linus Torvalds  
+   - So sánh với Windows/macOS một cách đơn giản
+2. 🔧 **Các thành phần cốt lõi**:  
+   - Kernel (nhân) - não bộ của hệ thống
+   - Distro (Ubuntu, Mint, Fedora...) - các "hương vị" khác nhau
+   - Shell - cách giao tiếp với máy tính
 
-# **I. TỔNG QUAN VỀ LINUX**
+## **II. Cài Đặt Và Thiết Lập Môi Trường**  
+🎯 **Mục tiêu**: Có môi trường Linux để thực hành, làm quen giao diện.  
+**Nội dung học**:  
+1. 📦 **Chọn Distro cho người mới**:  
+   - **Khuyến nghị**: Ubuntu LTS (ổn định, nhiều tài liệu)
+   - Tại sao tránh Arch, Gentoo lúc đầu
+2. 💿 **Phương pháp cài đặt an toàn**:  
+   - **Ưu tiên**: VirtualBox (không ảnh hưởng máy chính)
+   - Live USB để thử nghiệm
+   - Dual Boot (chỉ khi đã tự tin và **sao lưu dữ liệu**)
+3. 🛠 **Hướng dẫn cài đặt từng bước**:  
+   - Tải Ubuntu ISO từ trang chính thức
+   - Cài VirtualBox, tạo máy ảo
+   - Cài Ubuntu với cấu hình cơ bản
+4. 🖥 **Làm quen giao diện**:  
+   - Desktop Environment (GNOME)
+   - Ứng dụng cơ bản: Files, Terminal, Firefox
+   - Cài đặt hệ thống cơ bản
+5. ⚙️ **Cấu hình cơ bản**:  
+   - Thay đổi theme/font cho dễ nhìn
+   - Thiết lập PATH cơ bản
+   - Cài đặt extension GUI đơn giản 
 
-## **1. Giới thiệu và Bắt đầu**
+📝 **Bài tập thực hành**:  
+   - Cài Ubuntu trên VirtualBox
+   - Mở Terminal và gõ `echo "Xin chào Linux"`
+   - Cài đặt ngôn ngữ tiếng Việt và thay đổi theme
+   - Tạo folder qua GUI và kiểm tra qua Terminal
 
-### **1.1. Giới thiệu và Bắt đầu**
+📚 **Tài nguyên học tập**:  
+   - Video: "How to install Ubuntu on VirtualBox"
+   - Ubuntu Desktop Guide (tiếng Việt)
+
+## **III. Làm Quen Với Terminal & Lệnh Cơ Bản**  
+🎯 **Mục tiêu**: Thành thạo các lệnh thiết yếu.  
+**Nội dung học**:  
+1. 🖥 **Terminal là gì và tại sao quan trọng**:  
+   - Giao diện dòng lệnh vs giao diện đồ họa
+   - Tại sao admin Linux cần biết Terminal
+2. 📝 **Cấu trúc lệnh**: `lệnh [tùy-chọn] [đối-số]`  
+   - Ví dụ: `ls -l /home`
+3. 🆘 **Công cụ trợ giúp**:  
+   - `man tên-lệnh` - hướng dẫn chi tiết
+   - `lệnh --help` - trợ giúp nhanh
+   - Tab completion - tự động hoàn thành
+   - Phím mũi tên ↑↓ - lịch sử lệnh
+   - Ctrl+R - tìm kiếm lệnh đã dùng
+4. 🔍 **Wildcards & pattern**:  
+   - `*` (bất kỳ), `?` (1 ký tự), `[]` (phạm vi)
+5. 🌎 **Biến môi trường**:  
+   - `$PATH` (tìm lệnh), `$HOME` (thư mục nhà)
+   - `echo $PATH` để kiểm tra
+   - `export VAR=value` để thiết lập tạm thời
+6. 💻 **Lệnh cơ bản đầu tiên**:  
+   - `pwd` - xem thư mục hiện tại
+   - `ls` - liệt kê file/thư mục
+   - `cd` - di chuyển thư mục
+   - `whoami` - xem tên người dùng
+   - `date` - xem ngày giờ
+   - `clear` - xóa màn hình
+
+📝 **Bài tập thực hành**:  
+   - Thực hành 20 lệnh cơ bản mỗi ngày
+   - Tạo cheat sheet cá nhân với các lệnh hay dùng
+   - Sử dụng `man` để tìm hiểu 5 lệnh
+   - Tạo alias đơn giản: `alias ll='ls -la'`
+   - Tìm hiểu và sửa lỗi "command not found" (kiểm tra PATH)
+
+📚 **Tài nguyên học tập**:  
+   - "Linux Command Line for Beginners" (free PDF)
+   - Interactive terminal: linuxjourney.com
+
+## **IV. Quản Lý File Và Thư Mục**  
+🎯 **Mục tiêu**: Thành thạo thao tác với file/thư mục - kỹ năng cốt lõi nhất.  
+**Nội dung học**:  
+1. 📂 **Hiểu cấu trúc thư mục Linux**:  
+   - `/` - thư mục gốc
+   - `/home` - thư mục người dùng  
+   - `/etc` - cấu hình hệ thống
+   - `/usr` - ứng dụng người dùng
+   - `/var` - dữ liệu thay đổi
+   - `/bin` - lệnh hệ thống cơ bản
+2. 📋 **Lệnh điều hướng nâng cao**:  
+   - `ls -la` - xem chi tiết + file ẩn
+   - `cd ~` - về thư mục home
+   - `cd ..` - lên thư mục cha
+   - `cd -` - về thư mục trước
+3. 📑 **Thao tác file/thư mục**:  
+   - `touch file.txt` - tạo file trống
+   - `mkdir thư-mục` - tạo thư mục
+   - `cp file1 file2` - copy file
+   - `mv file1 file2` - di chuyển/đổi tên
+   - `rm file` - xóa file
+   - `rm -r thư-mục` - xóa thư mục
+4. 🔄 **Redirection & piping**:  
+   - `>` (ghi đè), `>>` (thêm)
+   - `|` (kết nối lệnh), `2>` (lỗi)
+5. 📖 **Xem và chỉnh sửa file**:  
+   - `cat file.txt` - xem nội dung file
+   - `less file.txt` - xem file dài
+   - `nano file.txt` - chỉnh sửa đơn giản
+6. 🔎 **Tìm kiếm cơ bản**:  
+   - `find /home -name "*.txt"` - tìm file theo tên
+   - `locate "*.log"` - tìm nhanh hơn (cần cập nhật database)
+   - `grep "từ-khóa" file.txt` - tìm text trong file
+   - `grep -r "error" /var/log` - tìm recursive
+
+📝 **Bài tập thực hành**:  
+   - Tạo cấu trúc thư mục dự án cá nhân
+   - Copy, move, rename file
+   - Tạo và chỉnh sửa file text đơn giản
+   - Tìm file theo tên và nội dung
+   - Sử dụng redirection và piping để xử lý dữ liệu
+   - Thực hành tìm và sửa lỗi "no such file" (kiểm tra pwd, dùng absolute path)
+
+📚 **Tài nguyên học tập**:  
+   - Interactive exercises trên cmdchallenge.com
+   - "Linux File System" tutorial
+
+## **V. Quyền Truy Cập Và Bảo Mật Cơ Bản**  
+🎯 **Mục tiêu**: Hiểu và quản lý quyền file để tránh lỗi "permission denied".  
+**Nội dung học**:  
+1. 👥 **Khái niệm User và Group**:  
+   - Owner (chủ sở hữu), Group (nhóm), Others (người khác)
+   - Tại sao cần phân quyền
+2. 🔒 **Hiểu quyền truy cập**:  
+   - `r` (read) - đọc
+   - `w` (write) - ghi
+   - `x` (execute) - thực thi
+   - Xem quyền với `ls -l`
+3. 🛠 **Thay đổi quyền**:  
+   - `chmod 755 file` - số học
+   - `chmod u+x file` - ký hiệu
+   - `chown user:group file` - đổi chủ sở hữu
+4. 🧩 **Quyền nâng cao**:  
+   - Sticky bit (chỉ chủ sở hữu xóa được)
+   - SUID/SGID (ví dụ: lệnh passwd)
+5. 👑 **Sudo - quyền quản trị**:  
+   - Khi nào cần `sudo`
+   - `sudo vs su` - khác biệt
+   - Cách sử dụng an toàn
+   - Cấu hình sudoers cơ bản
+6. 🛡 **Bảo mật cơ bản**:  
+   - Tạo mật khẩu mạnh
+   - Cập nhật hệ thống thường xuyên
+   - Tắt tài khoản root khi không cần
+   - SSH hardening cơ bản (sử dụng key-based authentication)
+   - Giới thiệu firewall cơ bản (ufw)
+
+📝 **Bài tập thực hành**:  
+   - Tạo file và thay đổi quyền truy cập
+   - Thực hành lệnh sudo
+   - Tạo user mới và phân quyền
+   - Thiết lập rule ufw đơn giản (cho phép SSH)
+   - Thử nghiệm SUID với lệnh passwd
+
+📚 **Tài nguyên học tập**:  
+   - "Linux Permissions Explained" video
+   - Ubuntu Security Guide
+
+## **VI. Cài Đặt Phần Mềm**  
+🎯 **Mục tiêu**: Biết cách cài đặt và quản lý ứng dụng an toàn.  
+**Nội dung học**:  
+1. 📦 **Package Manager là gì**:  
+   - Kho phần mềm tập trung
+   - Tự động xử lý dependencies
+2. 🔄 **Sử dụng APT (Ubuntu/Debian)**:  
+   - `sudo apt update` - cập nhật danh sách
+   - `sudo apt install tên-gói` - cài đặt
+   - `sudo apt remove tên-gói` - gỡ bỏ
+   - `sudo apt upgrade` - cập nhật hệ thống
+3. 📋 **Quản lý phần mềm**:  
+   - `apt list --installed` - xem đã cài
+   - `apt search từ-khóa` - tìm kiếm
+   - `sudo apt autoremove` - dọn dẹp
+4. 🏪 **Ubuntu Software Center & Snap**:  
+   - Cài đặt qua giao diện đồ họa
+   - Ưu/nhược điểm của Snap packages
+5. ⚙️ **Các package manager khác**:  
+   - `dnf`/`yum` (Fedora)
+   - `pacman` (Arch)
+   - Compile từ source (make/install - khi cần thiết)
+
+📝 **Bài tập thực hành**:  
+   - Cài đặt: git, curl, htop, tree
+   - Cập nhật toàn bộ hệ thống
+   - Gỡ bỏ một ứng dụng không cần
+   - Thử cài đặt qua Snap và so sánh với apt
+   - Tìm hiểu và sửa lỗi repository (kiểm tra /etc/apt/sources.list)
+
+📚 **Tài nguyên học tập**:  
+   - Ubuntu Package Management Guide
+   - APT cheat sheet
+
+## **VII. Quản Lý Tiến Trình**  
+🎯 **Mục tiêu**: Giám sát và điều khiển các chương trình đang chạy.  
+**Nội dung học**:  
+1. ⚙️ **Process (tiến trình) là gì**:  
+   - Mỗi chương trình chạy = 1 process
+   - PID (Process ID) - số định danh
+2. 👀 **Xem tiến trình**:  
+   - `ps aux` - liệt kê tất cả process
+   - `top` - xem real-time
+   - `htop` - giao diện đẹp hơn (cần cài)
+   - `pstree` - xem dạng cây
+3. ❌ **Dừng tiến trình**:  
+   - `kill PID` - dừng nhẹ nhàng
+   - `kill -9 PID` - buộc dừng
+   - `pkill tên-chương-trình` - kill theo tên
+4. 🏁 **Chạy nền và foreground**:  
+   - `lệnh &` - chạy nền
+   - `Ctrl+Z` - tạm dừng
+   - `jobs` - xem công việc nền
+   - `fg` - đưa lên foreground
+   - `bg` - tiếp tục chạy nền
+   - `nohup` - chạy ngay cả khi logout
+5. 🔧 **Systemd services cơ bản**:  
+   - `sudo systemctl status tên-service`
+   - `sudo systemctl start/stop/restart tên-service`
+   - `sudo systemctl enable tên-service` - khởi động cùng hệ thống
+   - Các loại unit: `.service`, `.timer`, `.target`
+6. 📜 **Logs hệ thống**:  
+   - `journalctl -u tên-service -f` - xem log real-time
+
+📝 **Bài tập thực hành**:  
+   - Sử dụng htop để giám sát hệ thống
+   - Kill process tiêu tốn CPU cao
+   - Chạy lệnh ở background và quản lý với jobs
+   - Cài đặt và quản lý dịch vụ Apache (systemctl)
+   - Xem log của một dịch vụ đang chạy
+
+📚 **Tài nguyên học tập**:  
+   - "Linux Process Management" tutorial
+   - htop explained
+
+## **VIII. Mạng Và Kết Nối**  
+🎯 **Mục tiêu**: Kết nối Linux với internet và máy tính khác.  
+**Nội dung học**:  
+1. 🌐 **Kiểm tra kết nối mạng**:  
+   - `ping google.com` - test internet
+   - `ip addr`/`ifconfig` - xem IP address
+   - `traceroute google.com` - theo dõi đường đi
+   - `ss`/`netstat` - xem kết nối mạng
+2. 🔑 **SSH - Kết nối từ xa**:  
+   - Cài đặt SSH server
+   - Kết nối: `ssh user@ip-address`
+   - Copy file: `scp file user@ip:/path`
+   - Tạo SSH key: `ssh-keygen`
+   - Cấu hình SSH cơ bản
+3. 🛡 **Firewall cơ bản**:  
+   - `sudo ufw enable` - bật firewall
+   - `sudo ufw allow ssh` - cho phép SSH
+   - `sudo ufw status` - xem trạng thái
+   - Hiểu cơ bản về iptables
+4. 🌐 **Web tools**:  
+   - `curl` - gọi API, tải file
+   - `wget` - tải file từ web
+   - Giới thiệu nmap (scan ports)
+
+📝 **Bài tập thực hành**:  
+   - Test kết nối internet
+   - Cài đặt SSH và kết nối giữa 2 máy ảo
+   - Tạo SSH key và sử dụng xác thực bằng key
+   - Sử dụng curl để gọi API đơn giản
+   - Thiết lập firewall cơ bản với ufw
+   - Khắc phục lỗi kết nối bằng cách kiểm tra firewall
+
+📚 **Tài nguyên học tập**:  
+   - "SSH Essentials" guide
+   - Basic networking for Linux
+
+## **IX. Shell Scripting Cơ Bản**  
+🎯 **Mục tiêu**: Tự động hóa công việc lặp đi lặp lại.  
+**Nội dung học**:  
+1. 📝 **Script là gì và tại sao cần**:  
+   - Tự động hóa task
+   - Tránh lặp lại công việc
+2. 🚀 **Tạo script đầu tiên**:  
+   - Shebang: `#!/bin/bash`
+   - Quyền thực thi: `chmod +x script.sh`
+   - Chạy: `./script.sh`
+3. 🔤 **Biến và input**:  
+   - `name="John"` - gán biến
+   - `echo $name` - sử dụng biến
+   - `read -p "Nhập tên: " name` - input từ user
+   - `echo "Arguments: $1, $2"` - tham số dòng lệnh
+4. 🔄 **Điều kiện và vòng lặp đơn giản**:  
+   - `if [ condition ]; then ... fi`
+   - `for file in *.txt; do ... done`
+   - `while [ condition ]; do ... done`
+   - `case` statement
+5. ⏰ **Cron - Lập lịch tự động**:  
+   - `crontab -e` - chỉnh sửa lịch
+   - `0 2 * * * /path/to/script.sh` - chạy 2h sáng mỗi ngày
+6. 📄 **Xử lý văn bản cơ bản**:  
+   - `sed` và `awk` cơ bản
+   - Kết hợp với `grep` và `find`
+
+📝 **Bài tập thực hành**:  
+   - Viết script backup thư mục home
+   - Script kiểm tra disk space
+   - Đặt lịch chạy script tự động
+   - Viết script xử lý file log đơn giản với grep/sed
+   - Thử nghiệm error handling cơ bản
+
+📚 **Tài nguyên học tập**:  
+   - "Bash Scripting Tutorial for Beginners"
+   - Cron job generator online
+
+## **X. Troubleshooting Và Backup**  
+🎯 **Mục tiêu**: Xử lý sự cố và bảo vệ dữ liệu.  
+**Nội dung học**:  
+1. 📂 **Xem log hệ thống**:  
+   - `/var/log/syslog` - log chung
+   - `journalctl -f` - xem log real-time
+   - `dmesg` - log kernel
+2. 🔍 **Debug cơ bản**:  
+   - Đọc error message
+   - Google error + "ubuntu"
+   - Kiểm tra disk space: `df -h`
+   - Kiểm tra RAM: `free -h`
+   - Sử dụng `strace` để trace system calls
+   - Sử dụng `lsof` để xem file đang mở
+3. 💾 **Backup dữ liệu**:  
+   - `tar -czf backup.tar.gz /home/user` - nén backup
+   - `rsync -av source/ destination/` - sync folder
+   - Backup lên cloud (Google Drive, Dropbox)
+4. 🚑 **Recovery cơ bản**:  
+   - Boot từ Live USB
+   - Chroot để sửa hệ thống
+   - Single-user mode (sửa chữa qua GRUB)
+
+📝 **Bài tập thực hành**:  
+   - Tạo backup script tự động
+   - Thực hành đọc log khi có lỗi
+   - Recovery file đã xóa nhầm
+   - Debug một script lỗi bằng strace
+   - Thực hành sao lưu và khôi phục thư mục
+
+📚 **Tài nguyên học tập**:  
+   - "Linux Troubleshooting Guide"
+   - Backup strategies for home users
+
+## **XI. Tổng Kết Và Bước Tiếp Theo**  
+🎯 **Mục tiêu**: Củng cố kiến thức và định hướng phát triển.  
+**Nội dung học**:  
+1. 📖 **Review kiến thức đã học**:  
+   - Checklist các kỹ năng cơ bản
+   - Làm bài test tự đánh giá
+   - Best practices: Tránh dùng root, cập nhật định kỳ, backup hàng tuần
+2. 🚀 **Dự án thực tế**:  
+   - Setup home server đơn giản
+   - Tạo website tĩnh với Apache/Nginx
+   - Automation script cho công việc hàng ngày
+   - **Mới**: Cài đặt LAMP stack (Apache, MySQL, PHP)
+3. 📚 **Tài nguyên tiếp tục học**:  
+   - "The Linux Command Line" book
+   - "UNIX and Linux System Administration Handbook"
+   - Linux Academy, Cloud Guru courses
+   - Hands-on labs: KodeKloud, A Cloud Guru
+   - Free courses trên edX.org ("Introduction to Linux" bởi Linux Foundation)
+ 
+📝 **Bài tập cuối khóa**:  
+   - Xây dựng và present 1 dự án nhỏ (ví dụ: home server, script automation)
+   - Viết blog chia sẻ journey học Linux
+   - Thiết lập hệ thống backup tự động hàng tuần
+   - Kiểm tra và khắc phục một lỗi giả định trên hệ thống
+
+# **II. GIỚI THIỆU VÀ LỊCH SỬ LINUX**
+
+Linux là hệ điều hành mã nguồn mở, miễn phí, ổn định và an toàn, được sử dụng rộng rãi từ server đến máy tính cá nhân. Khác với Windows (đóng nguồn, tập trung vào GUI thân thiện) hay macOS (dựa trên Unix, tích hợp tốt với phần cứng Apple), Linux linh hoạt, tùy chỉnh cao, nhưng đòi hỏi học lệnh dòng (CLI) nhiều hơn.
+
+- **Lịch sử ngắn gọn**: Linux được Linus Torvalds tạo ra năm 1991 dựa trên Unix. Kernel (nhân) Linux kết hợp với công cụ GNU (từ Richard Stallman) tạo thành hệ điều hành hoàn chỉnh. Các distro phổ biến: Ubuntu (dễ dùng), Fedora (công nghệ mới), Debian (ổn định).
+
+- **Ưu điểm cho người mới**: Miễn phí, cộng đồng lớn (hỏi đáp trên Stack Overflow, Reddit), ít virus hơn Windows. Nhược điểm: Cài driver phần cứng đôi khi phức tạp.
+
+- **So sánh nhanh**:
+
+| Đặc điểm | Linux | Windows | macOS |
+|----------|-------|---------|-------|
+| Giá | Miễn phí | Trả phí | Miễn phí với phần cứng Apple |
+| Tùy chỉnh | Cao | Trung bình | Thấp |
+| Bảo mật | Cao (quyền hạn nghiêm ngặt) | Trung bình | Cao |
+| Học curve | Dốc (CLI) | Dễ (GUI) | Dễ |
+
+### **Phân rã hệ điều hành Linux**
+
+```mermaid
+graph TD
+    subgraph "Phân rã hệ điều hành Linux"
+        
+        A["Người dùng"] -- "Tương tác qua" --> B{Shell / Giao diện Đồ họa}
+        style A fill:#ffe6e6,stroke:#333,stroke-width:2px
+        style B fill:#99ccff,stroke:#333,stroke-width:2px
+
+        subgraph "Không gian Người dùng (User Space)"
+            B -- "Gửi yêu cầu tới" --> C["Các công cụ và ứng dụng"]
+            style C fill:#fff2b3,stroke:#333,stroke-width:2px
+
+            C -- "Ví dụ" --> D["Trình duyệt Web, Trình gõ văn bản, Lệnh (ls, cp)..."]
+            style D fill:#ffffcc,stroke:#333,stroke-width:1.5px
+
+            D -- "Sử dụng các thư viện hệ thống (GNU Core Utilities)" --> E["System Libraries (glibc)"]
+            style E fill:#ccffcc,stroke:#333,stroke-width:2px
+        end
+
+        E -- "Giao tiếp qua System Calls" --> F{Kernel Linux}
+
+        subgraph "Không gian Nhân (Kernel Space) - TRÁI TIM HỆ THỐNG"
+            F -- "Quản lý toàn bộ phần cứng" --> G["Phần cứng Máy tính"]
+            style F fill:#ff99ff,stroke:#333,stroke-width:4px
+
+            F -- "Chịu trách nhiệm" --> F1["Quản lý Tiến trình (CPU)"]
+            F -- "Chịu trách nhiệm" --> F2["Quản lý Bộ nhớ (RAM)"]
+            F -- "Chịu trách nhiệm" --> F3["Quản lý Hệ thống File (Ổ đĩa)"]
+            F -- "Chịu trách nhiệm" --> F4["Quản lý Thiết bị (Chuột, Bàn phím...)"]
+
+            style F1 fill:#ffcccc,stroke:#333
+            style F2 fill:#ffcccc,stroke:#333
+            style F3 fill:#ffcccc,stroke:#333
+            style F4 fill:#ffcccc,stroke:#333
+        end
+
+        G --> H["CPU, RAM, Ổ cứng, Card mạng, ..."]
+        style G fill:#d9d9d9,stroke:#333
+        style H fill:#f2f2f2,stroke:#333
+
+        %% Note
+        Note1("<b>Tổng kết:</b><br/>Một <b>Bản phân phối (Distro)</b> như Ubuntu<br/>sẽ đóng gói tất cả các thành phần này<br/>(Kernel, Shell, Công cụ, Ứng dụng)<br/>thành một hệ điều hành hoàn chỉnh.")
+        style Note1 fill:#ccf2ff,stroke:#333,stroke-width:1.5px
+    end
+```
+
+---
+
+# **II. CÀI ĐẶT VÀ BẮT ĐẦU**
+
+Chọn distro dễ dùng như Ubuntu hoặc Linux Mint. Tải ISO từ trang chính thức, kiểm tra checksum để tránh file hỏng.
+
+- **Phương pháp cài đặt**: 
+  - Live USB: Chạy thử mà không ảnh hưởng ổ cứng (dùng Rufus để tạo USB bootable).
+  - Dual Boot: Cài song song Windows (sao lưu dữ liệu trước, phân vùng ổ cứng).
+  - Máy ảo: Sử dụng VirtualBox/VMware để chạy Linux trong Windows.
+
+- **Quy trình cài đặt cơ bản**: Chọn ngôn ngữ, phân vùng ổ, tạo user/password. Sau cài, cập nhật hệ thống: `sudo apt update && sudo apt upgrade` (cho Ubuntu).
+
+- **Làm quen**: Đăng nhập, khám phá desktop (GNOME cho Ubuntu). Mật khẩu không hiển thị khi gõ là tính năng bảo mật.
+
 ```mermaid
 graph TD
     subgraph "Giới thiệu và Bắt đầu"
@@ -82,60 +514,18 @@ graph TD
     style P2 fill:#f5f5f5,stroke:#999
     style P3 fill:#f5f5f5,stroke:#999
     style P4 fill:#f5f5f5,stroke:#999
-``` 
-
-### **1.2. Phân rã hệ điều hành Linux**
-
-```mermaid
-graph TD
-    subgraph "Phân rã hệ điều hành Linux"
-        
-        A["Người dùng"] -- "Tương tác qua" --> B{Shell / Giao diện Đồ họa}
-        style A fill:#ffe6e6,stroke:#333,stroke-width:2px
-        style B fill:#99ccff,stroke:#333,stroke-width:2px
-
-        subgraph "Không gian Người dùng (User Space)"
-            B -- "Gửi yêu cầu tới" --> C["Các công cụ và ứng dụng"]
-            style C fill:#fff2b3,stroke:#333,stroke-width:2px
-
-            C -- "Ví dụ" --> D["Trình duyệt Web, Trình gõ văn bản, Lệnh (ls, cp)..."]
-            style D fill:#ffffcc,stroke:#333,stroke-width:1.5px
-
-            D -- "Sử dụng các thư viện hệ thống (GNU Core Utilities)" --> E["System Libraries (glibc)"]
-            style E fill:#ccffcc,stroke:#333,stroke-width:2px
-        end
-
-        E -- "Giao tiếp qua System Calls" --> F{Kernel Linux}
-
-        subgraph "Không gian Nhân (Kernel Space) - TRÁI TIM HỆ THỐNG"
-            F -- "Quản lý toàn bộ phần cứng" --> G["Phần cứng Máy tính"]
-            style F fill:#ff99ff,stroke:#333,stroke-width:4px
-
-            F -- "Chịu trách nhiệm" --> F1["Quản lý Tiến trình (CPU)"]
-            F -- "Chịu trách nhiệm" --> F2["Quản lý Bộ nhớ (RAM)"]
-            F -- "Chịu trách nhiệm" --> F3["Quản lý Hệ thống File (Ổ đĩa)"]
-            F -- "Chịu trách nhiệm" --> F4["Quản lý Thiết bị (Chuột, Bàn phím...)"]
-
-            style F1 fill:#ffcccc,stroke:#333
-            style F2 fill:#ffcccc,stroke:#333
-            style F3 fill:#ffcccc,stroke:#333
-            style F4 fill:#ffcccc,stroke:#333
-        end
-
-        G --> H["CPU, RAM, Ổ cứng, Card mạng, ..."]
-        style G fill:#d9d9d9,stroke:#333
-        style H fill:#f2f2f2,stroke:#333
-
-        %% Note
-        Note1("<b>Tổng kết:</b><br/>Một <b>Bản phân phối (Distro)</b> như Ubuntu<br/>sẽ đóng gói tất cả các thành phần này<br/>(Kernel, Shell, Công cụ, Ứng dụng)<br/>thành một hệ điều hành hoàn chỉnh.")
-        style Note1 fill:#ccf2ff,stroke:#333,stroke-width:1.5px
-    end
-``` 
+```
 
 ---
 
-## **2. Giao diện Dòng lệnh (CLI)**
-- **Đây là phần quan trọng nhất, tập trung vào các lệnh cơ bản để tương tác với hệ thống.**
+# **III. GIAO DIỆN NGƯỜI DÙNG (GUI VÀ CLI)**
+
+- **GUI (Graphical User Interface)**: Giao diện đồ họa như Windows. Các DE phổ biến: GNOME (Ubuntu), KDE (Plasma), XFCE (nhẹ). Sử dụng chuột để mở file, cài app từ store.
+
+- **CLI (Command Line Interface)**: Terminal là "siêu năng lực" của Linux. Shell (như Bash) xử lý lệnh. Cấu trúc lệnh: `command [options] [arguments]` (ví dụ: `ls -la /home`).
+
+- **Mở terminal**: Ctrl+Alt+T trên Ubuntu. Lệnh cơ bản: `man command` để xem hướng dẫn, `command --help` để hỗ trợ nhanh.
+
 ```mermaid
 graph TD
     subgraph "Giao diện Dòng lệnh (CLI)"
@@ -215,153 +605,19 @@ graph TD
     style V2 fill:#f3e5f5,stroke:#7b1fa2
     style V2a fill:#f3e5f5,stroke:#7b1fa2
     style V2b fill:#f3e5f5,stroke:#7b1fa2
-```  
+```
+
+- **Mẹo cho người mới**: Thực hành lệnh trong thư mục test để tránh xóa nhầm. Sử dụng Tab để tự hoàn thành lệnh.
+
 ---
 
-## **3. Quản trị Hệ thống Cơ bản**
-- **Sơ đồ này mô tả các tác vụ quản trị thiết yếu như quản lý người dùng, phần mềm và tiến trình.**
-```mermaid
-flowchart TD
-    subgraph "Quản trị Hệ thống Cơ bản"
-        %% Chapters
-        C8("Chương 8: Người dùng & Quyền hạn")
-        C9("Chương 9: Quản lý Phần mềm")
-        C10("Chương 10: Quản lý Tiến trình")
+# **IV. HỆ THỐNG FILE VÀ ĐIỀU HƯỚNG**
 
-        %% Chapter 8 Details
-        C8 --> U1("User thường vs. <b>root</b> (Superuser)")
-        U1 --> U2("Lệnh <b>sudo</b><br/><i>Thực thi lệnh với quyền root</i>")
-        C8 --> P1("Hiểu về Quyền hạn File")
-        P1 --> P2("<b>r (read)</b> - w (write) - <b>x (execute)</b><br/>Đọc - Ghi - Thực thi")
-        P1 --> P3("Phân quyền cho: <b>User - Group - Others</b>")
-        P1 --> P4("Các lệnh thay đổi quyền")
-            P4 --> P4a("<b>chmod [quyền] [file]</b><br/><i>(vd: chmod 755 script.sh)</i>")
-            P4 --> P4b("<b>chown [user] [file]</b><br/>Thay đổi chủ sở hữu")
+Hệ thống file Linux là cây thư mục bắt đầu từ / (root). Không có ổ C:/ như Windows, mọi thứ là file (kể cả thiết bị).
 
-        %% Chapter 9 Details
-        C9 --> PM1("Trình quản lý gói (Package Manager)")
-        PM1 --> PM2{Hệ thống Distro}
-            PM2 -- Debian/Ubuntu --> APT("<b>apt</b>")
-            PM2 -- Fedora/CentOS --> DNF("<b>dnf / yum</b>")
-            PM2 -- Arch --> PACMAN("<b>pacman</b>")
+- **Đường dẫn**: Tuyệt đối (/home/user) hoặc tương đối (Documents từ thư mục hiện tại).
 
-        APT --> APT_Flow
-        subgraph APT_Flow [Quy trình với APT]
-            direction LR
-            A1("sudo apt update") --> A2("apt search")
-            A2 --> A3("sudo apt install")
-            A3 --> A4("sudo apt remove")
-        end
-
-        %% Chapter 10 Details
-        C10 --> PR1("Tiến trình (Process) là gì?")
-        PR1 -- "Là một chương trình đang chạy" --> PR2
-        C10 --> PR3("Các lệnh giám sát")
-            PR3 --> PR3a("ps aux")
-            PR3 --> PR3b("top / htop")
-        C10 --> PR4("Dừng một tiến trình")
-            PR4 --> PR4a("kill [PID]")
-            PR4a -- "Nếu không hiệu quả" --> PR4b("kill -9 [PID]")
-    end
-
-    %% Styles
-    style C8 fill:#fff2e6,stroke:#d46b00
-    style C9 fill:#e6f7ff,stroke:#3399ff
-    style C10 fill:#e6ffe6,stroke:#33cc33
-    style U1 fill:#fff5e6,stroke:#e67300
-    style U2 fill:#fff5e6,stroke:#e67300
-    style P1 fill:#fafafa,stroke:#999
-    style P2 fill:#fafafa,stroke:#999
-    style P3 fill:#fafafa,stroke:#999
-    style P4 fill:#fafafa,stroke:#999
-    style P4a fill:#f0f0f0,stroke:#666
-    style P4b fill:#f0f0f0,stroke:#666
-    style PM1 fill:#e6f7ff,stroke:#3399ff
-    style APT fill:#d9edf7,stroke:#31708f
-    style DNF fill:#f2dede,stroke:#a94442
-    style PACMAN fill:#dff0d8,stroke:#3c763d
-    style A1 fill:#fcf8e3,stroke:#8a6d3b
-    style A2 fill:#fcf8e3,stroke:#8a6d3b
-    style A3 fill:#fcf8e3,stroke:#8a6d3b
-    style A4 fill:#fcf8e3,stroke:#8a6d3b
-    style PR1 fill:#f9f9f9,stroke:#999
-    style PR3a fill:#f9f9f9,stroke:#999
-    style PR3b fill:#f9f9f9,stroke:#999
-    style PR4a fill:#fff0f0,stroke:#c00
-    style PR4b fill:#fff0f0,stroke:#c00
-
-``` 
----
-## **4. Mạng và các Công cụ Nâng cao** 
-- **Giới thiệu về mạng, tự động hóa với script và giao diện đồ họa**
-```mermaid 
-graph TD
-    subgraph "Phần 4: Mạng & Nâng cao"
-        %% Chapters
-        C11("Chương 11: Kiến thức Mạng cơ bản")
-        C12("Chương 12: Giới thiệu Shell Scripting")
-        C13("Chương 13: Giao diện Đồ họa (GUI)")
-
-        %% Chapter 11 Details
-        C11 --> N1("Các lệnh kiểm tra mạng")
-        N1 --> N1a("ip address / ifconfig")
-        N1 --> N1b("ping [địa_chỉ_ip / tên_miền]")
-
-        C11 --> N2("SSH (Secure Shell)")
-        N2 -- "Cú pháp" --> N2a("ssh [user]@[địa_chỉ_ip]")
-        MyPC["Máy của bạn"] -- ssh --> Server["Máy chủ Linux"]
-
-        %% Chapter 12 Details
-        C12 --> S1("Shell Script là gì?")
-        S1 --> S2("Cấu trúc script")
-        S2 --> S2_File
-        subgraph S2_File [my_script.sh]
-            S2a("#!/bin/bash")
-            S2b("echo 'Hello, World!'")
-            S2c("date")
-        end
-        S2_File -- "Cấp quyền" --> S3("chmod +x my_script.sh")
-        S3 -- "Chạy" --> S4("./my_script.sh")
-
-        %% Chapter 13 Details
-        C13 --> G1("GUI hoạt động thế nào?")
-        G1 --> G2("Desktop Environment (DE)")
-        G2 --> G3("Các DE phổ biến")
-            G3 --> G3a("GNOME")
-            G3 --> G3b("KDE Plasma")
-            G3 --> G3c("XFCE")
-        C13 --> G4("Các ứng dụng đồ họa thường dùng")
-    end
-
-    %% Styles
-    style C11 fill:#e8f4f8,stroke:#0277bd
-    style C12 fill:#f3e8ff,stroke:#6a1b9a
-    style C13 fill:#fffde7,stroke:#f9a825
-    style N1 fill:#e1f5fe,stroke:#0288d1
-    style N1a fill:#e1f5fe,stroke:#0288d1
-    style N1b fill:#e1f5fe,stroke:#0288d1
-    style N2 fill:#e1f5fe,stroke:#0288d1
-    style N2a fill:#e1f5fe,stroke:#0288d1
-    style MyPC fill:#f9fbe7,stroke:#afb42b
-    style Server fill:#f9fbe7,stroke:#afb42b
-    style S1 fill:#fce4ec,stroke:#ad1457
-    style S2 fill:#fce4ec,stroke:#ad1457
-    style S2a fill:#fce4ec,stroke:#ad1457
-    style S2b fill:#fce4ec,stroke:#ad1457
-    style S2c fill:#fce4ec,stroke:#ad1457
-    style S3 fill:#fbe9e7,stroke:#bf360c
-    style S4 fill:#fbe9e7,stroke:#bf360c
-    style G1 fill:#fff3e0,stroke:#e65100
-    style G2 fill:#fff3e0,stroke:#e65100
-    style G3a fill:#fff3e0,stroke:#e65100
-    style G3b fill:#fff3e0,stroke:#e65100
-    style G3c fill:#fff3e0,stroke:#e65100
-    style G4 fill:#fff3e0,stroke:#e65100
-``` 
-
-## **5. Hệ thống file**
-
-### **5.1. Khám phá Hệ thống File Linux**
+- **Thư mục quan trọng**: /home (dữ liệu user), /etc (cấu hình), /var/log (logs), /usr (phần mềm).
 
 ```mermaid
 flowchart TD
@@ -445,10 +701,16 @@ flowchart TD
 
     %% 🎨 Styling mũi tên
     linkStyle default stroke:#FF5733,stroke-width:2px,fill:none;
+```
 
-``` 
+---
 
-### **5.2. Vòng đời File & Thư mục**
+# **V. THAO TÁC VỚI FILE & THƯ MỤC**
+
+Vòng đời: Tạo → Xem/Sửa → Sao chép/Di chuyển → Xóa. Cẩn thận với rm (không có thùng rác như Windows).
+
+- **Ví dụ thực hành**: Tạo file: `touch test.txt`, sửa: `echo "Hello" > test.txt`, xem: `cat test.txt`.
+
 ```mermaid
 flowchart TD
     subgraph "Vòng đời File & Thư mục"
@@ -492,11 +754,17 @@ flowchart TD
         class B_Create decision;
         class H_Delete_File,H_Delete_Dir danger;
     end
-```  
+```
 
-## **6. Người dùng và quyền hạn**
+---
 
-### **6.1. Mối quan hệ tổng quan**
+# **VI. NGƯỜI DÙNG VÀ QUYỀN HẠN**
+
+Mọi thứ thuộc về user/group. Root (superuser) có quyền tối cao, dùng `sudo` để chạy lệnh với quyền root (cần password).
+
+- **Kiểm tra quyền**: `ls -l` hiển thị rwx (read/write/execute) cho owner/group/others.
+
+- **Thay đổi**: `chmod 755 file` (owner rwx, group/others rx). `chown user file` thay chủ sở hữu.
 
 ```mermaid
 graph TD
@@ -546,9 +814,8 @@ graph TD
     class GP groupPermClass
     class OT otherPermClass
     class CMD1,CMD2,CMD3 commandClass
-``` 
+```
 
-### **6.2. Quy trình kiểm tra quyền truy cập**
 ```mermaid
 flowchart TD
     Start([Yêu cầu truy cập file]) --> CheckUser{Kiểm tra User}
@@ -596,9 +863,8 @@ flowchart TD
     class CheckOtherPerm otherClass
     class Allow allowClass
     class Deny denyClass
-``` 
+```
 
-### **6.3. Quy trình thay đổi quyền**
 ```mermaid
 sequenceDiagram
     participant U as 👤 User
@@ -651,16 +917,26 @@ sequenceDiagram
             'actorBkg': '#e1f5fe',
             'actorBorder': '#0277bd',
             'actorTextColor': '#01579b',
-            'activationBkgColor': '#ffecb3',
+            'activationBkg': '#ffecb3',
             'activationBorderColor': '#ff8f00',
             'noteBkgColor': '#e8f5e8',
             'noteBorderColor': '#4caf50',
             'noteTextColor': '#2e7d32'
         }
     }}%%
-``` 
+```
 
-## **7. Quy trình làm việc với Trình quản lý gói**
+- **Tạo user mới**: `sudo adduser newuser`, thêm vào group: `sudo usermod -aG sudo newuser`.
+
+---
+
+# **VII. QUẢN LÝ PHẦN MỀM (PACKAGE MANAGER)**
+
+Package manager giúp cài/gỡ phần mềm an toàn. Ubuntu dùng APT, Fedora dùng DNF.
+
+- **Quy trình APT**: Update danh sách → Search → Install → Remove.
+
+- **Ví dụ**: Cài Firefox: `sudo apt install firefox`.
 
 ```mermaid
 flowchart TD
@@ -708,7 +984,17 @@ flowchart TD
     class F done
 ```
 
-## **8. Giám sát và Điều khiển Tiến trình**
+- **Thêm repo**: Chỉnh /etc/apt/sources.list, rồi update.
+
+---
+
+# **VIII. GIÁM SÁT VÀ ĐIỀU KHIỂN TIẾN TRÌNH**
+
+Tiến trình là chương trình đang chạy. PID là ID duy nhất.
+
+- **Giám sát**: `ps aux` (danh sách), `top/htop` (thời gian thực, cài htop nếu cần).
+
+- **Dừng**: `kill PID` (lịch sự), `kill -9 PID` (buộc).
 
 ```mermaid
 graph TD
@@ -723,6 +1009,7 @@ graph TD
         C --> C2["<b>top</b> hoặc <b>htop</b><br/><i>Xem các tiến trình và tài nguyên (CPU, RAM) theo thời gian thực.</i>"]
         
         C1 & C2 -- "Kết quả cho thấy" --> D["Danh sách các tiến trình, mỗi tiến trình có một <b>PID (Process ID)</b> duy nhất"]
+        D -- "Kết quả cho thấy" --> D["Danh sách các tiến trình, mỗi tiến trình có một <b>PID (Process ID)</b> duy nhất"]
         D -- "Ví dụ: Firefox (PID: 1234) đang bị treo" --> E{"Cần phải dừng tiến trình này"}
 
         B -- "Điều khiển tiến trình" --> E
@@ -754,10 +1041,18 @@ graph TD
         class I success
 
     end
+```
 
-``` 
+- **Chạy nền**: Thêm & ở cuối lệnh, hoặc dùng `nohup`.
 
-## **9. Công cụ Mạng cơ bản**
+---
+
+# **IX. CÔNG CỤ MẠNG CƠ BẢN**
+
+Kiểm tra kết nối, tải file, truy cập từ xa.
+
+- **Lệnh cơ bản**: `ip addr` (xem IP), `ping google.com` (kiểm tra kết nối), `wget url` (tải file), `curl url` (gửi request), `ssh user@ip` (đăng nhập xa).
+
 ```mermaid 
 graph LR
     subgraph "Hộp công cụ Mạng trên Linux"
@@ -817,9 +1112,17 @@ graph LR
     class YourPC,RemoteServer computerNode
 ```
 
-## **10. Shell Script**
+- **Cấu hình mạng**: Chỉnh /etc/network/interfaces hoặc dùng nmcli.
 
-### **10.1. Vòng đời của một Shell Script**
+---
+
+# **X. SHELL SCRIPTING VÀ TỰ ĐỘNG HÓA**
+
+Shell script là file lệnh để tự động hóa. Bắt đầu bằng #!/bin/bash.
+
+- **Vòng đời**: Ý tưởng → Viết → Cấp quyền (chmod +x) → Chạy.
+
+- **Luồng dữ liệu**: > (redirect), | (pipe), grep/find để tìm kiếm.
 
 ```mermaid
 %%{init: {'theme':'base'}}%%
@@ -849,9 +1152,7 @@ timeline
                    : Th 5, 23 thg 5 2024 10-30-00 +07
         Hoàn thành ✅ : Script chạy thành công
 
-``` 
-
-### **10.2. Luồng dữ liệu trong Shell**
+```
 
 ```mermaid
 %%{init: {'theme':'base', 'themeVariables': {'primaryColor': '#FFF9C4', 'primaryTextColor': '#333', 'primaryBorderColor': '#F57F17', 'lineColor': '#666', 'secondaryColor': '#FFF9C4', 'tertiaryColor': '#FFFDE7'}}}%%
@@ -900,7 +1201,6 @@ graph TD
     class P_Flow flowStyle
     class D1,D2 redirectStyle
 ```
-### **10.3. Tìm kiếm với find và grep**
 
 ```mermaid
 graph TD
@@ -952,10 +1252,19 @@ graph TD
     class G3 importantNode
     class Combo comboNode
     class ComboFlow comboFlowNode
-
 ```
 
-### **10.4. Quản lý Dịch vụ hệ thống với systemd**
+- **Ví dụ script đơn giản**: Tạo file backup.sh để sao chép file hàng ngày.
+
+---
+
+# **XI. QUẢN LÝ DỊCH VỤ VÀ NÂNG CAO**
+
+Systemd quản lý dịch vụ (như web server).
+
+- **Lệnh**: `systemctl status service`, start/stop/enable/disable.
+
+- **Nén file**: tar cho lưu trữ, gzip/bzip2 cho nén.
 
 ```mermaid
 stateDiagram-v2
@@ -970,7 +1279,7 @@ stateDiagram-v2
         Inactive --> Active : systemctl start [service]
         Active --> Inactive : systemctl stop [service]
         
-        Active --> Active : systemctl restart [service]
+        Active --> active : systemctl restart [service]
         
         state "Trạng thái Bật/Tắt khi khởi động" as BootStatus {
             direction TB
@@ -999,6 +1308,67 @@ stateDiagram-v2
     class Enabled enabledState
     class Disabled disabledState
     class CheckStatus statusState
+```
 
+```mermaid
+graph TD
+    subgraph "So sánh các định dạng Tar"
+        Title["Chọn định dạng phù hợp"]
+        
+        Title --> Choice{"Yêu cầu của bạn?"}
+        
+        Choice -- "Tốc độ nhanh<br/>Không cần tiết kiệm dung lượng" --> TarOnly
+        Choice -- "Tiết kiệm dung lượng<br/>Truyền qua mạng" --> TarGz
+        Choice -- "Nén tối đa<br/>Lưu trữ lâu dài" --> TarBz2
+        
+        subgraph TarOnly ["📄 .tar - Chỉ đóng gói"]
+            TO1["✅ Tạo nhanh nhất"]
+            TO2["✅ Giải nén nhanh nhất"]
+            TO3["❌ Kích thước lớn"]
+            TO4["Lệnh: tar -cvf file.tar folder/"]
+        end
+        
+        subgraph TarGz ["📦 .tar.gz - Nén với gzip"]
+            TG1["✅ Cân bằng tốc độ/kích thước"]
+            TG2["✅ Phổ biến nhất"]
+            TG3["✅ Kích thước vừa phải"]
+            TG4["Lệnh: tar -czvf file.tar.gz folder/"]
+        end
+        
+        subgraph TarBz2 ["🗜️ .tar.bz2 - Nén với bzip2"]
+            TB1["✅ Kích thước nhỏ nhất"]
+            TB2["❌ Tạo chậm nhất"]
+            TB3["❌ Giải nén chậm"]
+            TB4["Lệnh: tar -cjvf file.tar.bz2 folder/"]
+        end
+    end
 
-``` 
+    %% Styling
+    classDef titleNode fill:#f3e5f5,stroke:#7b1fa2,stroke-width:3px,color:#000
+    classDef choiceNode fill:#fff9c4,stroke:#f9a825,stroke-width:3px,color:#000
+    classDef tarNode fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    classDef gzNode fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    classDef bz2Node fill:#fff3e0,stroke:#ff9800,stroke-width:2px,color:#000
+    classDef proNode fill:#c8e6c9,stroke:#66bb6a,stroke-width:1px,color:#000
+    classDef conNode fill:#ffcdd2,stroke:#f44336,stroke-width:1px,color:#000
+
+    class Title titleNode
+    class Choice choiceNode
+    class TO4 tarNode
+    class TG4 gzNode
+    class TB4 bz2Node
+    class TO1,TO2,TG1,TG2,TG3,TB1 proNode
+    class TO3,TB2,TB3 conNode
+```
+
+- **Giải nén**: `tar -xvf file.tar`.
+
+---
+
+# **XII. BẢO MẬT VÀ TROUBLESHOOTING CƠ BẢN**
+
+- **Bảo mật**: Cập nhật thường xuyên, dùng firewall (ufw: `sudo ufw enable`), thay password mạnh, tránh chạy root thường xuyên.
+
+- **Troubleshooting**: Xem log: `journalctl` hoặc /var/log. Lỗi phổ biến: "Permission denied" → dùng sudo. "Command not found" → cài package hoặc kiểm tra PATH.
+
+- **Mẹo**: Sử dụng `df -h` xem dung lượng ổ, `free -h` xem RAM. Nếu hệ thống chậm, kiểm tra tiến trình bằng top.
