@@ -1,18 +1,48 @@
-# Lộ Trình Học Linux Cho Người Mới Bắt Đầu
+- [**I. Lộ Trình Học Linux Cho Người Mới Bắt Đầu**](#i-lộ-trình-học-linux-cho-người-mới-bắt-đầu)
+    - [**1. Giới Thiệu Và Nền Tảng Linux**](#1-giới-thiệu-và-nền-tảng-linux)
+    - [**2. Cài Đặt Và Thiết Lập Môi Trường**](#2-cài-đặt-và-thiết-lập-môi-trường)
+    - [**3. Làm Quen Với Terminal \& Lệnh Cơ Bản**](#3-làm-quen-với-terminal--lệnh-cơ-bản)
+    - [**4. Quản Lý File Và Thư Mục**](#4-quản-lý-file-và-thư-mục)
+    - [**5. Quyền Truy Cập Và Bảo Mật Cơ Bản**](#5-quyền-truy-cập-và-bảo-mật-cơ-bản)
+    - [**6. Cài Đặt Phần Mềm**](#6-cài-đặt-phần-mềm)
+    - [**7. Quản Lý Tiến Trình**](#7-quản-lý-tiến-trình)
+    - [**8. Mạng Và Kết Nối**](#8-mạng-và-kết-nối)
+    - [**9. Shell Scripting Cơ Bản**](#9-shell-scripting-cơ-bản)
+    - [**10. Troubleshooting Và Backup**](#10-troubleshooting-và-backup)
+    - [**11. Tổng Kết Và Bước Tiếp Theo**](#11-tổng-kết-và-bước-tiếp-theo)
+- [**II. GIỚI THIỆU VÀ LỊCH SỬ LINUX**](#ii-giới-thiệu-và-lịch-sử-linux)
+    - [**1. Phân rã hệ điều hành Linux**](#1-phân-rã-hệ-điều-hành-linux)
+- [**II. CÀI ĐẶT VÀ BẮT ĐẦU**](#ii-cài-đặt-và-bắt-đầu)
+- [**III. GIAO DIỆN NGƯỜI DÙNG (GUI VÀ CLI)**](#iii-giao-diện-người-dùng-gui-và-cli)
+- [**IV. HỆ THỐNG FILE VÀ ĐIỀU HƯỚNG**](#iv-hệ-thống-file-và-điều-hướng)
+- [**V. THAO TÁC VỚI FILE \& THƯ MỤC**](#v-thao-tác-với-file--thư-mục)
+- [**VI. NGƯỜI DÙNG VÀ QUYỀN HẠN**](#vi-người-dùng-và-quyền-hạn)
+- [**VII. QUẢN LÝ PHẦN MỀM (PACKAGE MANAGER)**](#vii-quản-lý-phần-mềm-package-manager)
+- [**VIII. GIÁM SÁT VÀ ĐIỀU KHIỂN TIẾN TRÌNH**](#viii-giám-sát-và-điều-khiển-tiến-trình)
+- [**IX. CÔNG CỤ MẠNG CƠ BẢN**](#ix-công-cụ-mạng-cơ-bản)
+- [**X. SHELL SCRIPTING VÀ TỰ ĐỘNG HÓA**](#x-shell-scripting-và-tự-động-hóa)
+- [**XI. QUẢN LÝ DỊCH VỤ VÀ NÂNG CAO**](#xi-quản-lý-dịch-vụ-và-nâng-cao)
+- [**XII. BẢO MẬT VÀ TROUBLESHOOTING CƠ BẢN**](#xii-bảo-mật-và-troubleshooting-cơ-bản)
 
-## **I. Giới Thiệu Và Nền Tảng Linux (Tuần 1: 2 ngày)**  
+
+
+# **I. Lộ Trình Học Linux Cho Người Mới Bắt Đầu**
+
+### **1. Giới Thiệu Và Nền Tảng Linux**  
 🎯 **Mục tiêu**: Hiểu Linux là gì, tại sao dùng. 
+
 **Nội dung học**:  
 1. 🐧 **Linux là gì?**  
    - Lịch sử ngắn gọn: từ Unix đến Linus Torvalds  
    - So sánh với Windows/macOS một cách đơn giản
 2. 🔧 **Các thành phần cốt lõi**:  
    - Kernel (nhân) - não bộ của hệ thống
-   - Distro (Ubuntu, Mint, Fedora...) - các "hương vị" khác nhau
+   - Distro (Ubuntu, Mint, Fedora...)
    - Shell - cách giao tiếp với máy tính
 
-## **II. Cài Đặt Và Thiết Lập Môi Trường**  
+### **2. Cài Đặt Và Thiết Lập Môi Trường**   
 🎯 **Mục tiêu**: Có môi trường Linux để thực hành, làm quen giao diện.  
+
 **Nội dung học**:  
 1. 📦 **Chọn Distro cho người mới**:  
    - **Khuyến nghị**: Ubuntu LTS (ổn định, nhiều tài liệu)
@@ -44,8 +74,10 @@
    - Video: "How to install Ubuntu on VirtualBox"
    - Ubuntu Desktop Guide (tiếng Việt)
 
-## **III. Làm Quen Với Terminal & Lệnh Cơ Bản**  
+### **3. Làm Quen Với Terminal & Lệnh Cơ Bản**   
+
 🎯 **Mục tiêu**: Thành thạo các lệnh thiết yếu.  
+
 **Nội dung học**:  
 1. 🖥 **Terminal là gì và tại sao quan trọng**:  
    - Giao diện dòng lệnh vs giao diện đồ họa
@@ -83,8 +115,9 @@
    - "Linux Command Line for Beginners" (free PDF)
    - Interactive terminal: linuxjourney.com
 
-## **IV. Quản Lý File Và Thư Mục**  
-🎯 **Mục tiêu**: Thành thạo thao tác với file/thư mục - kỹ năng cốt lõi nhất.  
+### **4. Quản Lý File Và Thư Mục**  
+🎯 **Mục tiêu**: Thành thạo thao tác với file/thư mục - kỹ năng cốt lõi nhất.   
+
 **Nội dung học**:  
 1. 📂 **Hiểu cấu trúc thư mục Linux**:  
    - `/` - thư mục gốc
@@ -130,8 +163,9 @@
    - Interactive exercises trên cmdchallenge.com
    - "Linux File System" tutorial
 
-## **V. Quyền Truy Cập Và Bảo Mật Cơ Bản**  
+### **5. Quyền Truy Cập Và Bảo Mật Cơ Bản**  
 🎯 **Mục tiêu**: Hiểu và quản lý quyền file để tránh lỗi "permission denied".  
+
 **Nội dung học**:  
 1. 👥 **Khái niệm User và Group**:  
    - Owner (chủ sở hữu), Group (nhóm), Others (người khác)
@@ -171,8 +205,9 @@
    - "Linux Permissions Explained" video
    - Ubuntu Security Guide
 
-## **VI. Cài Đặt Phần Mềm**  
+### **6. Cài Đặt Phần Mềm**  
 🎯 **Mục tiêu**: Biết cách cài đặt và quản lý ứng dụng an toàn.  
+
 **Nội dung học**:  
 1. 📦 **Package Manager là gì**:  
    - Kho phần mềm tập trung
@@ -205,8 +240,9 @@
    - Ubuntu Package Management Guide
    - APT cheat sheet
 
-## **VII. Quản Lý Tiến Trình**  
+### **7. Quản Lý Tiến Trình**  
 🎯 **Mục tiêu**: Giám sát và điều khiển các chương trình đang chạy.  
+
 **Nội dung học**:  
 1. ⚙️ **Process (tiến trình) là gì**:  
    - Mỗi chương trình chạy = 1 process
@@ -246,8 +282,9 @@
    - "Linux Process Management" tutorial
    - htop explained
 
-## **VIII. Mạng Và Kết Nối**  
+### **8. Mạng Và Kết Nối**  
 🎯 **Mục tiêu**: Kết nối Linux với internet và máy tính khác.  
+
 **Nội dung học**:  
 1. 🌐 **Kiểm tra kết nối mạng**:  
    - `ping google.com` - test internet
@@ -282,8 +319,9 @@
    - "SSH Essentials" guide
    - Basic networking for Linux
 
-## **IX. Shell Scripting Cơ Bản**  
+### **9. Shell Scripting Cơ Bản**  
 🎯 **Mục tiêu**: Tự động hóa công việc lặp đi lặp lại.  
+
 **Nội dung học**:  
 1. 📝 **Script là gì và tại sao cần**:  
    - Tự động hóa task
@@ -320,8 +358,9 @@
    - "Bash Scripting Tutorial for Beginners"
    - Cron job generator online
 
-## **X. Troubleshooting Và Backup**  
+### **10. Troubleshooting Và Backup**  
 🎯 **Mục tiêu**: Xử lý sự cố và bảo vệ dữ liệu.  
+
 **Nội dung học**:  
 1. 📂 **Xem log hệ thống**:  
    - `/var/log/syslog` - log chung
@@ -354,7 +393,7 @@
    - "Linux Troubleshooting Guide"
    - Backup strategies for home users
 
-## **XI. Tổng Kết Và Bước Tiếp Theo**  
+### **11. Tổng Kết Và Bước Tiếp Theo**  
 🎯 **Mục tiêu**: Củng cố kiến thức và định hướng phát triển.  
 **Nội dung học**:  
 1. 📖 **Review kiến thức đã học**:  
@@ -387,60 +426,91 @@ Linux là hệ điều hành mã nguồn mở, miễn phí, ổn định và an 
 
 - **Ưu điểm cho người mới**: Miễn phí, cộng đồng lớn (hỏi đáp trên Stack Overflow, Reddit), ít virus hơn Windows. Nhược điểm: Cài driver phần cứng đôi khi phức tạp.
 
-- **So sánh nhanh**:
 
-| Đặc điểm | Linux | Windows | macOS |
-|----------|-------|---------|-------|
-| Giá | Miễn phí | Trả phí | Miễn phí với phần cứng Apple |
-| Tùy chỉnh | Cao | Trung bình | Thấp |
-| Bảo mật | Cao (quyền hạn nghiêm ngặt) | Trung bình | Cao |
-| Học curve | Dốc (CLI) | Dễ (GUI) | Dễ |
-
-### **Phân rã hệ điều hành Linux**
+### **1. Phân rã hệ điều hành Linux**
 
 ```mermaid
 graph TD
-    subgraph "Phân rã hệ điều hành Linux"
+    subgraph "🌟Phân rã Hệ điều hành GNU/Linux 🌟"
+
+        %% Hardware Layer
+        HW["💻 Phần cứng (CPU, RAM, Ổ đĩa, Card mạng)"]
+        style HW fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000,font-weight:bold
+
+        %% Core: The Kernel
+        KERNEL["<b>🛠 Linux Kernel (Nhân)</b><br/><i>Tác giả: Linus Torvalds</i>"]
+        style KERNEL fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000,font-weight:bold
         
-        A["Người dùng"] -- "Tương tác qua" --> B{Shell / Giao diện Đồ họa}
-        style A fill:#ffe6e6,stroke:#333,stroke-width:2px
-        style B fill:#99ccff,stroke:#333,stroke-width:2px
+        HW -- "Được quản lý & trừu tượng hóa bởi" --> KERNEL
+        
+        KERNEL -- "Chức năng cốt lõi" --> KM["⚡ Quản lý Tiến trình (Process Scheduling)"]
+        style KM fill:#ffecb3,stroke:#f57c00
 
-        subgraph "Không gian Người dùng (User Space)"
-            B -- "Gửi yêu cầu tới" --> C["Các công cụ và ứng dụng"]
-            style C fill:#fff2b3,stroke:#333,stroke-width:2px
+        KERNEL -- "Chức năng cốt lõi" --> KMem["💾 Quản lý Bộ nhớ (Memory Management)"]
+        style KMem fill:#d1c4e9,stroke:#4527a0
 
-            C -- "Ví dụ" --> D["Trình duyệt Web, Trình gõ văn bản, Lệnh (ls, cp)..."]
-            style D fill:#ffffcc,stroke:#333,stroke-width:1.5px
+        KERNEL -- "Chức năng cốt lõi" --> KFS["📂 Quản lý Hệ thống File (Filesystem)"]
+        style KFS fill:#c8e6c9,stroke:#2e7d32
 
-            D -- "Sử dụng các thư viện hệ thống (GNU Core Utilities)" --> E["System Libraries (glibc)"]
-            style E fill:#ccffcc,stroke:#333,stroke-width:2px
+        KERNEL -- "Chức năng cốt lõi" --> KNet["🌐 Quản lý Mạng (Networking Stack)"]
+        style KNet fill:#b3e5fc,stroke:#0277bd
+
+        KERNEL -- "Chức năng cốt lõi" --> KDD["🔌 Quản lý Trình điều khiển Thiết bị (Device Drivers)"]
+        style KDD fill:#ffe0b2,stroke:#ef6c00
+
+        %% The Userland
+        USERLAND["<b>👥 Userland / Không gian người dùng</b><br/><i>Mọi thứ ngoài Kernel</i>"]
+        style USERLAND fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
+        KERNEL -- "Cung cấp giao diện qua System Calls" --> USERLAND
+        
+        subgraph "🧩 Các thành phần trong Userland"
+            GNU["<b>🔧 Công cụ GNU (GNU Core Utilities)</b><br/><i>Richard Stallman & FSF</i>"]
+            style GNU fill:#c8e6c9,stroke:#2e7d32
+            GNU --> BinUtils["📜 ls, cp, mv, rm, grep, awk, sed..."]
+            
+            SHELL["<b>⌨️ Shell (CLI)</b><br/><i>Trình thông dịch lệnh</i>"]
+            style SHELL fill:#fff9c4,stroke:#fbc02d
+            SHELL --> BASH["🐚 Bash"]
+            SHELL --> ZSH["🔮 Zsh"]
+            SHELL --> FISH["🐠 Fish"]
+
+            GUI["<b>🖥 Hệ thống Đồ họa</b>"]
+            style GUI fill:#bbdefb,stroke:#0d47a1
+            GUI --> X11["🖼 X Window System (X11)"]
+            GUI --> WAYLAND["🚀 Wayland"]
+
+            DE["<b>🎨 Môi trường Đồ họa (Desktop Environment)</b>"]
+            style DE fill:#f8bbd0,stroke:#ad1457
+            DE --> GNOME["🦋 GNOME"]
+            DE --> KDE["💎 KDE"]
+            DE --> XFCE["⚡ XFCE"]
+
+            APPS["<b>📦 Ứng dụng Người dùng</b><br/>Firefox, LibreOffice, GIMP, VLC..."]
+            style APPS fill:#cfd8dc,stroke:#37474f
         end
 
-        E -- "Giao tiếp qua System Calls" --> F{Kernel Linux}
+        %% The Final Product: Distribution
+        DISTRO["<b>📀 Linux Distribution (Distro)</b><br/><i>Hệ điều hành hoàn chỉnh</i>"]
+        style DISTRO fill:#b3e5fc,stroke:#01579b,stroke-width:4px
+        
+        KERNEL & GNU & SHELL & GUI & DE & APPS -- "Được đóng gói lại bởi" ---> DISTRO
 
-        subgraph "Không gian Nhân (Kernel Space) - TRÁI TIM HỆ THỐNG"
-            F -- "Quản lý toàn bộ phần cứng" --> G["Phần cứng Máy tính"]
-            style F fill:#ff99ff,stroke:#333,stroke-width:4px
+        USER["👤 Người dùng"]
+        style USER fill:#d7ccc8,stroke:#4e342e
+        USER -- "Tương tác qua" --> SHELL
+        USER -- "Tương tác qua" --> DE
+        
+    end
 
-            F -- "Chịu trách nhiệm" --> F1["Quản lý Tiến trình (CPU)"]
-            F -- "Chịu trách nhiệm" --> F2["Quản lý Bộ nhớ (RAM)"]
-            F -- "Chịu trách nhiệm" --> F3["Quản lý Hệ thống File (Ổ đĩa)"]
-            F -- "Chịu trách nhiệm" --> F4["Quản lý Thiết bị (Chuột, Bàn phím...)"]
+    subgraph "💡 Triết lý & Thuật ngữ Quan trọng 💡"
+        OS["<b>🌍 Open Source</b><br/>Mã nguồn công khai, cho phép xem, sửa đổi và phân phối lại."]
+        style OS fill:#c8e6c9,stroke:#1b5e20
 
-            style F1 fill:#ffcccc,stroke:#333
-            style F2 fill:#ffcccc,stroke:#333
-            style F3 fill:#ffcccc,stroke:#333
-            style F4 fill:#ffcccc,stroke:#333
-        end
+        FSF["<b>🏴 Free Software Foundation (FSF)</b><br/>Thúc đẩy phần mềm tự do."]
+        style FSF fill:#ffecb3,stroke:#f57c00
 
-        G --> H["CPU, RAM, Ổ cứng, Card mạng, ..."]
-        style G fill:#d9d9d9,stroke:#333
-        style H fill:#f2f2f2,stroke:#333
-
-        %% Note
-        Note1("<b>Tổng kết:</b><br/>Một <b>Bản phân phối (Distro)</b> như Ubuntu<br/>sẽ đóng gói tất cả các thành phần này<br/>(Kernel, Shell, Công cụ, Ứng dụng)<br/>thành một hệ điều hành hoàn chỉnh.")
-        style Note1 fill:#ccf2ff,stroke:#333,stroke-width:1.5px
+        GNU_Linux["<b>🤔 Tại sao gọi 'GNU/Linux'?</b><br/>Kernel chỉ là một phần, phần lớn công cụ từ GNU."]
+        style GNU_Linux fill:#ffcdd2,stroke:#b71c1c
     end
 ```
 
