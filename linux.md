@@ -8,7 +8,8 @@
     - [**7. Quản Lý Tiến Trình**](#7-quản-lý-tiến-trình)
     - [**8. Mạng Và Kết Nối**](#8-mạng-và-kết-nối)
     - [**9. Shell Scripting Cơ Bản**](#9-shell-scripting-cơ-bản)
-    - [**10. Troubleshooting Và Backup**](#10-troubleshooting-và-backup)
+    - [**10. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**](#10-quản-lý-ổ-đĩa-với-lvm-logical-volume-manager)
+    - [**11. Troubleshooting Và Backup**](#11-troubleshooting-và-backup)
     - [**11. Tổng Kết Và Bước Tiếp Theo**](#11-tổng-kết-và-bước-tiếp-theo)
 - [**II. GIỚI THIỆU VÀ LỊCH SỬ LINUX**](#ii-giới-thiệu-và-lịch-sử-linux)
     - [**1. Phân rã hệ điều hành Linux**](#1-phân-rã-hệ-điều-hành-linux)
@@ -358,7 +359,70 @@
    - "Bash Scripting Tutorial for Beginners"
    - Cron job generator online
 
-### **10. Troubleshooting Và Backup**  
+### **10. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**  
+🎯 **Mục tiêu**: Hiểu và sử dụng LVM để quản lý không gian lưu trữ linh hoạt, đặc biệt là mở rộng dung lượng ổ cứng khi cần.  
+**Nội dung học**:  
+1. 💾 **Giới thiệu về LVM**:  
+   - LVM là gì và tại sao cần sử dụng
+   - So sánh với phân vùng truyền thống (partitioning)
+   - Các thành phần chính: Physical Volumes (PV), Volume Groups (VG), Logical Volumes (LV)
+   - Ưu điểm của LVM: linh hoạt, dễ mở rộng, snapshot
+
+2. 🔧 **Cài đặt và cấu hình LVM cơ bản**:  
+   - Kiểm tra LVM đã cài đặt chưa (`lvm2` package)
+   - Tạo Physical Volume từ ổ đĩa mới: `pvcreate /dev/sdb`
+   - Tạo Volume Group từ các Physical Volumes: `vgcreate vg_data /dev/sdb`
+   - Tạo Logical Volume từ Volume Group: `lvcreate -L 10G -n lv_home vg_data`
+   - Định dạng và mount Logical Volume: `mkfs.ext4 /dev/vg_data/lv_home`
+
+3. 📏 **Mở rộng dung lượng ổ cứng bằng LVM**:  
+   - **Cách 1: Thêm không gian từ Volume Group hiện có**
+     - Kiểm tra không gian trống trong Volume Group: `vgs`
+     - Mở rộng Logical Volume: `lvextend -L +5G /dev/vg_data/lv_home`
+     - Thay đổi kích thước hệ thống tập tin: `resize2fs /dev/vg_data/lv_home` (cho ext4)
+   - **Cách 2: Thêm Physical Volume mới vào Volume Group**
+     - Thêm ổ cứng mới vào máy ảo/vật lý
+     - Tạo Physical Volume: `pvcreate /dev/sdc`
+     - Mở rộng Volume Group: `vgextend vg_data /dev/sdc`
+     - Tiếp tục mở rộng Logical Volume như cách 1
+
+4. 🔁 **Các thao tác LVM nâng cao**:  
+   - Giảm kích thước Logical Volume (cần backup trước!)
+   - Tạo snapshot để backup: `lvcreate -L 1G -s -n lv_home_snap /dev/vg_data/lv_home`
+   - Di chuyển dữ liệu giữa các Physical Volumes: `pvmove /dev/sdb`
+   - Tạo striped và mirrored volumes cho hiệu năng và redundancy
+
+5. 📊 **Giám sát và quản lý LVM**:  
+   - Các lệnh kiểm tra trạng thái chi tiết: `pvdisplay`, `vgdisplay`, `lvdisplay`
+   - Sử dụng `lvs`, `vgs`, `pvs` cho thông tin ngắn gọn
+   - Kiểm tra không gian trống với `df -h` và `vgs`
+   - Xem thông tin hệ thống tập tin: `lsblk`, `blkid`
+
+6. ⚠️ **Lưu ý và best practices khi sử dụng LVM**:  
+   - Luôn backup trước khi thay đổi cấu hình
+   - Hiểu rõ thứ tự các bước khi mở rộng/giảm kích thước
+   - Tương thích với các hệ điều hành khác (nếu dùng dual-boot)
+   - Khi nào nên và không nên sử dụng LVM
+   - Tích hợp LVM với các công cụ giám sát hệ thống
+
+📝 **Bài tập thực hành**:  
+   - Tạo một hệ thống LVM đơn giản trên máy ảo
+   - Mở rộng Logical Volume sau khi thêm ổ đĩa mới (cách 1 và cách 2)
+   - Tạo snapshot và khôi phục từ snapshot
+   - Thực hành giảm kích thước Logical Volume (sau khi backup đầy đủ)
+   - Giám sát trạng thái LVM với các lệnh display
+   - Tạo kịch bản tự động kiểm tra không gian LVM và cảnh báo
+   - Thực hành khắc phục lỗi "out of space" bằng cách mở rộng LV
+
+📚 **Tài nguyên học tập**:  
+   - LVM HOWTO từ Linux Documentation Project
+   - Video hướng dẫn thực hành LVM trên YouTube
+   - "Mastering LVM" tutorial
+   - LVM Cheat Sheet: Các lệnh thường dùng
+   - Ubuntu LVM Guide (tài liệu chính thức)
+
+
+### **11. Troubleshooting Và Backup**  
 🎯 **Mục tiêu**: Xử lý sự cố và bảo vệ dữ liệu.  
 
 **Nội dung học**:  
@@ -431,13 +495,12 @@ Linux là hệ điều hành mã nguồn mở, miễn phí, ổn định và an 
 
 ```mermaid
 graph TD
-    subgraph "🌟Phân rã Hệ điều hành GNU/Linux 🌟"
+    %% Main GNU/Linux OS decomposition
+    subgraph "🌟 Phân rã Hệ điều hành GNU/Linux 🌟"
 
-        %% Hardware Layer
         HW["💻 Phần cứng (CPU, RAM, Ổ đĩa, Card mạng)"]
         style HW fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000,font-weight:bold
 
-        %% Core: The Kernel
         KERNEL["<b>🛠 Linux Kernel (Nhân)</b><br/><i>Tác giả: Linus Torvalds</i>"]
         style KERNEL fill:#ffcdd2,stroke:#c62828,stroke-width:3px,color:#000,font-weight:bold
         
@@ -458,7 +521,6 @@ graph TD
         KERNEL -- "Chức năng cốt lõi" --> KDD["🔌 Quản lý Trình điều khiển Thiết bị (Device Drivers)"]
         style KDD fill:#ffe0b2,stroke:#ef6c00
 
-        %% The Userland
         USERLAND["<b>👥 Userland / Không gian người dùng</b><br/><i>Mọi thứ ngoài Kernel</i>"]
         style USERLAND fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px
         KERNEL -- "Cung cấp giao diện qua System Calls" --> USERLAND
@@ -489,7 +551,6 @@ graph TD
             style APPS fill:#cfd8dc,stroke:#37474f
         end
 
-        %% The Final Product: Distribution
         DISTRO["<b>📀 Linux Distribution (Distro)</b><br/><i>Hệ điều hành hoàn chỉnh</i>"]
         style DISTRO fill:#b3e5fc,stroke:#01579b,stroke-width:4px
         
@@ -502,16 +563,18 @@ graph TD
         
     end
 
-    subgraph "💡 Triết lý & Thuật ngữ Quan trọng 💡"
-        OS["<b>🌍 Open Source</b><br/>Mã nguồn công khai, cho phép xem, sửa đổi và phân phối lại."]
-        style OS fill:#c8e6c9,stroke:#1b5e20
+    %% Philosophy section (outside main subgraph)
+    OS["<b>🌍 Open Source</b><br/>Mã nguồn công khai, cho phép xem, sửa đổi và phân phối lại."]
+    style OS fill:#c8e6c9,stroke:#1b5e20
 
-        FSF["<b>🏴 Free Software Foundation (FSF)</b><br/>Thúc đẩy phần mềm tự do."]
-        style FSF fill:#ffecb3,stroke:#f57c00
+    FSF["<b>🏴 Free Software Foundation (FSF)</b><br/>Thúc đẩy phần mềm tự do."]
+    style FSF fill:#ffecb3,stroke:#f57c00
 
-        GNU_Linux["<b>🤔 Tại sao gọi 'GNU/Linux'?</b><br/>Kernel chỉ là một phần, phần lớn công cụ từ GNU."]
-        style GNU_Linux fill:#ffcdd2,stroke:#b71c1c
-    end
+    GNU_Linux["<b>🤔 Tại sao gọi 'GNU/Linux'?</b><br/>Kernel chỉ là một phần, phần lớn công cụ từ GNU."]
+    style GNU_Linux fill:#ffcdd2,stroke:#b71c1c
+
+    OS --> FSF --> GNU_Linux
+
 ```
 
 ---
