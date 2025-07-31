@@ -4,13 +4,14 @@
     - [**3. Làm Quen Với Terminal \& Lệnh Cơ Bản**](#3-làm-quen-với-terminal--lệnh-cơ-bản)
     - [**4. Quản Lý File Và Thư Mục**](#4-quản-lý-file-và-thư-mục)
     - [**5. Quyền Truy Cập Và Bảo Mật Cơ Bản**](#5-quyền-truy-cập-và-bảo-mật-cơ-bản)
-    - [**6. Cài Đặt Phần Mềm**](#6-cài-đặt-phần-mềm)
-    - [**7. Quản Lý Tiến Trình**](#7-quản-lý-tiến-trình)
-    - [**8. Mạng Và Kết Nối**](#8-mạng-và-kết-nối)
-    - [**9. Shell Scripting Cơ Bản**](#9-shell-scripting-cơ-bản)
-    - [**10. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**](#10-quản-lý-ổ-đĩa-với-lvm-logical-volume-manager)
-    - [**11. Troubleshooting Và Backup**](#11-troubleshooting-và-backup)
-    - [**11. Tổng Kết Và Bước Tiếp Theo**](#11-tổng-kết-và-bước-tiếp-theo)
+    - [**6. Quản Lý Không Gian Đĩa Và File System**](#6-quản-lý-không-gian-đĩa-và-file-system)
+    - [**7. Cài Đặt Phần Mềm**](#7-cài-đặt-phần-mềm)
+    - [**8. Quản Lý Tiến Trình**](#8-quản-lý-tiến-trình)
+    - [**9. Mạng Và Kết Nối**](#9-mạng-và-kết-nối)
+    - [**10. Shell Scripting Cơ Bản**](#10-shell-scripting-cơ-bản)
+    - [**11. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**](#11-quản-lý-ổ-đĩa-với-lvm-logical-volume-manager)
+    - [**12. Troubleshooting Và Backup**](#12-troubleshooting-và-backup)
+    - [**12. Tổng Kết Và Bước Tiếp Theo**](#12-tổng-kết-và-bước-tiếp-theo)
 - [**II. GIỚI THIỆU VÀ LỊCH SỬ LINUX**](#ii-giới-thiệu-và-lịch-sử-linux)
     - [**1. Phân rã hệ điều hành Linux**](#1-phân-rã-hệ-điều-hành-linux)
 - [**II. CÀI ĐẶT VÀ BẮT ĐẦU**](#ii-cài-đặt-và-bắt-đầu)
@@ -206,7 +207,72 @@
    - "Linux Permissions Explained" video
    - Ubuntu Security Guide
 
-### **6. Cài Đặt Phần Mềm**  
+### **6. Quản Lý Không Gian Đĩa Và File System**  
+🎯 **Mục tiêu**: Hiểu cách Linux quản lý ổ đĩa, kiểm tra dung lượng, xử lý ổ đĩa đầy, và thao tác gắn kết ổ đĩa cơ bản.
+
+**Nội dung học**:  
+1. 💽 **Filesystem là gì**:  
+   - Mount points - điểm gắn kết ổ đĩa  
+   - Các loại phổ biến: **ext4** (Linux), **XFS** (Oracle Linux), **NTFS/FAT** (Windows)  
+   - Filesystem vs Partition vs LVM  
+
+2. 📊 **Kiểm tra dung lượng**:  
+   - `df -h` - dung lượng đã dùng/tổng dung lượng *(human-readable)*  
+   - `df -i` - kiểm tra inode *(khi hết inode dù dung lượng còn trống)*  
+   - `lsblk` - xem cây thiết bị block  
+   - `/proc/partitions` - xem partition từ kernel  
+
+3. 🔍 **Tìm file chiếm dụng**:  
+   - `du -sh /path` - tổng dung lượng thư mục  
+   - `du -h --max-depth=1 /path` - xem theo cấp độ  
+   - `ncdu` - công cụ GUI-like trong terminal *(cần cài)*  
+   - `find / -size +100M` - tìm file >100MB  
+
+4. 🧹 **Dọn dẹp không gian**:  
+   - Xóa file log cũ: `/var/log/`  
+   - Dọn cache package: `sudo apt clean`  
+   - Xóa bản cập nhật cũ: `sudo apt autoremove --purge`  
+   - Tìm và xóa file tạm: `/tmp/`, `~/.cache/`  
+
+5. 🔌 **Gắn kết (mount) ổ đĩa cơ bản**:  
+   - `mount /dev/sdb1 /mnt/data` - gắn phân vùng  
+   - `umount /mnt/data` - ngắt gắn kết  
+   - Tự động mount qua `/etc/fstab`  
+   - Kiểm tra mounted FS với `findmnt` hoặc `mount -l`  
+   - Xem thông tin USB/ổ cứng ngoài với `lsblk -f`  
+
+6. ⚠️ **Xử lý tình huống đầy ổ**:  
+   - **Triệu chứng**: không ghi được file, ứng dụng crash  
+   - **Quy trình khắc phục**:  
+     1. Kiểm tra `df -h` và `df -i`  
+     2. Tìm thư mục lớn bằng `du`/`ncdu`  
+     3. Xóa hoặc di chuyển file lớn  
+     4. Mở rộng filesystem *(sẽ học trong LVM)*  
+
+7. 🛡 **Best Practices**:  
+   - Luôn để trống 10-20% dung lượng  
+   - Tách /home, /var, /tmp ra phân vùng riêng  
+   - Giám sát tự động *(sẽ học trong Shell Scripting)*  
+
+📝 **Bài tập thực hành**:  
+   - Tạo file 1GB: `dd if=/dev/zero of=testfile bs=1M count=1000`  
+   - Theo dõi `df -h` trước/sau khi tạo file  
+   - Dùng `ncdu` scan /var và tìm 3 file lớn nhất  
+   - Thử nghiệm xóa file log và dọn cache package  
+   - **Thực hành mount**:  
+     - Tạo thư mục `/mnt/test`  
+     - Tạo file hệ thống: `sudo mkfs.ext4 /dev/sdb1` (giả sử có phân vùng sẵn)  
+     - Mount thủ công: `sudo mount /dev/sdb1 /mnt/test`  
+     - Ghi file vào `/mnt/test` và kiểm tra  
+     - Thêm dòng vào `/etc/fstab` để mount tự động  
+   - Tạo kịch bản ổ đĩa đầy (>90%) và thực hành xử lý  
+
+📚 **Tài nguyên học tập**:  
+   - [Linux Disk Management Cheatsheet](https://linuxhandbook.com/disk-space-commands/)  
+   - Video: [How to Clean Up Disk Space on Ubuntu](https://youtu.be/4K4sMvLy7d0)  
+   - Guide: [Mounting Drives in Linux](https://linuxize.com/post/how-to-mount-and-unmount-file-systems-in-linux/)  
+
+### **7. Cài Đặt Phần Mềm**  
 🎯 **Mục tiêu**: Biết cách cài đặt và quản lý ứng dụng an toàn.  
 
 **Nội dung học**:  
@@ -241,7 +307,7 @@
    - Ubuntu Package Management Guide
    - APT cheat sheet
 
-### **7. Quản Lý Tiến Trình**  
+### **8. Quản Lý Tiến Trình**  
 🎯 **Mục tiêu**: Giám sát và điều khiển các chương trình đang chạy.  
 
 **Nội dung học**:  
@@ -283,7 +349,7 @@
    - "Linux Process Management" tutorial
    - htop explained
 
-### **8. Mạng Và Kết Nối**  
+### **9. Mạng Và Kết Nối**  
 🎯 **Mục tiêu**: Kết nối Linux với internet và máy tính khác.  
 
 **Nội dung học**:  
@@ -320,7 +386,7 @@
    - "SSH Essentials" guide
    - Basic networking for Linux
 
-### **9. Shell Scripting Cơ Bản**  
+### **10. Shell Scripting Cơ Bản**  
 🎯 **Mục tiêu**: Tự động hóa công việc lặp đi lặp lại.  
 
 **Nội dung học**:  
@@ -359,7 +425,7 @@
    - "Bash Scripting Tutorial for Beginners"
    - Cron job generator online
 
-### **10. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**  
+### **11. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**  
 🎯 **Mục tiêu**: Hiểu và sử dụng LVM để quản lý không gian lưu trữ linh hoạt, đặc biệt là mở rộng dung lượng ổ cứng khi cần.  
 **Nội dung học**:  
 1. 💾 **Giới thiệu về LVM**:  
@@ -422,7 +488,7 @@
    - Ubuntu LVM Guide (tài liệu chính thức)
 
 
-### **11. Troubleshooting Và Backup**  
+### **12. Troubleshooting Và Backup**  
 🎯 **Mục tiêu**: Xử lý sự cố và bảo vệ dữ liệu.  
 
 **Nội dung học**:  
@@ -457,7 +523,7 @@
    - "Linux Troubleshooting Guide"
    - Backup strategies for home users
 
-### **11. Tổng Kết Và Bước Tiếp Theo**  
+### **12. Tổng Kết Và Bước Tiếp Theo**  
 🎯 **Mục tiêu**: Củng cố kiến thức và định hướng phát triển.  
 **Nội dung học**:  
 1. 📖 **Review kiến thức đã học**:  
