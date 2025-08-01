@@ -11,7 +11,7 @@
     - [**10. Shell Scripting Cơ Bản**](#10-shell-scripting-cơ-bản)
     - [**11. Quản Lý Ổ Đĩa Với LVM (Logical Volume Manager)**](#11-quản-lý-ổ-đĩa-với-lvm-logical-volume-manager)
     - [**12. Troubleshooting Và Backup**](#12-troubleshooting-và-backup)
-    - [**12. Tổng Kết Và Bước Tiếp Theo**](#12-tổng-kết-và-bước-tiếp-theo)
+    - [**13. Tổng Kết Và Bước Tiếp Theo**](#13-tổng-kết-và-bước-tiếp-theo)
 - [**II. GIỚI THIỆU VÀ LỊCH SỬ LINUX**](#ii-giới-thiệu-và-lịch-sử-linux)
     - [**1. Phân rã hệ điều hành Linux**](#1-phân-rã-hệ-điều-hành-linux)
 - [**II. CÀI ĐẶT VÀ BẮT ĐẦU**](#ii-cài-đặt-và-bắt-đầu)
@@ -523,7 +523,7 @@
    - "Linux Troubleshooting Guide"
    - Backup strategies for home users
 
-### **12. Tổng Kết Và Bước Tiếp Theo**  
+### **13. Tổng Kết Và Bước Tiếp Theo**  
 🎯 **Mục tiêu**: Củng cố kiến thức và định hướng phát triển.  
 **Nội dung học**:  
 1. 📖 **Review kiến thức đã học**:  
