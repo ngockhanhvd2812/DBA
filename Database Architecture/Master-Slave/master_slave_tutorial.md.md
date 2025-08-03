@@ -1,3 +1,61 @@
+- [💻 **Hướng dẫn thiết Lập MySQL Master-Slave Replication**](#-hướng-dẫn-thiết-lập-mysql-master-slave-replication)
+  - [📚 **Phần I: Giới Thiệu Và Nền Tảng MySQL Master-Slave**](#-phần-i-giới-thiệu-và-nền-tảng-mysql-master-slave)
+  - [📖 **1. Master-Slave là gì?**](#-1-master-slave-là-gì)
+  - [🧠 **2. Nguyên lý hoạt động - Ba thành phần cốt lõi**](#-2-nguyên-lý-hoạt-động---ba-thành-phần-cốt-lõi)
+  - [✅/❌ **3. Lợi ích \& Giới hạn**](#-3-lợi-ích--giới-hạn)
+  - [🛠️ **Phần II: Chuẩn Bị Môi Trường Máy Ảo**](#️-phần-ii-chuẩn-bị-môi-trường-máy-ảo)
+  - [🖥️ **1. Cấu hình Máy ảo và Card mạng**](#️-1-cấu-hình-máy-ảo-và-card-mạng)
+  - [📝 **2. Cấu hình Hệ điều hành (IP Tĩnh \& Hostname)**](#-2-cấu-hình-hệ-điều-hành-ip-tĩnh--hostname)
+  - [🔒 **3. Cấu hình Phân giải tên miền và Tường lửa**](#-3-cấu-hình-phân-giải-tên-miền-và-tường-lửa)
+  - [📡 **4. Kiểm tra kết nối mạng**](#-4-kiểm-tra-kết-nối-mạng)
+  - [📚 **Phần III: Cài Đặt và Cấu Hình MySQL 8**](#-phần-iii-cài-đặt-và-cấu-hình-mysql-8)
+  - [📌 **Tổng quan**](#-tổng-quan)
+  - [🛠️ **1. Cài đặt MySQL Server**](#️-1-cài-đặt-mysql-server)
+  - [🔒 **2. Cấu hình Bảo mật Ban đầu (`mysql_secure_installation`)**](#-2-cấu-hình-bảo-mật-ban-đầu-mysql_secure_installation)
+  - [🌐 **3. Cấu hình cho phép MySQL kết nối mạng**](#-3-cấu-hình-cho-phép-mysql-kết-nối-mạng)
+  - [✅ **4. Kiểm tra Cài đặt**](#-4-kiểm-tra-cài-đặt)
+  - [📚 **Phần IV: Cấu Hình Master-Slave Replication**](#-phần-iv-cấu-hình-master-slave-replication)
+  - [📌 **Tổng quan quy trình**](#-tổng-quan-quy-trình)
+  - [🛠️ **A. Cấu Hình Trên Máy `mysql-master`**](#️-a-cấu-hình-trên-máy-mysql-master)
+  - [**Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**](#bước-1-chỉnh-sửa-file-cấu-hình-mysql-etcmycnf)
+  - [**Bước 2: Khởi động lại MySQL**](#bước-2-khởi-động-lại-mysql)
+  - [**Bước 3: Tạo User dành cho Replication**](#bước-3-tạo-user-dành-cho-replication)
+  - [**Bước 4: Lấy Trạng Thái của Master (Tọa độ đồng bộ)**](#bước-4-lấy-trạng-thái-của-master-tọa-độ-đồng-bộ)
+  - [🛠️ **B. Cấu Hình Trên Máy `mysql-slave`**](#️-b-cấu-hình-trên-máy-mysql-slave)
+  - [**Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**](#bước-1-chỉnh-sửa-file-cấu-hình-mysql-etcmycnf-1)
+  - [**Bước 2: Khởi động lại MySQL**](#bước-2-khởi-động-lại-mysql-1)
+  - [**Bước 3: Kết nối Slave với Master và Khởi động Replication**](#bước-3-kết-nối-slave-với-master-và-khởi-động-replication)
+  - [**Bước 4: Kiểm tra Trạng thái Replication**](#bước-4-kiểm-tra-trạng-thái-replication)
+- [📌 **Phụ Lục A: Các Phương Pháp Cài Đặt MySQL trên Oracle Linux 8 và Xử Lý Sự Cố**](#-phụ-lục-a-các-phương-pháp-cài-đặt-mysql-trên-oracle-linux-8-và-xử-lý-sự-cố)
+  - [💡 **Bối cảnh**](#-bối-cảnh)
+  - [🛠️ **Phương pháp 1: Sử dụng MySQL Yum Repository**](#️-phương-pháp-1-sử-dụng-mysql-yum-repository)
+  - [**Các bước thực hiện:**](#các-bước-thực-hiện)
+  - [❌ **Sự cố thường gặp: Lỗi `modular filtering`**](#-sự-cố-thường-gặp-lỗi-modular-filtering)
+  - [**WHY (Tại sao lỗi này xảy ra?):**](#why-tại-sao-lỗi-này-xảy-ra)
+  - [✅ **Các bước khắc phục**](#-các-bước-khắc-phục)
+  - [🔧 **Phương pháp 2: Cài đặt trực tiếp từ các gói RPM (Giải pháp cuối cùng của chúng ta)**](#-phương-pháp-2-cài-đặt-trực-tiếp-từ-các-gói-rpm-giải-pháp-cuối-cùng-của-chúng-ta)
+  - [**WHY (Tại sao phương pháp này hoạt động?):**](#why-tại-sao-phương-pháp-này-hoạt-động)
+  - [**Các bước thực hiện (Như chúng ta đã làm):**](#các-bước-thực-hiện-như-chúng-ta-đã-làm)
+  - [📌 **Kết luận và Khuyến nghị**](#-kết-luận-và-khuyến-nghị)
+- [🧪 **Phần V: Kiểm Thử Và Xử Lý Sự Cố**](#-phần-v-kiểm-thử-và-xử-lý-sự-cố)
+  - [🔍 **1. Kiểm tra (Test) quá trình đồng bộ dữ liệu**](#-1-kiểm-tra-test-quá-trình-đồng-bộ-dữ-liệu)
+  - [**Hiện trạng:**](#hiện-trạng)
+  - [**Bước 1: Đồng bộ dữ liệu ban đầu**](#bước-1-đồng-bộ-dữ-liệu-ban-đầu)
+  - [**Bước 2: Tạo thay đổi mới trên Master**](#bước-2-tạo-thay-đổi-mới-trên-master)
+  - [**Bước 3: Kiểm tra kết quả trên Slave**](#bước-3-kiểm-tra-kết-quả-trên-slave)
+  - [🛠️ **2. Các lỗi thường gặp và cách khắc phục**](#️-2-các-lỗi-thường-gặp-và-cách-khắc-phục)
+  - [**a. Giám sát độ trễ (Replication Lag)**](#a-giám-sát-độ-trễ-replication-lag)
+  - [**b. Lỗi: `Slave_IO_Running: No` hoặc `Slave_SQL_Running: No`**](#b-lỗi-slave_io_running-no-hoặc-slave_sql_running-no)
+  - [**c. Cách khắc phục lỗi `Duplicate entry` (Thực hành)**](#c-cách-khắc-phục-lỗi-duplicate-entry-thực-hành)
+    - [**Bước 1: Cố tình gây lỗi**](#bước-1-cố-tình-gây-lỗi)
+    - [**Bước 2: Kiểm tra lỗi trên Slave**](#bước-2-kiểm-tra-lỗi-trên-slave)
+    - [**Bước 3: Khắc phục lỗi**](#bước-3-khắc-phục-lỗi)
+- [🛡️ **3. Các Mẹo Thành Công và Kinh Nghiệm Thực Tế**](#️-3-các-mẹo-thành-công-và-kinh-nghiệm-thực-tế)
+  - [🔒 **a. Luôn sao lưu (Backup) trước khi cấu hình**](#-a-luôn-sao-lưu-backup-trước-khi-cấu-hình)
+  - [🔐 **b. Dùng mật khẩu mạnh cho User Replication**](#-b-dùng-mật-khẩu-mạnh-cho-user-replication)
+  - [🕵️ **c. Luôn kiểm tra Log Lỗi khi gặp sự cố**](#️-c-luôn-kiểm-tra-log-lỗi-khi-gặp-sự-cố)
+  - [🔄 **d. Quy trình `RESET SLAVE` khi cần cấu hình lại**](#-d-quy-trình-reset-slave-khi-cần-cấu-hình-lại)
+
 # 💻 **Hướng dẫn thiết Lập MySQL Master-Slave Replication**
 
 ## 📚 **Phần I: Giới Thiệu Và Nền Tảng MySQL Master-Slave**
@@ -301,7 +359,7 @@ graph TD
 
 🎯 **Mục tiêu:** Cài đặt MySQL Server 8 trên cả hai máy, thực hiện các bước bảo mật thiết yếu và cấu hình để chúng sẵn sàng cho việc giao tiếp replication.
 
-### 📌 **Tổng quan**
+## 📌 **Tổng quan**
 
 Ở phần này, chúng ta sẽ thực hiện một loạt các hành động giống hệt nhau trên cả hai máy `mysql-master` và `mysql-slave`. Mục tiêu là tạo ra hai máy chủ MySQL độc lập nhưng có cấu hình nền tảng tương đồng, sẵn sàng để kết nối với nhau ở phần sau.
 
@@ -333,7 +391,7 @@ graph TD
 
 ---
 
-### 🛠️ **1. Cài đặt MySQL Server**
+## 🛠️ **1. Cài đặt MySQL Server**
 
 **Bước 1: Cài đặt Module `@mysql`**
 
@@ -373,7 +431,7 @@ Bạn sẽ thấy một dòng `Active: active (running)` màu xanh lá. Điều 
 
 ---
 
-### 🔒 **2. Cấu hình Bảo mật Ban đầu (`mysql_secure_installation`)**
+## 🔒 **2. Cấu hình Bảo mật Ban đầu (`mysql_secure_installation`)**
 
 Đây là bước **quan trọng nhất** sau khi cài đặt. MySQL mặc định có nhiều cấu hình không an toàn. Script này sẽ giúp chúng ta "dọn dẹp" và "khóa cửa" cẩn thận.
 
@@ -422,7 +480,7 @@ Khi bạn thấy thông báo `All done!`, bạn đã hoàn tất việc gia cố
 
 ---
 
-### 🌐 **3. Cấu hình cho phép MySQL kết nối mạng**
+## 🌐 **3. Cấu hình cho phép MySQL kết nối mạng**
 
 Mặc định, MySQL chỉ lắng nghe các kết nối từ chính nó (`localhost`). Để Master và Slave có thể giao tiếp với nhau qua mạng Host-Only, chúng ta cần gỡ bỏ giới hạn này.
 
@@ -483,7 +541,7 @@ systemctl restart mysqld
 
 ---
 
-### ✅ **4. Kiểm tra Cài đặt**
+## ✅ **4. Kiểm tra Cài đặt**
 
 Đăng nhập vào MySQL để xác nhận mọi thứ hoạt động.
 
@@ -513,7 +571,7 @@ Chúng ta đã hoàn thành tất cả các bước chuẩn bị. Nền móng đ
 
 🎯 **Mục tiêu:** Thiết lập và kích hoạt quá trình đồng bộ dữ liệu một chiều từ `mysql-master` sang `mysql-slave`. Đây là phần quan trọng và thú vị nhất của toàn bộ lộ trình.
 
-### 📌 **Tổng quan quy trình**
+## 📌 **Tổng quan quy trình**
 
 Quá trình này bao gồm hai giai đoạn chính:
 1.  **Trên Master:** Bật "chế độ phát sóng" (kích hoạt Binary Log) và tạo một tài khoản đặc biệt cho Slave kết nối vào.
@@ -546,7 +604,7 @@ sequenceDiagram
 
 Bạn hãy chuyển sang cửa sổ MobaXterm đang kết nối tới `mysql-master`.
 
-### **Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**
+## **Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**
 
 Chúng ta cần thêm vài dòng cấu hình để "bảo" Master: "Hãy bật Binary Log và tự nhận mình là máy chủ số 1 nhé".
 
@@ -577,14 +635,14 @@ binlog_do_db = test_db
 
 Sau khi thêm xong, lưu và thoát (`Ctrl+X`, `Y`, `Enter`).
 
-### **Bước 2: Khởi động lại MySQL**
+## **Bước 2: Khởi động lại MySQL**
 
 Để các thay đổi trên có hiệu lực, hãy khởi động lại dịch vụ MySQL:
 ```bash
 systemctl restart mysqld
 ```
 
-### **Bước 3: Tạo User dành cho Replication**
+## **Bước 3: Tạo User dành cho Replication**
 
 Slave không thể dùng tài khoản `root` của Master để kết nối (vì chúng ta đã chặn kết nối từ xa). Chúng ta cần tạo một tài khoản riêng cho Slave với quyền hạn đặc biệt là `REPLICATION SLAVE`.
 
@@ -612,7 +670,7 @@ FLUSH PRIVILEGES;
 *   `'repl'@'%'`: `'repl'` là tên người dùng, `'%'` có nghĩa là người dùng này có thể kết nối từ bất kỳ địa chỉ IP nào. Để bảo mật hơn, bạn có thể thay `%` bằng IP của Slave: `'repl'@'192.168.49.11'`.
 *   `GRANT REPLICATION SLAVE`: Đây là một đặc quyền (privilege) rất mạnh mẽ, cho phép user đọc Binary Log của Master.
 
-### **Bước 4: Lấy Trạng Thái của Master (Tọa độ đồng bộ)**
+## **Bước 4: Lấy Trạng Thái của Master (Tọa độ đồng bộ)**
 
 Đây là bước cực kỳ quan trọng. Chúng ta cần "đánh dấu" chính xác vị trí trong Binary Log mà Slave sẽ bắt đầu sao chép.
 
@@ -657,7 +715,7 @@ Bây giờ bạn có thể gõ `exit` để thoát khỏi cả hai cửa sổ My
 
 Bây giờ, bạn hãy chuyển sang cửa sổ MobaXterm đang kết nối tới `mysql-slave`.
 
-### **Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**
+## **Bước 1: Chỉnh sửa file cấu hình MySQL (`/etc/my.cnf`)**
 
 Tương tự như Master, chúng ta cần cấu hình `server-id` và một vài tùy chọn khác cho Slave.
 
@@ -686,12 +744,12 @@ read_only = ON
 
 Lưu và thoát (`Ctrl+X`, `Y`, `Enter`).
 
-### **Bước 2: Khởi động lại MySQL**
+## **Bước 2: Khởi động lại MySQL**
 ```bash
 systemctl restart mysqld
 ```
 
-### **Bước 3: Kết nối Slave với Master và Khởi động Replication**
+## **Bước 3: Kết nối Slave với Master và Khởi động Replication**
 
 Đây là khoảnh khắc quyết định! Chúng ta sẽ "bảo" Slave: "Hãy kết nối tới `mysql-master` bằng tài khoản `repl`, và bắt đầu đọc từ tọa độ mà chúng ta đã ghi lại".
 
@@ -719,7 +777,7 @@ CHANGE MASTER TO
 START SLAVE;
 ```
 
-### **Bước 4: Kiểm tra Trạng thái Replication**
+## **Bước 4: Kiểm tra Trạng thái Replication**
 
 Làm sao để biết quá trình đã thành công? Vẫn trong prompt `mysql>` của Slave, chạy lệnh sau:
 ```sql
@@ -746,23 +804,27 @@ Hệ thống của bạn về mặt kỹ thuật đã được kết nối và �
 ---
 
 
-## **Phụ Lục A: Các Phương Pháp Cài Đặt MySQL trên Oracle Linux 8 và Xử Lý Sự Cố**
+# 📌 **Phụ Lục A: Các Phương Pháp Cài Đặt MySQL trên Oracle Linux 8 và Xử Lý Sự Cố**
 
 🎯 **Mục tiêu:** Hiểu rõ hai phương pháp cài đặt MySQL phổ biến trên Oracle Linux 8, phân tích nguyên nhân gây ra lỗi `modular filtering` và biết cách lựa chọn phương pháp phù hợp.
 
-#### **Bối cảnh**
+---
+
+## 💡 **Bối cảnh**
 
 Trên các hệ điều hành dựa trên Red Hat như Oracle Linux 8, CentOS 8, RHEL 8, có một tính năng gọi là **"Module Streams"**. Nó cho phép hệ điều hành cung cấp nhiều phiên bản của cùng một phần mềm (ví dụ: MySQL 8.0, PostgreSQL 10, PostgreSQL 13...). Tuy nhiên, tính năng này đôi khi gây xung đột khi bạn cố gắng cài đặt phần mềm từ một kho lưu trữ bên thứ ba (như kho của MySQL).
 
-#### **Phương pháp 1: Sử dụng MySQL Yum Repository**
+---
+
+## 🛠️ **Phương pháp 1: Sử dụng MySQL Yum Repository**
 
 Đây là phương pháp được khuyến nghị chính thức từ MySQL và thường là cách dễ dàng nhất nếu nó hoạt động.
 
-**Các bước thực hiện:**
+## **Các bước thực hiện:**
 
 1.  **Tải gói Repository:**
     ```bash
-    wget https://repo.mysql.com//mysql80-community-release-el8-1.noarch.rpm
+    wget https://repo.mysql.com//mysql80-community-release-el8-1.noarch.rpm  
     ```
     *   **WHY:** Gói `.rpm` này không chứa MySQL Server. Nó chỉ chứa các file cấu hình để "dạy" cho trình quản lý gói `dnf` của bạn biết kho lưu trữ của MySQL nằm ở đâu trên Internet.
 
@@ -778,12 +840,14 @@ Trên các hệ điều hành dựa trên Red Hat như Oracle Linux 8, CentOS 8,
     ```
     *   **WHY:** Đây là lúc `dnf` sử dụng thông tin repository mới để tìm và cài đặt gói `mysql-community-server`.
 
-**Sự cố thường gặp: Lỗi `modular filtering`**
+---
+
+## ❌ **Sự cố thường gặp: Lỗi `modular filtering`**
 
 > `All matches were filtered out by modular filtering for argument: mysql-community-server`
 > `Error: Unable to find a match: mysql-community-server`
 
-**WHY (Tại sao lỗi này xảy ra?):**
+## **WHY (Tại sao lỗi này xảy ra?):**
 
 Lỗi này xảy ra vì một sự xung đột. Hệ điều hành Oracle Linux 8 của bạn đã có sẵn một "module" tên là `mysql` (thường là phiên bản 8.0). Khi bạn thêm repository của MySQL Community vào, `dnf` bối rối vì nó thấy hai "nguồn" cùng cung cấp phần mềm tên là `mysql`. Cơ chế "modular filtering" được kích hoạt để ngăn chặn các xung đột tiềm tàng, và nó đã "lọc" (loại bỏ) gói `mysql-community-server` từ kho bạn mới thêm vào.
 
@@ -829,7 +893,7 @@ graph TD
     Conflict -- "❌ Không tìm thấy" --> Lỗi
     Conflict -- "⚠️ Có xung đột" --> Warning
 
-    %% Super colorful styling - Nodes
+    %% Styling
     style DNF fill:#ff6b6b,stroke:#ee5a52,stroke-width:4px,color:#fff
     style OL_Repo fill:#4ecdc4,stroke:#45b7aa,stroke-width:4px,color:#fff
     style MySQL_Repo fill:#45b7d1,stroke:#3a9bc1,stroke-width:4px,color:#fff
@@ -844,23 +908,15 @@ graph TD
     style Lỗi fill:#e17055,stroke:#d63031,stroke-width:5px,color:#fff
     style Warning fill:#f39c12,stroke:#e67e22,stroke-width:5px,color:#fff
 
-    %% Subgroup styling with different colors
     style DNF_Group fill:#ffe8e8,stroke:#ff6b6b,stroke-width:3px,color:#333
     style Repo_Group fill:#e8f8ff,stroke:#45b7d1,stroke-width:3px,color:#333
     style Filter_Group fill:#f0e8ff,stroke:#a29bfe,stroke-width:3px,color:#333
     style Result_Group fill:#e8ffe8,stroke:#00b894,stroke-width:3px,color:#333
-
-    %% Additional styling classes
-    classDef rainbow1 fill:#ff9ff3,stroke:#f368e0,stroke-width:3px,color:#fff
-    classDef rainbow2 fill:#54a0ff,stroke:#2e86de,stroke-width:3px,color:#fff
-    classDef rainbow3 fill:#5f27cd,stroke:#341f97,stroke-width:3px,color:#fff
-    classDef rainbow4 fill:#00d2d3,stroke:#01a3a4,stroke-width:3px,color:#fff
-    classDef rainbow5 fill:#ff6348,stroke:#ff3742,stroke-width:3px,color:#fff
-    classDef rainbow6 fill:#ff9f43,stroke:#ff6348,stroke-width:3px,color:#fff
-
 ```
 
-**Các bước khắc phục**
+---
+
+## ✅ **Các bước khắc phục**
 
 File của bạn đã ghi lại các bước khắc phục rất logic:
 
@@ -870,14 +926,17 @@ File của bạn đã ghi lại các bước khắc phục rất logic:
 
 Tuy nhiên, như bạn đã thấy, đôi khi các bước này vẫn không giải quyết được triệt để vấn đề xung đột. Khi đó, chúng ta cần một phương pháp quyết đoán hơn.
 
-#### **Phương pháp 2: Cài đặt trực tiếp từ các gói RPM (Giải pháp cuối cùng của chúng ta)**
+---
+
+## 🔧 **Phương pháp 2: Cài đặt trực tiếp từ các gói RPM (Giải pháp cuối cùng của chúng ta)**
 
 Đây là phương pháp "cấp thấp" hơn nhưng đáng tin cậy vì nó bỏ qua hoàn toàn cơ chế repository và module của `dnf`. Bạn làm việc trực tiếp với các file cài đặt.
 
-**WHY (Tại sao phương pháp này hoạt động?):**
+## **WHY (Tại sao phương pháp này hoạt động?):**
+
 Khi bạn dùng `dnf install <tên_file.rpm>`, bạn đang ra lệnh cho `dnf` cài đặt chính xác file đó, không cần tìm kiếm trong repository. `dnf` vẫn sẽ tự động xử lý các gói phụ thuộc từ các repository hệ thống, nhưng nó sẽ không bị bối rối bởi lỗi `modular filtering` nữa.
 
-**Các bước thực hiện (Như chúng ta đã làm):**
+## **Các bước thực hiện (Như chúng ta đã làm):**
 
 1.  **Tự tìm và tải các gói RPM cần thiết:** Bạn đã làm rất tốt việc lên trang của Oracle/MySQL để tìm đúng các file `.rpm` cho phiên bản 8.0.39.
 2.  **Tải đủ các gói phụ thuộc:** Chúng ta đã học được rằng cần phải có đủ bộ: `common`, `libs`, `client-plugins`, `client`, và `server`.
@@ -902,18 +961,332 @@ graph TD
     G --> H{Cài đặt Client}
     H --> I[Tải mysql-community-server-*.rpm]
     I --> J{Cài đặt Server}
-    J --> K[✅ Hoàn tất]
+    J --> K[Hoàn tất]
 
-    style K fill:#cde4da,stroke:#333,stroke-width:2px
+    %% Colorful styling
+    style A fill:#ff6b6b,stroke:#ee5a52,stroke-width:3px,color:#fff
+    style C fill:#4ecdc4,stroke:#45b7aa,stroke-width:3px,color:#fff
+    style E fill:#45b7d1,stroke:#3a9bc1,stroke-width:3px,color:#fff
+    style G fill:#96ceb4,stroke:#85b8a3,stroke-width:3px,color:#fff
+    style I fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px,color:#333
+
+    style B fill:#a29bfe,stroke:#6c5ce7,stroke-width:3px,color:#fff
+    style D fill:#fd79a8,stroke:#e84393,stroke-width:3px,color:#fff
+    style F fill:#fdcb6e,stroke:#e17055,stroke-width:3px,color:#fff
+    style H fill:#00b894,stroke:#00a085,stroke-width:3px,color:#fff
+    style J fill:#e17055,stroke:#d63031,stroke-width:3px,color:#fff
+    style K fill:#00b894,stroke:#00a085,stroke-width:4px,color:#fff
 ```
 
-#### **Kết luận và Khuyến nghị**
+---
+
+## 📌 **Kết luận và Khuyến nghị**
 
 *   **Phương pháp 1 (Repository):** Luôn là lựa chọn đầu tiên vì sự tiện lợi và khả năng cập nhật dễ dàng (`dnf update`). Tuy nhiên, hãy chuẩn bị tinh thần xử lý lỗi `modular filtering`.
 *   **Phương pháp 2 (RPM trực tiếp):** Là giải pháp cứu cánh đáng tin cậy khi phương pháp 1 thất bại. Nó cho bạn toàn quyền kiểm soát phiên bản nhưng đòi hỏi bạn phải tự quản lý các gói phụ thuộc.
 
 Việc bạn đã trải qua và ghi lại cả hai quá trình này đã mang lại cho bạn một kinh nghiệm vô giá.
 
-Bây giờ, chúng ta sẽ quay lại lộ trình chính. Chúng ta đã hoàn thành xuất sắc Phần IV (Cấu hình Master-Slave). Bước tiếp theo là **Phần V**.
+
+✅ **Chúng ta đã hoàn thành Phần IV (Cấu hình Master-Slave) và Phụ Lục A.** Bước tiếp theo là **Phần V**.
 
 ---
+
+# 🧪 **Phần V: Kiểm Thử Và Xử Lý Sự Cố**
+
+🎯 **Mục tiêu:** Xác minh hệ thống replication hoạt động ổn định bằng cách kiểm tra việc đồng bộ dữ liệu, đồng thời học cách nhận biết và khắc phục một số lỗi cơ bản thường gặp.
+
+---
+
+## 🔍 **1. Kiểm tra (Test) quá trình đồng bộ dữ liệu**
+
+Đây là khoảnh khắc "sự thật". Chúng ta sẽ tạo ra một thay đổi trên Master và xem liệu nó có tự động xuất hiện trên Slave hay không.
+
+## **Hiện trạng:**
+*   Trên Master: Bảng `test_db.users` có 2 bản ghi (Alice, Bob).
+*   Trên Slave: Bảng `test_db.users` chưa có bản ghi nào (vì chúng ta tạo chúng trước khi bật replication).
+
+## **Bước 1: Đồng bộ dữ liệu ban đầu**
+Lúc chúng ta cấu hình, Slave đã kết nối với Master. Quá trình đồng bộ các thay đổi *kể từ lúc kết nối* đã bắt đầu. Tuy nhiên, các dữ liệu đã có sẵn trên Master *trước khi* bật replication sẽ không được tự động sao chép.
+
+*   *(Lưu ý: Trong thực tế, để đồng bộ toàn bộ dữ liệu có sẵn, người ta thường dùng `mysqldump` để sao lưu Master rồi phục hồi trên Slave trước khi chạy `START SLAVE`. Nhưng trong bài học này, chúng ta sẽ tập trung vào việc đồng bộ các thay đổi mới.)*
+
+## **Bước 2: Tạo thay đổi mới trên Master**
+Hãy đăng nhập vào MySQL trên máy **Master**:
+```bash
+mysql -u root -p
+```
+(Nhập mật khẩu root của Master)
+
+Thêm một người dùng mới vào bảng `users`:
+```sql
+USE test_db;
+INSERT INTO users (name) VALUES ('Charlie');
+SELECT * FROM users;
+```
+Bạn sẽ thấy kết quả trên Master bây giờ có 3 người: Alice, Bob, và Charlie.
+
+```mermaid
+flowchart LR
+    subgraph Master_Process["🔥 Trên Master Database"]
+        A["INSERT INTO users (name) VALUES ('Charlie')"] --> B{"📊 Bảng users<br>1. Alice<br>2. Bob<br>3. Charlie"}
+    end
+    
+    subgraph Slave_Process["💎 Trên Slave Database"]
+        C{"📋 Bảng users<br>...đang chờ đồng bộ..."}
+    end
+    
+    subgraph Replication_Flow["⚡ Quá trình Replication"]
+        Master_DB[("🗄️ Master DB")] 
+        Slave_DB[("🗃️ Slave DB")]
+        BinLog["📝 Binary Log"]
+        RelayLog["📄 Relay Log"]
+    end
+    
+    A --> BinLog
+    BinLog --> Master_DB
+    Master_DB -- "🚀 BinLog Event" --> RelayLog
+    RelayLog --> Slave_DB
+    B -- "✅ Dữ liệu được cập nhật" --> Master_DB
+    Slave_DB -- "🔄 Áp dụng thay đổi" --> C
+    
+    %% Styling
+    style Master_Process fill:#ffe8e8,stroke:#ff6b6b,stroke-width:2px,color:#333
+    style Slave_Process fill:#e8f8ff,stroke:#45b7d1,stroke-width:2px,color:#333
+    style Replication_Flow fill:#f0e8ff,stroke:#a29bfe,stroke-width:2px,color:#333
+    
+    style A fill:#ff6b6b,stroke:#ee5a52,stroke-width:3px,color:#fff
+    style B fill:#4ecdc4,stroke:#45b7aa,stroke-width:3px,color:#fff
+    style Master_DB fill:#45b7d1,stroke:#3a9bc1,stroke-width:3px,color:#fff
+    
+    style C fill:#96ceb4,stroke:#85b8a3,stroke-width:3px,color:#fff
+    style Slave_DB fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px,color:#333
+    
+    style BinLog fill:#a29bfe,stroke:#6c5ce7,stroke-width:3px,color:#fff
+    style RelayLog fill:#fd79a8,stroke:#e84393,stroke-width:3px,color:#fff
+```
+
+## **Bước 3: Kiểm tra kết quả trên Slave**
+Bây giờ, hãy chuyển sang máy **Slave**. Đăng nhập vào MySQL:
+```bash
+mysql -u root -p
+```
+(Nhập mật khẩu root của Slave)
+
+Kiểm tra nội dung bảng `users`:
+```sql
+USE test_db;
+SELECT * FROM users;
+```
+*   **Kết quả kỳ vọng:** Bạn sẽ thấy bản ghi `Charlie` xuất hiện trên Slave! Nếu bạn thấy cả Alice và Bob, điều đó có nghĩa là khi bạn lấy `SHOW MASTER STATUS`, file binlog đã bao gồm cả sự kiện tạo 2 bản ghi đó. Nếu chỉ thấy Charlie, điều đó cũng hoàn toàn bình thường.
+*   **Hành động:** Bạn hãy thực hiện các bước này và cho tôi xem kết quả của lệnh `SELECT * FROM users;` trên **Slave** nhé.
+
+---
+
+## 🛠️ **2. Các lỗi thường gặp và cách khắc phục**
+
+## **a. Giám sát độ trễ (Replication Lag)**
+Trên máy **Slave**, chạy lại lệnh kiểm tra trạng thái:
+```sql
+SHOW SLAVE STATUS\G
+```
+Tìm dòng `Seconds_Behind_Master`.
+*   **`Seconds_Behind_Master: 0`**: Hoàn hảo! Slave đang đồng bộ ngay lập tức.
+*   **`Seconds_Behind_Master: > 0`**: Có độ trễ. Nếu số này lớn và không giảm, đó là dấu hiệu của Replication Lag. Nguyên nhân có thể do mạng chậm, Slave quá tải, hoặc có một truy vấn lớn đang chạy trên Master.
+
+```mermaid
+graph LR
+    A["Slave Status"] --> B{Seconds_Behind_Master}
+    B -->|0| C["✅ Hoàn hảo"]
+    B -->|>0| D["⚠️ Có độ trễ"]
+    D --> E["Nguyên nhân: Mạng chậm, Slave quá tải, truy vấn lớn"]
+    E --> F["Giải pháp: Tối ưu hóa truy vấn, tăng tài nguyên"]
+    C --> G["✅ Hệ thống hoạt động tốt"]
+    
+    style A fill:#55efc4,stroke:#00b894,stroke-width:3px,color:#000
+    style B fill:#a29bfe,stroke:#6c5ce7,stroke-width:3px,color:#fff
+    style C fill:#00b894,stroke:#00a085,stroke-width:4px,color:#fff
+    style D fill:#f39c12,stroke:#e67e22,stroke-width:3px,color:#000
+    style E fill:#ff9f43,stroke:#e17055,stroke-width:3px,color:#000
+    style F fill:#81ecec,stroke:#00cec9,stroke-width:3px,color:#000
+    style G fill:#55efc4,stroke:#00b894,stroke-width:4px,color:#000
+```
+
+## **b. Lỗi: `Slave_IO_Running: No` hoặc `Slave_SQL_Running: No`**
+Đây là lỗi phổ biến nhất. Nếu một trong hai giá trị này là `No`, replication đã bị dừng.
+
+*   **Nguyên nhân `Slave_IO_Running: No`:**
+    *   **Mạng/Firewall:** Kết nối từ Slave đến Master bị mất (mạng đứt, Master tắt, port 3306 bị chặn lại).
+    *   **Sai thông tin đăng nhập:** User `repl` hoặc mật khẩu bị sai (lỗi này thường hiển thị rõ trong `Last_IO_Error`).
+    *   **Binlog của Master bị xóa:** Master đã xóa file binlog mà Slave đang cần đọc.
+*   **Nguyên nhân `Slave_SQL_Running: No`:**
+    *   **Xung đột dữ liệu (Duplicate entry):** Lỗi phổ biến nhất. Ví dụ: ai đó đã lỡ tay `INSERT` một bản ghi có `PRIMARY KEY` trùng lặp trực tiếp trên Slave. Khi SQL Thread cố gắng thực thi lại lệnh `INSERT` từ Master, nó sẽ báo lỗi `Duplicate entry`.
+    *   **Lỗi cú pháp hoặc logic:** Một truy vấn chạy thành công trên Master nhưng lại lỗi trên Slave (hiếm gặp, thường do phiên bản MySQL khác nhau hoặc cấu hình `sql_mode` khác nhau).
+
+## **c. Cách khắc phục lỗi `Duplicate entry` (Thực hành)**
+Đây là một bài tập rất thực tế.
+
+### **Bước 1: Cố tình gây lỗi**
+Trên máy **Slave**, đăng nhập vào MySQL và tạm thời tắt chế độ `read_only` để có thể ghi dữ liệu:
+```sql
+SET GLOBAL read_only = OFF;
+INSERT INTO test_db.users (id, name) VALUES (4, 'Eve_on_Slave');
+SET GLOBAL read_only = ON; -- Bật lại ngay lập tức
+```
+Bây giờ, quay lại máy **Master** và chèn một bản ghi cũng có `id = 4`:
+```sql
+INSERT INTO test_db.users (id, name) VALUES (4, 'David_on_Master');
+```
+
+### **Bước 2: Kiểm tra lỗi trên Slave**
+Chạy `SHOW SLAVE STATUS\G` trên **Slave**. Bạn sẽ thấy:
+*   `Slave_SQL_Running: No`
+*   `Last_SQL_Error:` sẽ có thông báo `Duplicate entry '4' for key 'users.PRIMARY'`.
+
+### **Bước 3: Khắc phục lỗi**
+Chúng ta có 2 lựa chọn:
+1.  **Chấp nhận dữ liệu trên Slave là đúng:** Bỏ qua giao dịch từ Master.
+2.  **Chấp nhận dữ liệu trên Master là đúng:** Xóa dữ liệu trên Slave và thực thi lại.
+
+Chúng ta sẽ làm theo cách 1 (bỏ qua giao dịch từ Master):
+```sql
+-- Trên Slave
+STOP SLAVE;
+SET GLOBAL sql_slave_skip_counter = 1; -- Bảo SQL Thread bỏ qua 1 sự kiện tiếp theo
+START SLAVE;
+```
+Sau đó, chạy lại `SHOW SLAVE STATUS\G`, bạn sẽ thấy cả hai `Running` đều là `Yes`.
+
+```mermaid
+flowchart TD
+    subgraph Error_State["⚠️ Trạng thái lỗi"]
+        A["Slave_SQL_Running: No"]
+        B["Last_SQL_Error: Duplicate entry '4'"]
+    end
+    
+    subgraph Solution["🛠️ Giải pháp"]
+        C["STOP SLAVE"]
+        D["SET GLOBAL sql_slave_skip_counter = 1"]
+        E["START SLAVE"]
+    end
+    
+    subgraph Success_State["✅ Trạng thái thành công"]
+        F["Slave_SQL_Running: Yes"]
+        G["Replication hoạt động"]
+    end
+    
+    Error_State --> Solution
+    Solution --> Success_State
+    
+    style Error_State fill:#ff7675,stroke:#d63031,stroke-width:3px,color:#fff
+    style Solution fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px,color:#333
+    style Success_State fill:#55efc4,stroke:#00b894,stroke-width:4px,color:#000
+```
+---
+
+# 🛡️ **3. Các Mẹo Thành Công và Kinh Nghiệm Thực Tế**
+
+Thiết lập replication thành công chỉ là bước khởi đầu. Để duy trì một hệ thống ổn định và dễ quản lý, đây là những kinh nghiệm "xương máu" mà bạn nên ghi nhớ.
+
+---
+
+## 🔒 **a. Luôn sao lưu (Backup) trước khi cấu hình**
+
+*   **WHY:** Bất kỳ thao tác nào thay đổi cấu hình hệ thống đều có rủi ro. Việc chỉnh sửa file `my.cnf` hoặc thay đổi quyền người dùng có thể gây ra lỗi không mong muốn. Một bản sao lưu đầy đủ sẽ là "phao cứu sinh" cho phép bạn phục hồi lại trạng thái ban đầu một cách nhanh chóng.
+*   **HOW:** Trước khi bắt đầu Phần IV (Cấu hình Replication), hãy chạy lệnh sau trên **Master** để tạo một bản sao lưu toàn bộ cơ sở dữ liệu:
+    ```bash
+    mysqldump -u root -p --all-databases --master-data=2 > /root/full_backup_before_replication.sql
+    ```
+    *   `mysqldump`: Công cụ sao lưu logic của MySQL.
+    *   `--all-databases`: Sao lưu tất cả các database.
+    *   `--master-data=2`: Một tùy chọn cực kỳ quan trọng! Nó sẽ tự động thêm vào file backup dòng `CHANGE MASTER TO ...` với đúng `File` và `Position` tại thời điểm sao lưu. Điều này giúp việc phục hồi và thiết lập Slave sau này trở nên cực kỳ dễ dàng và chính xác.
+    *   `> /root/full_backup_...`: Chuyển hướng output ra một file SQL.
+
+```mermaid
+flowchart LR
+    A["Bắt đầu cấu hình replication"] --> B["Sao lưu toàn bộ database"]
+    B --> C["Tạo file backup với --master-data=2"]
+    C --> D["Thiết lập replication"]
+    D --> E["Nếu có lỗi, phục hồi từ backup"]
+    style A fill:#ff6b6b,stroke:#ee5a52,stroke-width:3px,color:#fff
+    style B fill:#4ecdc4,stroke:#45b7aa,stroke-width:3px,color:#fff
+    style C fill:#45b7d1,stroke:#3a9bc1,stroke-width:3px,color:#fff
+    style D fill:#96ceb4,stroke:#85b8a3,stroke-width:3px,color:#fff
+    style E fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px,color:#333
+```
+
+---
+
+## 🔐 **b. Dùng mật khẩu mạnh cho User Replication**
+
+*   **WHY:** User `repl` có quyền `REPLICATION SLAVE`, cho phép nó đọc toàn bộ Binary Log. Binary Log chứa **mọi thay đổi dữ liệu** trên Master, bao gồm cả những dữ liệu nhạy cảm. Nếu mật khẩu của user `repl` yếu và bị lộ, kẻ tấn công có thể kết nối vào Master, đọc toàn bộ dòng chảy dữ liệu của bạn.
+*   **HOW:** Thay vì `'SecurePass123!'`, hãy sử dụng một mật khẩu được tạo ngẫu nhiên, dài và phức tạp.
+    ```sql
+    -- Ví dụ về mật khẩu mạnh hơn
+    CREATE USER 'repl'@'%' IDENTIFIED BY 'aJk7$!pQ9*zXvR2m'; 
+    ```
+
+---
+
+## 🕵️ **c. Luôn kiểm tra Log Lỗi khi gặp sự cố**
+
+*   **WHY:** Khi `systemctl status mysqld` chỉ báo lỗi chung chung, file log lỗi của MySQL là nơi chứa thông tin chi tiết nhất về nguyên nhân sự cố. Nó sẽ cho bạn biết chính xác tại sao MySQL không thể khởi động, ví dụ: sai cú pháp trong `my.cnf`, không tìm thấy file, vấn đề về quyền...
+*   **HOW:** Log lỗi mặc định trên Oracle Linux 8 nằm ở `/var/log/mysqld.log`. Sử dụng lệnh `tail` để xem những dòng cuối cùng của file log:
+    ```bash
+    tail -f /var/log/mysqld.log
+    ```
+    *   `tail`: Lệnh xem phần cuối của file.
+    *   `-f` (follow): Tùy chọn này giữ cho lệnh `tail` chạy và hiển thị các dòng mới được thêm vào file log theo thời gian thực. Rất hữu ích để theo dõi lỗi khi bạn đang cố gắng khởi động lại dịch vụ.
+
+```mermaid
+flowchart TB
+    A["Lỗi xảy ra"] --> B["Kiểm tra log"]
+    B --> C["Tìm thông báo lỗi cụ thể"]
+    C --> D["Xác định nguyên nhân"]
+    D --> E["Sửa lỗi"]
+    E --> F["Khởi động lại dịch vụ"]
+    style A fill:#ff7675,stroke:#d63031,stroke-width:3px,color:#fff
+    style B fill:#ffeaa7,stroke:#fdcb6e,stroke-width:3px,color:#333
+    style C fill:#a29bfe,stroke:#6c5ce7,stroke-width:3px,color:#fff
+    style D fill:#4ecdc4,stroke:#45b7aa,stroke-width:3px,color:#fff
+    style E fill:#55efc4,stroke:#00b894,stroke-width:3px,color:#fff
+    style F fill:#00b894,stroke:#00a085,stroke-width:4px,color:#fff
+```
+
+---
+
+## 🔄 **d. Quy trình `RESET SLAVE` khi cần cấu hình lại**
+
+*   **WHY:** Khi bạn cấu hình sai (ví dụ: sai `MASTER_HOST`, sai `File`/`Position`) hoặc muốn thiết lập lại replication từ đầu, các thông tin cũ vẫn được lưu trên Slave. Việc chạy `CHANGE MASTER TO` mới có thể không ghi đè hết các thiết lập cũ, gây ra hành vi không mong muốn.
+*   **HOW:** Trước khi chạy một lệnh `CHANGE MASTER TO` mới để cấu hình lại, hãy thực hiện quy trình "dọn dẹp" trên **Slave**:
+    ```sql
+    -- Trên Slave
+    STOP SLAVE;
+    RESET SLAVE ALL; -- Lệnh này sẽ xóa toàn bộ thông tin kết nối Master cũ và xóa tất cả Relay Log.
+    ```
+    *   `RESET SLAVE ALL`: Đưa Slave về trạng thái "trinh nguyên", sẵn sàng để được cấu hình kết nối tới một Master mới (hoặc chính Master cũ với thông tin mới). Sau lệnh này, bạn mới chạy `CHANGE MASTER TO ...` và `START SLAVE;`.
+
+```mermaid
+graph TD
+    subgraph "Quy trình làm lại Replication"
+        A["STOP SLAVE"] --> B["RESET SLAVE ALL<br>(Xóa cấu hình cũ)"]
+        B --> C["CHANGE MASTER TO ...<br>(Thông tin master mới)"]
+        C --> D["START SLAVE"]
+    end
+
+    %% Các bước kiểm tra liên quan
+    B -.-> E["Kiểm tra Connection"]
+    C -.-> F["Xác nhận Log Position"]
+    D -.-> G["Kiểm tra Status"]
+    D -.-> H["Xử lý lỗi nếu có"]
+
+    style A fill:#ff6b6b,stroke:#ee5a52,stroke-width:2px,color:#fff
+    style B fill:#4ecdc4,stroke:#45b7aa,stroke-width:2px,color:#fff
+    style C fill:#45b7d1,stroke:#3a9bc1,stroke-width:2px,color:#fff
+    style D fill:#96ceb4,stroke:#85b8a3,stroke-width:2px,color:#fff
+
+    style E fill:#ffeaa7,stroke:#fdcb6e,stroke-width:1px,color:#333
+    style F fill:#00b894,stroke:#00a085,stroke-width:1px,color:#fff
+    style G fill:#a29bfe,stroke:#6c5ce7,stroke-width:1px,color:#fff
+    style H fill:#ff7675,stroke:#d63031,stroke-width:1px,color:#fff
+```
