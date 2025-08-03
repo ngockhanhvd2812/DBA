@@ -129,7 +129,6 @@ Dữ liệu chỉ chảy một chiều từ Master sang Slave. Việc đồng b�
 
   * Ghi đi Master, đọc đi Slave
 
-
 | Thành phần          | Master (Máy chủ chính)                             | Slave (Máy chủ phụ)                                       |
 | ------------------- | -------------------------------------------------- | --------------------------------------------------------- |
 | **Chức năng chính** | Xử lý **ghi dữ liệu** (INSERT/UPDATE/DELETE)       | Xử lý **đọc dữ liệu** (SELECT), đồng bộ dữ liệu từ Master |
@@ -534,8 +533,8 @@ flowchart TB
 
 **Đánh giá**
 
-1.  **Sự Đánh Đổi Cốt Lõi:** Khi bạn tăng **khả năng ghi** (từ 1 Master lên nhiều Master) và **khả năng chịu lỗi**, thì **độ phức tạp** và **rủi ro xung đột dữ liệu** cũng tăng vọt.
+1.  **Sự Đánh Đổi Cốt Lõi:** Khi tăng **khả năng ghi** (từ 1 Master lên nhiều Master) và **khả năng chịu lỗi**, thì **độ phức tạp** và **rủi ro xung đột dữ liệu** cũng tăng vọt.
 2.  **Lựa chọn theo nhu cầu:**
-    *   Nếu ưu tiên của bạn là **mở rộng khả năng đọc** và giữ cho hệ thống đơn giản, **Multi-Slave** là lựa chọn số một.
-    *   Nếu ưu tiên của bạn là **hệ thống không bao giờ được phép dừng ghi** (High Availability for Writes), bạn phải chấp nhận độ phức tạp và rủi ro của **Master-Master**.
-    *   Chỉ khi bạn là một hệ thống cực lớn với yêu cầu về cả hai mặt (HA cho ghi và scale đọc khổng lồ), bạn mới nên cân nhắc kiến trúc **Multi-Master + Slaves** và chuẩn bị một đội ngũ kỹ sư vận hành đủ mạnh để quản lý nó.
+    *   Nếu ưu tiên là **mở rộng khả năng đọc** và giữ cho hệ thống đơn giản, **Multi-Slave** là lựa chọn số một.
+    *   Nếu ưu tiên là **hệ thống không bao giờ được phép dừng ghi** (High Availability for Writes) thì phải chấp nhận độ phức tạp và rủi ro của **Master-Master**.
+    *   Chỉ khi một hệ thống cực lớn với yêu cầu về cả hai mặt (HA cho ghi và scale đọc khổng lồ) thì mới nên cân nhắc kiến trúc **Multi-Master + Slaves** và chuẩn bị một đội ngũ kỹ sư vận hành đủ mạnh để quản lý nó.
