@@ -5,15 +5,13 @@
     - [**1. Sơ đồ phân rã mức 1 - Góc nhìn Hành Vi**](#1-sơ-đồ-phân-rã-mức-1---góc-nhìn-hành-vi)
     - [**2. Sơ đồ phân rã mức 2 - Góc nhìn Cấu trúc**](#2-sơ-đồ-phân-rã-mức-2---góc-nhìn-cấu-trúc)
   - [**3. Ứng Dụng Thực Tế Và Triển Khai**](#3-ứng-dụng-thực-tế-và-triển-khai)
-    - [**Các trường hợp sử dụng điển hình**](#các-trường-hợp-sử-dụng-điển-hình)
-    - [**Sơ đồ kiến trúc triển khai thực tế**](#sơ-đồ-kiến-trúc-triển-khai-thực-tế)
-    - [**Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**](#mô-tả-chi-tiết-sơ-đồ-kiến-trúc-cơ-sở-dữ-liệu-hoàn-chỉnh)
-      - [1. Luồng Truy Cập Chính (General Access Flow)](#1-luồng-truy-cập-chính-general-access-flow)
-      - [2. Các Luồng Truy Cập Chuyên Dụng (Specialized Workloads)](#2-các-luồng-truy-cập-chuyên-dụng-specialized-workloads)
-      - [3. Cơ Chế Đảm Bảo Hoạt Động Liên Tục (High Availability \& Backup)](#3-cơ-chế-đảm-bảo-hoạt-động-liên-tục-high-availability--backup)
-      - [4. Luồng Dữ Liệu Nền Tảng (Underlying Replication)](#4-luồng-dữ-liệu-nền-tảng-underlying-replication)
+    - [**1. Các trường hợp sử dụng điển hình**](#1-các-trường-hợp-sử-dụng-điển-hình)
+    - [**2. Sơ đồ kiến trúc triển khai thực tế**](#2-sơ-đồ-kiến-trúc-triển-khai-thực-tế)
+    - [**3. Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**](#3-mô-tả-chi-tiết-sơ-đồ-kiến-trúc-cơ-sở-dữ-liệu-hoàn-chỉnh)
   - [**4. So sánh với các mô hình khác**](#4-so-sánh-với-các-mô-hình-khác)
-    - [1. S](#1-s)
+    - [**1. Mô hình `Master-Master`**](#1-mô-hình-master-master)
+    - [**2. Mô hình `Multi-Master + Slaves`**](#2-mô-hình-multi-master--slaves)
+    - [**3. Bảng so sánh các mô hình**](#3-bảng-so-sánh-các-mô-hình)
 
 # **I. Mô Hình Master-Slave** 
 
@@ -73,6 +71,8 @@ graph TD
 *   **Luồng Ghi:** Một `Client Ghi` gửi yêu cầu thay đổi dữ liệu đến `Master Server`. Master thực thi và ghi lại sự kiện này vào `Binary Log` (Bước 1).
 *   **Luồng Nhân Bản:** `Binary Log` hoạt động như một dòng chảy sự kiện, được các `Slave Server` lắng nghe và sao chép về (Bước 2).
 *   **Luồng Đọc:** Các `Client Đọc` gửi yêu cầu truy vấn đến các `Slave Server`, giúp giảm tải trực tiếp cho Master.
+
+---
 
 ## **2. Hiểu Sâu Cơ Chế Hoạt Động**
 
@@ -270,15 +270,17 @@ sequenceDiagram
     *   `Client` gửi các truy vấn đọc trực tiếp đến `Slave DB`.
     *   `Slave DB` xử lý và trả về kết quả.
 
+---
+
 ## **3. Ứng Dụng Thực Tế Và Triển Khai**
 
-### **Các trường hợp sử dụng điển hình**
+### **1. Các trường hợp sử dụng điển hình**
 
 *   **Hệ thống E-commerce:** Lượng người dùng xem sản phẩm (đọc) luôn lớn hơn rất nhiều so với việc đặt hàng (ghi).
 *   **Hệ thống báo cáo (Analytics/Reporting):** Các truy vấn phân tích phức tạp, tốn nhiều tài nguyên có thể được chạy trên Slave để không ảnh hưởng đến hoạt động chính trên Master.
 *   **Cụm sao lưu (Backup Cluster):** Sử dụng Slave làm bản sao dữ liệu tại một trung tâm dữ liệu khác (geo-replication) để phòng chống thảm họa.
 
-### **Sơ đồ kiến trúc triển khai thực tế**
+### **2. Sơ đồ kiến trúc triển khai thực tế**
 
 Sơ đồ này mô tả một kiến trúc sản xuất hoàn chỉnh, từ lớp ứng dụng, bộ cân bằng tải cho đến lớp cơ sở dữ liệu với các Slave phục vụ cho những mục đích khác nhau.
 
@@ -342,18 +344,18 @@ flowchart TD
     style Slave4 fill:#ff7675,stroke:#d63031,stroke-width:3px,color:white
 
 ```
-### **Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**
+### **3. Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**
 
 Sơ đồ này mô tả một kiến trúc cơ sở dữ liệu phân tán, có tính sẵn sàng cao và được tối ưu hóa cho nhiều loại tác vụ khác nhau, dựa trên mô hình Master-Slave với nhiều bản sao (Multi-Slave Replication).
 
-#### 1. Luồng Truy Cập Chính (General Access Flow)
+**1. Luồng Truy Cập Chính**
 
 *   Các ứng dụng phục vụ người dùng cuối như **`E-commerce Website`**, **`Mobile Application`**, và **`REST API Service`** sẽ gửi yêu cầu đến **`Load Balancer`**.
 *   **`Load Balancer`** đóng vai trò là "cảnh sát giao thông", thực hiện phân tách yêu cầu đọc/ghi (Read/Write Splitting):
     *   Tất cả các yêu cầu **ghi (WRITE)** dữ liệu được định tuyến đến duy nhất **`Master`**. Đây là nguồn dữ liệu chính và duy nhất (Single Source of Truth).
     *   Các yêu cầu **đọc (READ)** thông thường được phân phối đến **`Slave 1`**, giúp giảm tải cho Master và tăng tốc độ phản hồi cho người dùng.
 
-#### 2. Các Luồng Truy Cập Chuyên Dụng (Specialized Workloads)
+**2. Các Luồng Truy Cập Chuyên Dụng**
 
 *   **Phân tích Dữ liệu (`Analytics`):**
     *   **`Analytics Dashboard`** gửi các truy vấn phức tạp, tiêu tốn nhiều tài nguyên qua một **`Database Proxy`**.
@@ -363,7 +365,7 @@ Sơ đồ này mô tả một kiến trúc cơ sở dữ liệu phân tán, có 
     *   **`Slave 4`** là một bản sao được đặt ở một trung tâm dữ liệu khác, gần với người dùng ở một khu vực địa lý cụ thể.
     *   **`API Service`** có thể định tuyến các yêu cầu đọc từ khu vực đó đến `Slave 4` để cung cấp **phản hồi với độ trễ thấp (low-latency reads)**.
 
-#### 3. Cơ Chế Đảm Bảo Hoạt Động Liên Tục (High Availability & Backup)
+**3. Cơ Chế Đảm Bảo Hoạt Động Liên Tục**
 
 *   **Tự động Chuyển đổi Dự phòng (`Failover`):**
     *   **`Failover Manager`** là một thành phần giám sát, liên tục kiểm tra "sức khỏe" của `Master`.
@@ -373,7 +375,7 @@ Sơ đồ này mô tả một kiến trúc cơ sở dữ liệu phân tán, có 
     *   **`Slave 3`** đồng thời đóng vai trò là một **máy chủ dự phòng nóng (Hot Standby)** và là nguồn để sao lưu.
     *   **`Backup System`** sẽ thực hiện các tác vụ sao lưu dữ liệu định kỳ trên `Slave 3` mà không làm ảnh hưởng đến hiệu suất của các máy chủ khác trong cụm.
 
-#### 4. Luồng Dữ Liệu Nền Tảng (Underlying Replication)
+**4. Luồng Dữ Liệu Nền Tảng**
 
 *   Toàn bộ kiến trúc này hoạt động được là nhờ vào cơ chế sao chép (Replication). **`Master`** liên tục ghi lại mọi thay đổi vào Binary Log và đẩy luồng dữ liệu này (Replication Stream) đến **tất cả các Slave** (`Slave 1, 2, 3, 4`) để đảm bảo chúng luôn được cập nhật gần nhất với dữ liệu gốc.
 
@@ -494,14 +496,14 @@ flowchart TB
 > * **Master-Master:** Hai Master đồng bộ dữ liệu 2 chiều → cho phép ghi ở cả hai node.
 > * **Slave:** Mỗi Master có nhiều Slave riêng để scale đọc và backup.
 > * **Client:**
+>     * Client 1 ghi/đọc từ Master 1 hoặc Slave 1A/B.
+>     * Client 2 ghi/đọc từ Master 2 hoặc Slave 2A/B.
 
->  * Client 1 ghi/đọc từ Master 1 hoặc Slave 1A/B.
->  * Client 2 ghi/đọc từ Master 2 hoặc Slave 2A/B.
 
 * **Replication:**
 
->  * Giữa 2 Master: replication 2 chiều.
->  * Giữa mỗi Master và Slave: replication 1 chiều.
+>   * Giữa 2 Master: replication 2 chiều.
+>   * Giữa mỗi Master và Slave: replication 1 chiều.
 
 **Ưu điểm:**
 
@@ -513,3 +515,27 @@ flowchart TB
 
 > * Khó quản lý conflict khi ghi đồng thời trên 2 Master.
 > * Độ trễ đồng bộ giữa 2 Master có thể ảnh hưởng dữ liệu.
+
+### **3. Bảng so sánh các mô hình**
+
+| Tiêu chí | **Master - Slave** | **Master-Master** | **Multi-Master + Slaves** |
+| :--- | :--- | :--- | :--- |
+| **Số Master** | 1 | 2 (hoặc nhiều hơn, gọi là Multi-Master) | **M** (với M ≥ 2) |
+| **Số Slave** | **N** (với N ≥ 1) | 0 (Trong mô hình thuần túy) | **M x N** (Mỗi Master có N Slaves) |
+| **Khả năng ghi** | **Chỉ ghi tại 1 Master duy nhất** | **Ghi được ở tất cả các Master** | **Ghi được ở tất cả các Master** |
+| **Khả năng đọc** | Đọc từ N Slaves | Đọc từ tất cả các Master | Đọc từ tất cả Slave và cả Master |
+| **Khả năng chịu tải đọc** | **Cao** (Có thể thêm Slave để scale) | **Trung bình** (Bị giới hạn bởi số Master) | **Rất cao / Cực cao** (Scale gần như vô hạn) |
+| **Khả năng chịu lỗi** | **Thấp đến Trung bình** (Master chết → dừng ghi, cần Failover) | **Cao** (1 Master chết, Master còn lại nhận toàn bộ traffic) | **Rất cao** (Vừa HA ở lớp Master, vừa dự phòng ở lớp Slave) |
+| **Độ phức tạp** | Thấp đến Trung bình | Cao | **Cực kỳ cao** |
+| **Đồng bộ dữ liệu** | **1 chiều** (Master → Slaves) | **2 chiều** (Master A ↔ Master B) | **2 chiều** (giữa các Master) và **1 chiều** (từ Master xuống Slave) |
+| **Rủi ro xung đột dữ liệu**| **Hầu như không có** | **CAO** (Cần giải quyết xung đột khi ghi trùng lặp) | **CAO** (Vấn đề tương tự Master-Master) |
+| **Use case phổ biến** | Ứng dụng đọc nhiều (báo chí, e-commerce), hệ thống cần backup/phân tích trên bản sao. | Hệ thống yêu cầu High Availability (HA) cho cả ghi và đọc, phân tải ở 2 trung tâm dữ liệu (Active-Active). | Hệ thống quy mô toàn cầu (global scale), đa khu vực, yêu cầu HA tuyệt đối và khả năng scale đọc/ghi cực lớn. |
+
+
+**Đánh giá**
+
+1.  **Sự Đánh Đổi Cốt Lõi:** Khi bạn tăng **khả năng ghi** (từ 1 Master lên nhiều Master) và **khả năng chịu lỗi**, thì **độ phức tạp** và **rủi ro xung đột dữ liệu** cũng tăng vọt.
+2.  **Lựa chọn theo nhu cầu:**
+    *   Nếu ưu tiên của bạn là **mở rộng khả năng đọc** và giữ cho hệ thống đơn giản, **Multi-Slave** là lựa chọn số một.
+    *   Nếu ưu tiên của bạn là **hệ thống không bao giờ được phép dừng ghi** (High Availability for Writes), bạn phải chấp nhận độ phức tạp và rủi ro của **Master-Master**.
+    *   Chỉ khi bạn là một hệ thống cực lớn với yêu cầu về cả hai mặt (HA cho ghi và scale đọc khổng lồ), bạn mới nên cân nhắc kiến trúc **Multi-Master + Slaves** và chuẩn bị một đội ngũ kỹ sư vận hành đủ mạnh để quản lý nó.
