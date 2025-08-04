@@ -129,11 +129,12 @@ Tại sao chúng ta lại cần mô hình phức tạp này?
 *   **Độ trễ đồng bộ (Replication Lag):** Dữ liệu trên Slave có thể bị trễ hơn so với Master một vài giây (hoặc hơn, tùy thuộc vào tải và mạng). Điều này có nghĩa là nếu bạn vừa ghi một bản ghi vào Master và ngay lập tức đọc nó từ Slave, có thể bạn sẽ không thấy nó.
 *   **Điểm lỗi duy nhất cho việc ghi (Single Point of Failure for Writes):** Nếu Master chết, hệ thống sẽ không thể ghi dữ liệu mới cho đến khi một Slave được thăng cấp hoặc Master được khôi phục.
 *   **Phức tạp trong quản lý:** Việc thiết lập và giám sát replication đòi hỏi kiến thức và công sức, đặc biệt khi có lỗi xảy ra.
-
+---
 ## 🛠️ **Phần II: Chuẩn Bị Môi Trường Máy Ảo**
 
 🎯 **Mục tiêu:** Thiết lập hai máy ảo (Master/Slave) trên VirtualBox, cấu hình mạng tĩnh để chúng có thể "nhìn thấy" và giao tiếp ổn định với nhau. Đây là bước xây dựng nền móng hạ tầng.
 
+---
 ### 🖥️ **1. Cấu hình Máy ảo và Card mạng**
 
 **Bước 1: Tạo và cấu hình thông số máy ảo**
@@ -196,6 +197,8 @@ graph TD
 
 *   **Quan trọng:** Trước khi tiếp tục, hãy vào `File -> Host Network Manager...` trong VirtualBox, chọn Host-Only Adapter của bạn và ở tab `DHCP Server`, **bỏ tích** ô `Enable Server`. Điều này giúp chúng ta toàn quyền kiểm soát IP tĩnh và tránh xung đột.
 
+
+---
 ### 📝 **2. Cấu hình Hệ điều hành (IP Tĩnh & Hostname)**
 
 Bây giờ, hãy khởi động cả 2 máy ảo lên và đăng nhập với tài khoản `root`.
@@ -237,7 +240,7 @@ Lưu và thoát (`Ctrl+X`, `Y`, `Enter`).
 ```bash
 hostnamectl set-hostname mysql-master
 ```
-
+---
 **Thực hiện trên máy `mysql-slave`:**
 
 Làm y hệt như Master, nhưng với IP và hostname khác.
@@ -265,6 +268,7 @@ Lưu và thoát.
 hostnamectl set-hostname mysql-slave
 ```
 
+---
 ### 🔒 **3. Cấu hình Phân giải tên miền và Tường lửa**
 
 **Thực hiện trên CẢ HAI máy `mysql-master` và `mysql-slave`:**
@@ -305,6 +309,7 @@ firewall-cmd --add-port=3306/tcp --permanent
 firewall-cmd --reload
 ```
 
+---
 ### 📡 **4. Kiểm tra kết nối mạng**
 
 Đây là bước cuối cùng và quan trọng nhất của phần này.
@@ -889,8 +894,6 @@ graph TD
 ---
 
 ✅ **Các bước khắc phục**
-
-File của bạn đã ghi lại các bước khắc phục rất logic:
 
 1.  **`dnf module reset mysql`**: Vô hiệu hóa module `mysql` của hệ điều hành.
 2.  **`dnf module enable mysql:8.0`**: Cố gắng kích hoạt lại một cách rõ ràng.
