@@ -7,7 +7,6 @@
   - [💼 **3. Ứng Dụng Thực Tế Và Triển Khai**](#-3-ứng-dụng-thực-tế-và-triển-khai)
     - [**📌 1. Các trường hợp sử dụng điển hình**](#-1-các-trường-hợp-sử-dụng-điển-hình)
     - [**🏗️ 2. Sơ đồ kiến trúc triển khai thực tế**](#️-2-sơ-đồ-kiến-trúc-triển-khai-thực-tế)
-    - [**🔍 3. Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**](#-3-mô-tả-chi-tiết-sơ-đồ-kiến-trúc-cơ-sở-dữ-liệu-hoàn-chỉnh)
   - [🔀 **4. So sánh với các mô hình khác**](#-4-so-sánh-với-các-mô-hình-khác)
     - [**🔄 1. Mô hình `Master-Master`**](#-1-mô-hình-master-master)
     - [**🔄 2. Mô hình `Multi-Master + Slaves`**](#-2-mô-hình-multi-master--slaves)
@@ -312,7 +311,7 @@ flowchart TD
     style Slave4 fill:#ff7675,stroke:#d63031,stroke-width:3px,color:white
 ```
 
-### **🔍 3. Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**
+**Mô Tả Chi Tiết Sơ Đồ Kiến Trúc Cơ Sở Dữ Liệu Hoàn Chỉnh**
 
 Sơ đồ này mô tả một kiến trúc cơ sở dữ liệu phân tán, có tính sẵn sàng cao và được tối ưu hóa cho nhiều loại tác vụ khác nhau, dựa trên mô hình Master-Slave với nhiều bản sao (Multi-Slave Replication).
 
