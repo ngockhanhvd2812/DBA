@@ -9,97 +9,178 @@
 
 # **I. Lộ trình tổng quan**
 ```mermaid
-gitGraph
-   commit id: "Khởi Đầu"
-   commit id: "Chuẩn Bị Môi Trường"
-   branch foundation
-   checkout foundation
-   commit id: "Học Linux Cơ Bản"
-   commit id: "Terminal & Bash"
-   commit id: "SQL với sqlite3"
-   checkout main
-   merge foundation
-   commit id: "Hoàn Thành Giai Đoạn 1"
-   branch junior-dba
-   checkout junior-dba
-   commit id: "Cài Đặt Oracle"
-   commit id: "SQL*Plus & TOAD"
-   commit id: "Backup với RMAN"
-   commit id: "Quản Lý Production"
-   commit id: "Đạt Chứng Chỉ OCA"
-   checkout main
-   merge junior-dba
-   commit id: "Hoàn Thành Giai Đoạn 2"
-   branch mid-level-dba
-   checkout mid-level-dba
-   commit id: "Performance Tuning"
-   commit id: "Security Nâng Cao"
-   commit id: "High Availability"
-   commit id: "Data Guard & RAC"
-   commit id: "Đạt Chứng Chỉ OCP"
-   checkout main
-   merge mid-level-dba
-   commit id: "Hoàn Thành Giai Đoạn 3"
-   branch senior-dba
-   checkout senior-dba
-   commit id: "Cloud Migration"
-   commit id: "Automation Tools"
-   commit id: "CI/CD DevOps"
-   commit id: "Team Leadership"
-   commit id: "Đạt Chứng Chỉ OCM"
-   checkout main
-   merge senior-dba
-   commit id: "Chuyên Gia Cao Cấp"
-   commit id: "Architect & Consultant"
+gitGraph  
+   commit id: "Khởi đầu: Làm quen hệ thống"  
+   commit id: "Chuẩn Bị Môi Trường"  
+   branch foundation  
+   checkout foundation  
+   commit id: "Học Linux Cơ Bản"  
+   commit id: "Làm quen Terminal & Bash"  
+   commit id: "SQL nhập môn (sqlite3)"  
+   checkout main  
+   merge foundation  
+   commit id: "✅ Hoàn Thành Giai Đoạn 1 (Nền tảng)"  
+   branch junior-dba  
+   checkout junior-dba  
+   commit id: "Cài Đặt Oracle Database"  
+   commit id: "Làm quen SQL*Plus & GUI (TOAD)"  
+   commit id: "Quản lý user/role, phân quyền"  
+   commit id: "Backup & Recovery với RMAN"  
+   commit id: "Theo dõi & Tối ưu bước đầu"  
+   commit id: "🎯 Thi Chứng Chỉ OCA"  
+   checkout main  
+   merge junior-dba  
+   commit id: "✅ Hoàn Thành Giai Đoạn 2 (Junior DBA)"  
+   branch mid-level-dba  
+   checkout mid-level-dba  
+   commit id: "Tối ưu hiệu năng (AWR, Index, SQL Tuning)"  
+   commit id: "Bảo mật nâng cao (TDE, Data Masking)"  
+   commit id: "Giám sát & Cảnh báo (OEM, script)"  
+   commit id: "High Availability (Data Guard, Failover)"  
+   commit id: "RAC (Real Application Clusters)"  
+   commit id: "🎯 Thi Chứng Chỉ OCP"  
+   checkout main  
+   merge mid-level-dba  
+   commit id: "✅ Hoàn Thành Giai Đoạn 3 (Mid-level)"  
+   branch senior-dba  
+   checkout senior-dba  
+   commit id: "Điện toán đám mây (AWS/GCP/Azure cho Oracle)"  
+   commit id: "Tự động hóa (Terraform, Ansible cho DBA)"  
+   commit id: "CI/CD & DevOps cho Database"  
+   commit id: "Thiết kế kiến trúc lớn (Nhiều datacenter, DR)"  
+   commit id: "Lãnh đạo nhóm & Mentor lại người khác"  
+   commit id: "🎯 Thi Chứng Chỉ OCM"  
+   checkout main  
+   merge senior-dba  
+   commit id: "🏆 Trở thành DBA Chuyên Gia (Senior/Architect)"
 ``` 
+
+**Giải thích các giai đoạn:**
+
+* **Giai đoạn 1 – Nền tảng (khoảng 3-6 tháng):** Mục tiêu xây nền kiến thức IT vững chắc trước khi vào Oracle. Bao gồm:
+
+* Kiến thức cơ bản về hệ thống: hiểu nguyên lý OS (CPU, RAM, Disk, Process…).
+
+* Học **Linux cơ bản**: cài đặt Linux (dùng máy ảo VirtualBox để tránh rủi ro), các lệnh terminal, quản lý thư mục, tệp, quyền (chmod/chown)…
+
+* Học **SQL căn bản** với SQLite hoặc MySQL đơn giản để nắm các lệnh SELECT, JOIN, v.v.
+
+* Hiểu về mạng và giao thức cơ bản (TCP/IP, port), vì DBA cần cấu hình kết nối mạng DB.
+
+* Học viết **bash shell script** đơn giản để sau này tự động hóa tác vụ (monitoring, backup script).
+
+* *Kết quả:* Bạn có thể cài một server Linux, thao tác hệ thống trơn tru, viết script cơ bản và sử dụng thành thạo các lệnh SQL đơn giản. Đây là “móng” vững để bước tiếp.
+
+* **Giai đoạn 2 – Junior DBA (6-12 tháng):** Bắt đầu đi sâu vào Oracle:
+
+* Cài đặt Oracle Database (bản Express hoặc Standard) để hiểu quá trình cài DB.
+
+* Hiểu kiến trúc Oracle: khái niệm CDB (Container Database) và PDB (Pluggable Database) nếu dùng Oracle 12c+, hoặc ít nhất là các thành phần của instance (SGA, PGA, background processes như PMON, SMON, DBWR, LGWR; các file controlfile, datafile, redo log, archive log…).
+
+* Học cách tạo **tablespace**, người dùng (USER), phân quyền (ROLE, PRIVILEGE).
+
+* Làm quen công cụ **SQL*Plus** (giao diện dòng lệnh) và một công cụ GUI (ví dụ Oracle SQL Developer hoặc TOAD) để thao tác DB.
+
+* Học **backup/restore với RMAN**: cách backup full, incremental, restore database khi sự cố, dùng flashback để phục hồi dữ liệu lỡ xóa…
+
+* Thực hành theo dõi **alert log**, các file log của Oracle để biết xử lý lỗi cơ bản.
+
+* Sau giai đoạn này, nên thi chứng chỉ Oracle OCA (Oracle Certified Associate) để kiểm tra kiến thức căn bản về SQL và quản trị Oracle.
+
+* *Kết quả:* Bạn có thể vận hành một Oracle DB đơn giản: cài đặt, tạo user/schema, backup và phục hồi khi cần. Đủ kiến thức để làm một DBA level Junior.
+
+* **Giai đoạn 3 – Mid-Level DBA (9-12 tháng):** Nâng cao và mở rộng:
+
+* **Tuning (Tối ưu hiệu năng):** Học cách đọc báo cáo AWR (Automatic Workload Repository), sử dụng công cụ **EXPLAIN PLAN**, tạo các **Index** phù hợp, tối ưu câu SQL, partition table để tăng tốc, sử dụng các thống kê (histogram) để Oracle tối ưu plan tốt hơn. Mục tiêu giảm thời gian chạy query, xử lý được các trường hợp chậm.
+
+* **Security (Bảo mật nâng cao):** Triển khai **TDE (Transparent Data Encryption)** để mã hóa dữ liệu nhạy cảm, dùng **Data Redaction, Virtual Private Database (VPD)** để ẩn dữ liệu tùy người dùng. Cấu hình audit (theo dõi ai làm gì trong DB). Hiểu và sử dụng **Oracle Vault** nếu có.
+
+* **Monitoring (Giám sát):** Dùng **Oracle Enterprise Manager (OEM)** hoặc viết script tự giám sát sức khỏe DB (đen tiến trình, dung lượng, hiệu năng). Thiết lập cảnh báo qua email khi có sự cố (đầy không gian, long running query…).
+
+* **High Availability (Khả dụng cao):** Học về **Oracle Data Guard** (dựng một standby database, cấu hình đồng bộ log để sẵn sàng failover nếu DB chính gặp sự cố). Thực hành switchover, failover giữa primary và standby.
+
+* **RAC (Real Application Clusters):** Nếu có điều kiện, tìm hiểu Oracle RAC – chạy DB trên nhiều node để đảm bảo cân bằng tải và dự phòng. Học cách cài RAC (khá phức tạp) hoặc ít nhất hiểu khái niệm về **Cluster, Oracle Grid Infrastructure, ASM (Automatic Storage Management)**…
+
+* Song song, có thể học thêm các công cụ ETL và Data Warehouse tuning nếu công việc hướng về phân tích dữ liệu (ví dụ: tối ưu *dữ liệu hàng tỷ bản ghi*).
+
+* Cuối giai đoạn này, thi chứng chỉ Oracle OCP (Professional) để chứng minh kiến thức nâng cao.
+
+* *Kết quả:* Bạn có thể quản trị các hệ thống Oracle lớn: đảm bảo hiệu năng (tuning SQL, memory, kết nối), bảo mật dữ liệu ở mức cao, có phương án dự phòng khi hệ thống lỗi. Bạn trở thành một DBA có kinh nghiệm, sẵn sàng xử lý các tình huống phức tạp.
+
+* **Giai đoạn 4 – Senior DBA / DBA Architect (liên tục, 1-2 năm+):** Trình độ chuyên gia:
+
+* **Kiến trúc tổng thể & thiết kế giải pháp:** Tham gia thiết kế hệ thống CSDL lớn cho doanh nghiệp: nhiều data center, cluster, phương án backup nhiều tầng, giải pháp scaling (sharding, phân vùng dữ liệu theo địa lý…).
+
+* **Cloud & Automation:** Học và triển khai Oracle trên cloud (AWS RDS Oracle, Oracle Cloud – OCI, Azure Database). Biết so sánh ưu nhược điểm chạy on-prem vs cloud. Làm các dự án **migration** đưa dữ liệu từ data center lên cloud.
+
+* Sử dụng **Terraform/Ansible** để tự động hóa việc tạo và cấu hình database, thiết lập backup, user… (IaC – Infrastructure as Code cho mảng database).
+
+* Tích hợp với quy trình **CI/CD**: sử dụng các công cụ như Liquibase hoặc Flyway để quản lý version schema DB, phối hợp với đội developer trong quy trình phát triển phần mềm nhanh.
+
+* **Soft skills:** Học cách **leader một nhóm DBA**, chuẩn hóa quy trình vận hành, đào tạo junior, cũng như kỹ năng tư vấn cho kiến trúc sư hệ thống, quản lý cấp cao về giải pháp CSDL.
+
+* Chứng chỉ OCM (Oracle Certified Master) có thể là mục tiêu cao nhất về chuyên môn.
+
+* *Kết quả:* Bạn không chỉ vận hành mà còn có thể **thiết kế hệ thống CSDL toàn diện**, đảm bảo tính sẵn sàng, bảo mật, hiệu năng cho những ứng dụng quan trọng. Bạn cũng có thể hướng tới vai trò kiến trúc sư dữ liệu hoặc quản lý nhóm DBA.
+
 
 ## **1. Foundation (3 tháng)**
 
-- Hệ thống cơ bản (CPU/RAM/Disk)
-- Cài & dùng Linux (VirtualBox)
-- Quản trị user/service
-- Mạng cơ bản, port scan (nmap)
-- Bash script, SQL cơ bản (sqlite3)
+**Tháng 1 - Hệ thống & Linux cơ bản:**
+- **Hệ thống cơ bản**: Giám sát CPU/RAM/Disk thay vì chỉ cấu trúc thư mục [1]
+- **Cài & dùng Linux**: Sử dụng VirtualBox để thực hành thay vì chỉ lệnh terminal [2]  
+- **Quản trị user/service**: Tập trung vào systemctl và useradd thay vì chmod/chown [1]
+
+**Tháng 2 - Mạng & Scripting:**
+- **Mạng cơ bản**: Thêm port scan với nmap thay vì chỉ TCP/IP và Apache [3]
+- **Bash script**: Giữ nguyên nhưng tập trung tự động hóa
+- **SQL cơ bản**: Chuyển từ MySQL sang sqlite3 như yêu cầu [4]
+
+**Tháng 3 - Thực chiến:**
+- **Cài máy chủ**: Tập trung vào production-ready setup
+- **Script giám sát**: Thay vì Oracle XE, tạo script giám sát hệ thống
+- **Query optimization**: Thay vì backup/restore, tập trung vào tối ưu query
 
 > **✅ Kết quả:** Cài máy chủ, script giám sát, query được, sẵn sàng học Oracle
 
 ```mermaid
-gitGraph
-   commit id: "Bắt Đầu"
-   commit id: "Chuẩn Bị"
-   branch thang1
-   checkout thang1
-   commit id: "Học Linux"
-   commit id: "Hiểu Hệ Thống"
-   commit id: "Thành Thạo Terminal"
-   checkout main
-   merge thang1
-   commit id: "Hoàn Thành"
-   branch thang2
-   checkout thang2
-   commit id: "Quản Lý User"
-   commit id: "Cấu Hình Mạng"
-   commit id: "Bảo Mật Hệ Thống"
-   checkout main
-   merge thang2
-   commit id: "Hoàn Thành 2"
-   branch thang3
-   checkout thang3
-   commit id: "Viết Script Bash"
-   commit id: "Học SQL Cơ Bản"
-   commit id: "Tự Động Hóa"
-   checkout main
-   merge thang3
-   commit id: "Nền Tảng Vững Chắc"
-   branch oracle
-   checkout oracle
-   commit id: "Cài Oracle"
-   commit id: "Backup RMAN"
-   commit id: "Tối Ưu Hiệu Suất"
-   commit id: "Chứng Chỉ OCA"
-   checkout main
-   merge oracle
-   commit id: "Chuyên Gia DBA"
+%% Chi tiết hơn cho giai đoạn Foundation - Junior (ví dụ tháng 1-3)  
+gitGraph  
+   commit id: "Bắt Đầu Hành Trình DBA"  
+   branch thang1  
+   checkout thang1  
+   commit id: "Linux cơ bản: Cấu trúc thư mục, lệnh quản lý tệp"  
+   commit id: "Quyền user, nhóm, chmod/chown"  
+   commit id: "Thao tác terminal thành thạo (nano, grep, pipes...)"  
+   checkout main  
+   merge thang1  
+   commit id: "✅ Hoàn thành tháng 1"  
+   branch thang2  
+   checkout thang2  
+   commit id: "Mạng cơ bản: TCP/IP, cài Apache test"  
+   commit id: "Viết script Bash tự động hóa tác vụ"  
+   commit id: "SQL cơ bản: SELECT/UPDATE/DELETE (dùng MySQL/sqlite)"  
+   checkout main  
+   merge thang2  
+   commit id: "✅ Hoàn thành tháng 2"  
+   branch thang3  
+   checkout thang3  
+   commit id: "Cài đặt Oracle XE trên Linux"  
+   commit id: "Tạo database, schema, user mẫu"  
+   commit id: "Thực hành backup/restore cơ bản"  
+   checkout main  
+   merge thang3  
+   commit id: "💪 Nền tảng vững chắc, sẵn sàng học nâng cao"  
+   branch oracle-advanced  
+   checkout oracle-advanced  
+   commit id: "Hiểu kiến trúc Oracle (SGA, PGA, background processes)"  
+   commit id: "Quản lý đa tenant (CDB/PDB)"  
+   commit id: "Dùng RMAN backup tự động hàng ngày"  
+   commit id: "Tối ưu SQL với chỉ mục (index) và thống kê"  
+   commit id: "👉 Thi OCA"  
+   checkout main  
+   merge oracle-advanced  
+   commit id: "🚀 Sẵn sàng cho vai trò Junior DBA"
 ```
 
 ## **2. Junior DBA – Setup & Vận Hành Oracle (6 tháng)**
