@@ -4,31 +4,42 @@ Hướng dẫn này sẽ giúp bạn tạo một máy ảo (VM) Linux trên VMwa
 
 ```mermaid
 graph TD
-    subgraph Máy Thật (Host PC)
-        A[VMware Workstation]
-        F[Công cụ SSH <br/>(PuTTY, Terminal)]
+    subgraph MayThat["Máy Thật (Host PC)"]
+        A["VMware Workstation"]
+        F["Công cụ SSH (PuTTY, Terminal)"]
     end
 
-    subgraph Máy Ảo (Linux VM)
-        B[Hệ điều hành Linux]
-        subgraph "Card Mạng Ảo"
-            C[Card 1: NAT]
-            D[Card 2: Host-only]
+    subgraph MayAo["Máy Ảo (Linux VM)"]
+        B["Hệ điều hành Linux"]
+        subgraph CardMangAo["Card Mạng Ảo"]
+            C["Card 1: NAT"]
+            D["Card 2: Host-only"]
         end
     end
     
-    subgraph "Mạng Internet"
-      E[Internet]
+    subgraph MangInternet["Mạng Internet"]
+        E["Internet"]
     end
 
-    C -- "Truy cập Internet để cập nhật, tải gói" --> E
-    D -- "Kết nối nội bộ, an toàn" --> F
-    F -- "Gửi lệnh SSH tới IP tĩnh" --> D
-    A -- "Chứa và quản lý" --> B
+    C -->|"Truy cập Internet để cập nhật, tải gói"| E
+    D -->|"Kết nối nội bộ, an toàn"| F
+    F -->|"Gửi lệnh SSH tới IP tĩnh"| D
+    A -->|"Chứa và quản lý"| B
 
-    style B fill:#e1f5fe
-    style C fill:#f3e5f5,stroke:#9c27b0
-    style D fill:#e8f5e8,stroke:#4caf50
+    %% Styling cho các thành phần chính
+    style A fill:#2196f3,stroke:#1976d2,stroke-width:2px,color:#fff
+    style B fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style C fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style D fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    style E fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style F fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    
+    %% Styling cho subgraphs
+    style MayThat fill:#e3f2fd,stroke:#1565c0,stroke-width:3px
+    style MayAo fill:#f9fbe7,stroke:#827717,stroke-width:3px
+    style CardMangAo fill:#fce4ec,stroke:#ad1457,stroke-width:2px
+    style MangInternet fill:#fff8e1,stroke:#ff8f00,stroke-width:3px
+
 ```
 
 **Kịch bản sử dụng:**
@@ -37,28 +48,42 @@ graph TD
     *   **Chức năng:** Giống như bạn đang dùng chung Wi-Fi của máy thật. Máy ảo có thể truy cập Internet để tải phần mềm (`apt update`, `yum install`) hoặc duyệt web.
     *   **An ninh:** Máy ảo được "ẩn" sau địa chỉ IP của máy thật, không bị lộ trực tiếp ra mạng bên ngoài. Đây là lựa chọn mặc định an toàn để VM có kết nối ra ngoài.
 
-    ```mermaid
-    graph LR
-        VM[Linux VM] -- "Yêu cầu Internet" --> Host[Máy Thật]
-        Host -- "Gửi yêu cầu dưới tên của mình" --> Router[Router Mạng]
-        Router -- "Kết nối" --> Internet
-        style VM fill:#e1f5fe
-    ```
+```mermaid
+graph LR
+    VM["Linux VM"] -->|"Yêu cầu Internet"| Host["Máy Thật"]
+    Host -->|"Gửi yêu cầu dưới tên của mình"| Router["Router Mạng"]
+    Router -->|"Kết nối"| Internet["Internet"]
+    
+    %% Styling cho các thành phần
+    style VM fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style Host fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#000
+    style Router fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    style Internet fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+```
 
 2.  **Card Host-only:**
     *   **Chức năng:** Tạo ra một mạng riêng, hoàn toàn biệt lập, chỉ tồn tại giữa máy thật và các máy ảo của bạn.
     *   **An ninh:** Lý tưởng cho việc thực hành, thử nghiệm các dịch vụ (web server, database) hoặc quản trị từ xa qua SSH mà không lo bị tấn công từ mạng ngoài. Đây là "sân chơi" an toàn của bạn.
 
-    ```mermaid
-    graph LR
-        VM[Linux VM] <--> Host[Máy Thật]
-        subgraph Mạng Riêng Tư (VMnet1)
-            VM
-            Host
-        end
-        Internet -- "Bị chặn" --x Host
-        style VM fill:#e1f5fe
-    ```
+```mermaid
+graph LR
+    subgraph MangRiengTu["Mạng Riêng Tư (VMnet1)"]
+        VM["Linux VM"]
+        Host["Máy Thật"]
+        VM <-->|"Kết nối trực tiếp"| Host
+    end
+    
+    Internet -.->|"Bị chặn"| Host
+    Internet -.->|"Bị chặn"| VM
+    
+    %% Styling cho các thành phần
+    style VM fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style Host fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#000
+    style Internet fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000
+    
+    %% Styling cho subgraph
+    style MangRiengTu fill:#f1f8e9,stroke:#689f38,stroke-width:3px
+```
 
 **Lưu ý quan trọng trước khi bắt đầu:**
 *   **Hệ điều hành:** Hướng dẫn dành cho máy chủ Windows; trên macOS/Linux, dùng lệnh `ifconfig` hoặc `ip a` thay vì `ipconfig` để kiểm tra thông tin mạng của máy thật.
@@ -70,13 +95,30 @@ Dưới đây là quy trình tổng quan, được sắp xếp theo thứ tự l
 
 ```mermaid
 flowchart TD
-    A[Bắt đầu: Tắt hẳn máy ảo] --> B{Bước 1: Thiết lập phần cứng<br/>Thêm 2 card mạng (NAT & Host-only) vào VM}
-    B --> C{Bước 2: Khảo sát mạng Host-only<br/>Tìm dải IP và Gateway trên máy thật}
-    C --> D{Bước 3: Cấu hình phần mềm trong VM<br/>Đặt IP tĩnh cho card Host-only}
-    D --> E{Bước 4: Kiểm tra và kết nối<br/>Dùng Ping và SSH để xác nhận}
-    E --> F[Kết thúc: Môi trường lab sẵn sàng!]
-    style A fill:#ffcdd2
-    style F fill:#c8e6c9
+    A["Bắt đầu: Tắt hẳn máy ảo"] --> B["Bước 1: Thiết lập phần cứng<br/>Thêm 2 card mạng (NAT & Host-only) vào VM"]
+    
+    subgraph CauHinh["Giai đoạn Cấu hình"]
+        B --> C["Bước 2: Khảo sát mạng Host-only<br/>Tìm dải IP và Gateway trên máy thật"]
+        C --> D["Bước 3: Cấu hình phần mềm trong VM<br/>Đặt IP tĩnh cho card Host-only"]
+    end
+    
+    subgraph KiemTra["Giai đoạn Kiểm tra"]
+        D --> E["Bước 4: Kiểm tra và kết nối<br/>Dùng Ping và SSH để xác nhận"]
+    end
+    
+    E --> F["Kết thúc: Môi trường lab sẵn sàng!"]
+    
+    %% Styling cho các bước
+    style A fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px,color:#000
+    style B fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style C fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#000
+    style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style E fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    style F fill:#c8e6c9,stroke:#388e3c,stroke-width:2px,color:#000
+    
+    %% Styling cho subgraphs
+    style CauHinh fill:#f8f9fa,stroke:#6c757d,stroke-width:2px
+    style KiemTra fill:#f1f8e9,stroke:#689f38,stroke-width:2px
 ```
 
 ---
@@ -226,18 +268,40 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A[Bắt đầu: Từ máy thật (cmd)] --> B{Ping tới IP máy ảo<br/>`ping 192.168.71.100`}
-    B -- "Thành công" --> C{Thử SSH<br/>`ssh user@192.168.71.100`}
-    B -- "Thất bại" --> D[Kiểm tra Firewall trên VM và Windows.<br/>Kiểm tra lại IP và Gateway.]
-    C -- "Thành công" --> E[Hoàn tất!]
-    C -- "Thất bại<br/>(Connection refused/timed out)" --> F{Kiểm tra dịch vụ SSH và Firewall trên VM}
-    F --> G["1. SSH đã chạy chưa?<br/>`sudo systemctl status sshd`"]
-    G -- "Chưa chạy" --> H["Chạy và bật tự khởi động:<br/>`sudo systemctl enable --now sshd`"]
-    G -- "Đang chạy" --> I["2. Firewall có chặn port 22 không?"]
-    I --> J["Mở port SSH:<br/>`sudo firewall-cmd --add-service=ssh --permanent`<br/>`sudo firewall-cmd --reload`"]
-    J --> C
+    A["Bắt đầu: Từ máy thật (cmd)"] --> B{"Ping tới IP máy ảo<br/>ping 192.168.71.100"}
+    
+    B -->|"Thành công"| C{"Thử SSH<br/>ssh user 192.168.71.100"}
+    B -->|"Thất bại"| D["Kiểm tra Firewall trên VM và Windows<br/>Kiểm tra lại IP và Gateway"]
+    
+    C -->|"Thành công"| E["Hoàn tất!"]
+    C -->|"Thất bại<br/>(Connection refused/timed out)"| F["Kiểm tra dịch vụ SSH và Firewall trên VM"]
+    
+    subgraph TroubleshootSSH["Xử lý sự cố SSH"]
+        F --> G["1. SSH đã chạy chưa?<br/>sudo systemctl status sshd"]
+        G -->|"Chưa chạy"| H["Chạy và bật tự khởi động:<br/>sudo systemctl enable --now sshd"]
+        G -->|"Đang chạy"| I["2. Firewall có chặn port 22 không?"]
+        I --> J["Mở port SSH:<br/>sudo firewall-cmd --add-service=ssh --permanent<br/>sudo firewall-cmd --reload"]
+    end
+    
     H --> C
-    style E fill:#c8e6c9```
+    J --> C
+    D --> B
+    
+    %% Styling theo loại và trạng thái
+    style A fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    style B fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style C fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    style D fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000
+    style E fill:#c8e6c9,stroke:#388e3c,stroke-width:2px,color:#000
+    style F fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px,color:#000
+    style G fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style H fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    style I fill:#e1f5fe,stroke:#0277bd,stroke-width:2px,color:#000
+    style J fill:#e8f5e8,stroke:#4caf50,stroke-width:2px,color:#000
+    
+    %% Styling cho subgraph
+    style TroubleshootSSH fill:#fafafa,stroke:#757575,stroke-width:2px
+```
 
 **Khắc phục sự cố phổ biến:**
 *   **Ping thất bại:**
