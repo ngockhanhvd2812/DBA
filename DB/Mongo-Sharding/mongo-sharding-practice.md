@@ -235,20 +235,54 @@ flowchart TD
 ### **Giai đoạn 2: Cài đặt và Chuẩn bị Tài nguyên**
 
 ```mermaid
-flowchart LR
-    A[Install MongoDB] --> B[Create KeyFile]
-    B --> C[Generate with openssl]
-    C --> D[Set permissions 400]
-    D --> E[Copy to all nodes]
-    E --> F[Create data directories]
-    F --> G[Configure firewall]
-    G --> H[Resources Ready]
+flowchart TD
+    subgraph "Network Topology & Port Configuration"
+        subgraph "mongo-cfg-1 (192.168.0.38)"
+            M1C[Config Server<br/>Port 27010]
+            M1S1[Shard1 RS<br/>Port 27011]
+            M1S2[Shard2 RS<br/>Port 27012] 
+            M1S3[Shard3 RS<br/>Port 27013]
+            M1MOS[Mongos Router<br/>Port 27020]
+        end
+        
+        subgraph "mongo-cfg-2 (192.168.0.241)"
+            M2C[Config Server<br/>Port 27010]
+            M2S1[Shard1 RS<br/>Port 27011]
+            M2S2[Shard2 RS<br/>Port 27012]
+            M2S3[Shard3 RS<br/>Port 27013]
+        end
+        
+        subgraph "mongo-cfg-3 (192.168.0.215)"
+            M3C[Config Server<br/>Port 27010]
+            M3S1[Shard1 RS<br/>Port 27011]
+            M3S2[Shard2 RS<br/>Port 27012]
+            M3S3[Shard3 RS<br/>Port 27013]
+        end
+    end
     
-    style A fill:#e3f2fd
+    subgraph "Security & Resource Setup"
+        A[Install MongoDB] --> B[Create KeyFile]
+        B --> C["Generate with openssl<br/>Base64 756 chars"]
+        C --> D["Set permissions 400<br/>Owner: mongod:mongod"]
+        D --> E["Copy to all nodes<br/>Identical keyfile"]
+        E --> F["Create data directories<br/>/data/config, /data/shard1-3"]
+        F --> G["Configure firewall<br/>Ports 27010-27020"]
+        G --> H["Resources Ready"]
+    end
+    
+    subgraph "Inter-node Communication"
+        M1C -.->|"Replica Set"| M2C
+        M2C -.->|"Replica Set"| M3C
+        M3C -.->|"Replica Set"| M1C
+        
+        M1S1 -.->|"Shard01 RS"| M2S1
+        M2S1 -.->|"Shard01 RS"| M3S1
+        M3S1 -.->|"Shard01 RS"| M1S1
+    end
+    
+    style M1MOS fill:#fff3e0
     style H fill:#e8f5e8
-    
-    B1["/data/mongo-keyfile<br/>Owner: mongod:mongod<br/>Permissions: 400"]
-    D --> B1
+    style C fill:#ffebee
 ```
 
 #### **1. Cài đặt MongoDB**
@@ -427,7 +461,8 @@ sequenceDiagram
         sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf --fork
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
-        `mongosh --port 27010 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin`
+        `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
+        (Sẽ prompt nhập password an toàn)
 
 ---
 
@@ -822,21 +857,34 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
 
 ```mermaid
 flowchart TD
-    subgraph "Authentication (Xác thực)"
-        A[Client connects] --> B{Uses Keyfile/x.509/Password};
-        B --> C[Identity Verified];
+    subgraph "Authentication Flow in Sharded Cluster"
+        CLIENT[Client Application] --> MONGOS[Mongos Router]
+        MONGOS --> |"Authenticates with"| CONFIGDB[Config Server]
+        CONFIGDB --> |"User credentials stored"| USERDB[(User Database)]
+        MONGOS --> |"Forwards authenticated requests"| SHARD1[Shard 1]
+        MONGOS --> |"Forwards authenticated requests"| SHARD2[Shard 2]
+        MONGOS --> |"Forwards authenticated requests"| SHARD3[Shard 3]
     end
     
-    subgraph "Authorization (Ủy quyền)"
-        D[Verified Client] --> E{User has Roles};
-        E --> F[Roles have Privileges];
-        F --> G[Privileges define Actions on Resources];
-        G --> H[Access Granted/Denied];
+    subgraph "Internal Authentication"
+        KEYFILE[KeyFile/x.509] --> |"Secures communication"| INTERNAL[Internal Cluster Communication]
+        INTERNAL --> CONFIGDB
+        INTERNAL --> SHARD1
+        INTERNAL --> SHARD2
+        INTERNAL --> SHARD3
     end
     
-    C --> D;
-    style C fill:#d1c4e9
-    style H fill:#ffcdd2
+    subgraph "Authorization (RBAC)"
+        USERDB --> ROLES[User Roles]
+        ROLES --> PRIVILEGES[Specific Privileges]
+        PRIVILEGES --> RESOURCES[Database/Collection Resources]
+        RESOURCES --> ACTIONS[Allowed Actions]
+    end
+    
+    style CLIENT fill:#e3f2fd
+    style MONGOS fill:#fff3e0
+    style KEYFILE fill:#ffebee
+    style ACTIONS fill:#e8f5e8
 ```
 
 Một cluster không được bảo mật là một thảm họa. MongoDB cung cấp hệ thống Role-Based Access Control (RBAC) mạnh mẽ để đảm bảo "đúng người, đúng việc".
@@ -1009,18 +1057,41 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 
 ```mermaid
 flowchart LR
-    A[Database] -->|mongodump| B(Backup Files)
-    B -->|mongorestore| C[New/Restored Database]
-    
-    subgraph "Monitoring"
-        D[mongostat] --> E[Real-time Stats]
-        F[mongotop] --> G[Read/Write Time per Collection]
-        H[Profiler] --> I[Slow Query Log]
+    subgraph "Backup Strategy"
+        A[Production Database] --> B[Full Backup<br/>Daily/Weekly]
+        A --> C[Incremental Oplog<br/>Every 15 mins]
+        A --> D[Snapshot Backup<br/>Storage Level]
     end
     
-    A --> D
-    A --> F
-    A --> H
+    subgraph "Recovery Scenarios"
+        E[Complete Disaster] --> F[Full Restore<br/>+ Latest Oplog]
+        G[Data Corruption] --> H[Point-in-Time Recovery<br/>PITR]
+        I[Accidental Deletion] --> J[Selective Restore<br/>+ Oplog Replay]
+    end
+    
+    subgraph "Monitoring Tools"
+        K[mongostat] --> L["Real-time Operations<br/>Insert/Query/Update/Delete"]
+        M[mongotop] --> N["Collection-level<br/>Read/Write Times"]
+        O[Database Profiler] --> P["Slow Query Analysis<br/>Performance Tuning"]
+        Q[currentOp()] --> R["Active Operations<br/>Long-running Queries"]
+    end
+    
+    subgraph "Health Checks"
+        S[Process Status] --> T["4 mongod + 1 mongos<br/>per node"]
+        U[Replica Set Status] --> V["PRIMARY/SECONDARY<br/>Election Health"]
+        W[Shard Status] --> X["Active Shards<br/>Balanced Distribution"]
+        Y[Log Analysis] --> Z["ERROR/WARNING<br/>Pattern Detection"]
+    end
+    
+    B --> F
+    C --> H
+    C --> J
+    D --> F
+    
+    style A fill:#e3f2fd
+    style F fill:#e8f5e8
+    style H fill:#fff3e0
+    style R fill:#ffebee
 ```
 
 Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và giám sát hiệu quả là bắt buộc.
@@ -1032,14 +1103,16 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
     *   **Backup toàn bộ database `testDB` (chạy từ một máy client có cài mongo tools):**
         ```bash
         mongodump --host=mongo-cfg-1 --port=27020 \
-                  -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin \
+                  -u mongodba --authenticationDatabase admin \
                   --db=testDB --out=/backup/testDB_`date +%F`
+        # Sẽ prompt nhập password an toàn
         ```
     *   **Restore database `testDB`:**
         ```bash
         mongorestore --host=mongo-cfg-1 --port=27020 \
-                     -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin \
+                     -u mongodba --authenticationDatabase admin \
                      --db=testDB /backup/testDB_YYYY-MM-DD
+        # Sẽ prompt nhập password an toàn
         ```
 
 #### **2. Phục hồi tại một thời điểm (Point-in-Time Recovery)**
@@ -1070,11 +1143,13 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Công cụ dòng lệnh:**
     *   `mongostat`: Cung cấp cái nhìn tổng quan theo thời gian thực về các hoạt động (inserts, queries, updates, deletes...), lỗi, và hàng đợi.
         ```bash
-        mongostat --host mongo-cfg-1 --port 27020 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin
+        mongostat --host mongo-cfg-1 --port 27020 -u mongodba --authenticationDatabase admin
+        # Sẽ prompt nhập password an toàn
         ```
     *   `mongotop`: Hiển thị thời gian đọc/ghi trên từng collection, giúp bạn biết collection nào đang hoạt động nhiều nhất.
         ```bash
-        mongotop --host mongo-cfg-1 --port 27020 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin
+        mongotop --host mongo-cfg-1 --port 27020 -u mongodba --authenticationDatabase admin
+        # Sẽ prompt nhập password an toàn
         ```
 *   **Database Profiler (Tìm truy vấn chậm):**
     1.  **Bật profiler:** Ghi lại các truy vấn chạy chậm hơn 100ms.
@@ -1136,8 +1211,11 @@ Nếu Sharding là giải pháp cho bài toán *dung lượng* (scale-out), thì
 #### **1. Các loại Index cơ bản và cách tạo**
 
 *   **Kết nối vào Mongos để thực hiện:**
-    `mongosh --port 27020 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin`
-    `use testDB`
+    ```bash
+    mongosh --port 27020 -u mongodba --authenticationDatabase admin
+    # Sẽ prompt nhập password an toàn
+    use testDB
+    ```
 
 *   **Single Field Index (Chỉ mục trên một trường):**
     ```javascript
@@ -1205,31 +1283,47 @@ Làm sao để biết một truy vấn có đang sử dụng index hay không? H
 ### **Giai đoạn 12: Chiến lược Sharding và Phân phối Dữ liệu**
 
 ```mermaid
-graph TD
-    A[Logical Collection] --> B(Chunk 1<br/>_id: 1-1000)
-    A --> C(Chunk 2<br/>_id: 1001-2000)
-    A --> D(Chunk 3<br/>_id: 2001-3000)
-    A --> E(Chunk 4<br/>_id: 3001-4000)
-    
-    subgraph Shard 1
-        B
+flowchart TD
+    subgraph "Data Distribution Process"
+        A[New Document] --> B{"Shard Key Analysis"}
+        B --> C["Calculate Target Chunk"]
+        C --> D["Route to Appropriate Shard"]
+        D --> E["Document Stored"]
     end
     
-    subgraph Shard 2
-        C
-        E
+    subgraph "Chunk Management"
+        F["Chunk Size Monitor"] --> G{"Chunk > 64MB?"}
+        G -->|Yes| H["Split Chunk"]
+        G -->|No| I["Continue Monitoring"]
+        H --> J["Create New Chunk"]
+        J --> K["Update Config Server"]
     end
     
-    subgraph Shard 3
-        D
+    subgraph "Balancer Process"
+        L["Balancer Service"] --> M{"Check Shard Distribution"}
+        M --> N{"Imbalanced?"}
+        N -->|Yes| O["Select Chunks to Move"]
+        N -->|No| P["Wait Next Cycle"]
+        O --> Q["Migrate Chunks"]
+        Q --> R["Update Metadata"]
+        R --> S["Balance Restored"]
     end
     
-    F[Balancer Process] -.->|Moves chunks| B
-    F -.->|Moves chunks| C
-    F -.->|Moves chunks| D
-    F -.->|Moves chunks| E
-
-    style F fill:#fff3e0
+    subgraph "Shard Key Strategies"
+        T["Hashed Sharding"] --> U["Even Distribution<br/>Random Access"]
+        V["Ranged Sharding"] --> W["Targeted Queries<br/>Risk of Hotspots"]
+    end
+    
+    E --> F
+    K --> L
+    S --> P
+    
+    style A fill:#e3f2fd
+    style E fill:#e8f5e8
+    style O fill:#fff3e0
+    style S fill:#c8e6c9
+    style U fill:#e1f5fe
+    style W fill:#fff8e1
 ```
 
 Chúng ta đã dựng cluster sharding, nhưng việc phân chia dữ liệu diễn ra như thế nào? "Bộ não" của quá trình này nằm ở **Shard Key** và tiến trình **Balancer**.
@@ -1596,4 +1690,5 @@ Hệ sinh thái MongoDB rất rộng lớn. Với những kiến thức này, b�
 *   **MongoDB Atlas:** Trải nghiệm phiên bản cloud của MongoDB, nơi rất nhiều tác vụ vận hành (backup, scaling, monitoring) đã được tự động hóa, giúp bạn tập trung hơn vào việc phát triển ứng dụng.
 *   **Bảo mật Chuyên sâu:** Triển khai xác thực qua chứng chỉ x.509, tích hợp với LDAP/Kerberos.
 
+Chúc mừng bạn một lần nữa vì đã hoàn thành một chặng đường rất dài và chuyên sâu. Chúc bạn thành công trên con đường làm chủ MongoDB
 Chúc mừng bạn một lần nữa vì đã hoàn thành một chặng đường rất dài và chuyên sâu. Chúc bạn thành công trên con đường làm chủ MongoDB
