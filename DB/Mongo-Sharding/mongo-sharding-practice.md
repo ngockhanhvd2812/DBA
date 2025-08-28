@@ -1,4 +1,5 @@
-### **Hướng Dẫn Cài Đặt MongoDB Sharded Cluster**
+# **Hướng Dẫn Cài Đặt MongoDB Sharded Cluster**
+
 
 ```mermaid
 graph TB
@@ -117,7 +118,11 @@ flowchart TD
 #### **1. Cấu hình File `/etc/hosts`**
 
 *   **Mục đích:** Dùng hostname (tên dễ nhớ) thay vì IP, giúp cấu hình dễ đọc và quản lý.
-*   **Bẫy người mới:** Mỗi máy có file `/etc/hosts` khác nhau hoặc các máy có hostname trùng nhau.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
+- **Hosts file không đồng nhất giữa các máy** → name resolution lộn xộn
+- **Hostname trùng/đổi hostname nhưng không reboot** → nhầm lẫn replica set
+- **Quên kiểm tra `/etc/hosts` trên TẤT CẢ máy** → một máy không resolve được các máy khác
 *   **Thực hiện đúng:**
     1.  Mở file: `sudo vi /etc/hosts`
     2.  Thêm các dòng sau vào cuối file. **File hosts trên cả 3 máy phải giống hệt nhau.**
@@ -140,7 +145,13 @@ flowchart TD
 #### **2. Tắt Transparent Huge Pages (THP)**
 
 *   **Mục đích:** THP gây sụt giảm hiệu năng nghiêm trọng cho MongoDB. Phải tắt vĩnh viễn.
-*   **Bẫy người mới:** Tắt thủ công và THP tự bật lại khi reboot; sai cấu hình file service.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
+- **Tắt THP thủ công, quên daemonize** → reboot xong THP bật lại
+- **Service file sai cấu hình Before/After** → không đảm bảo thứ tự khởi động
+- **Không test lại sau reboot** → tưởng đã tắt nhưng thực tế vẫn bật
+
+💡 **MẸO:** Sau khi tạo service, luôn reboot và kiểm tra `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
 *   **Thực hiện đúng:**
     1.  Tạo file service: `sudo vi /etc/systemd/system/disable-transparent-huge-pages.service`
     2.  Dán nội dung chính xác sau:
@@ -169,7 +180,11 @@ flowchart TD
 #### **3. Tinh chỉnh Kernel (`sysctl`) và Giới hạn (`ulimit`)**
 
 *   **Mục đích:** Cung cấp đủ tài nguyên hệ thống (file, memory, process) cho MongoDB chạy ổn định dưới tải cao.
-*   **Bẫy người mới:** Chỉ chạy lệnh `ulimit` tạm thời, bị mất hiệu lực khi reboot.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
+- **`ulimit` chỉnh trong shell** → reboot là mất (phải dùng `limits.d`)
+- **Không áp dụng ngay bằng `sysctl -p`** → tham số chưa có hiệu lực
+- **Quên thêm NUMA parameter** → latency cao trên máy đa socket
 *   **Thực hiện đúng:**
     1.  Chỉnh sửa file `/etc/sysctl.conf` để tinh chỉnh kernel vĩnh viễn:
         ```bash
@@ -181,6 +196,8 @@ flowchart TD
         kernel.pid_max=64000
         kernel.threads-max=64000
         net.ipv4.tcp_keepalive_time=120
+        # NUMA optimization - giảm reclaim cục bộ
+        vm.zone_reclaim_mode = 0
         ```
     2.  Áp dụng ngay: `sudo sysctl -p`
     3.  Tạo file cấu hình `ulimit` vĩnh viễn cho user `mongod` và `root`:
@@ -197,7 +214,13 @@ flowchart TD
 #### **4. Xử Lý SELinux (Nếu bạn dùng CentOS/RHEL)**
 
 *   **Mục đích:** SELinux có thể chặn `mongod` truy cập thư mục `/data` ngay cả khi quyền file đã đúng.
-*   **Bẫy người mới:** Bỏ qua bước này, dẫn đến lỗi "Permission denied" (EACCES) khó hiểu.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
+- **SELinux context chưa set lại sau khi đổi mount** → `EACCES` khó hiểu dù `chmod` đúng
+- **Chỉ set context một lần, quên `restorecon` khi tạo thư mục/file mới**
+- **Tắt SELinux thay vì cấu hình đúng** → giảm bảo mật không cần thiết
+
+💡 **MẸO:** **Mỗi khi tạo thư mục/đổi mount** nhớ chạy lại `restorecon -Rv /data`
 *   **Thực hiện đúng:**
     1.  Cài đặt công cụ cần thiết: `sudo yum install policycoreutils-python-utils -y`
     2.  Gán "context" cho thư mục `/data` để `mongod` được phép truy cập:
@@ -241,7 +264,13 @@ flowchart LR
 #### **2. Tạo KeyFile (Xác thực nội bộ)**
 
 *   **Mục đích:** Mật khẩu chung để các thành viên trong cluster (mongod, mongos) tin tưởng và giao tiếp với nhau.
-*   **Bẫy người mới:** Mỗi máy có keyfile khác nhau; sai quyền sở hữu và permission.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 2:**
+- **Keyfile khác nhau giữa các máy** → nội bộ từ chối bắt tay
+- **Quên `chmod 400`** → MongoDB từ chối khởi động vì keyfile không an toàn
+- **Tạo thư mục bằng `root` rồi quên `chown mongod:mongod`** → "Permission denied"
+
+💡 **MẸO:** Keyfile phù hợp cho lab. Production nên dùng chứng chỉ x.509.
 *   **Thực hiện đúng (Làm trên `mongo-cfg-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
         ```bash
@@ -366,9 +395,18 @@ sequenceDiagram
         while (!db.hello().isWritablePrimary) { sleep(1000); print("...waiting for PRIMARY"); }
         ```
     4.  **Khi đã có PRIMARY**, tạo ngay user admin đầu tiên:
+        
+⚠️ **BẪY BẢO MẬT QUAN TRỌNG:**
+- **Dùng mật khẩu text trong script** → rò rỉ qua shell history
+- **LUÔN dùng `passwordPrompt()` thay vì hard-code mật khẩu**
+
         ```javascript
         use admin
-        db.createUser({ user: "mongodba", pwd: "Vnpt512478##", roles:[{role: "root", db: "admin"}]})
+        db.createUser({
+          user: "mongodba", 
+          pwd: passwordPrompt(), // <-- Nhập an toàn thay vì hard-code
+          roles: [{role: "root", db: "admin"}]
+        })
         ```
     5.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
         ```javascript
@@ -468,11 +506,27 @@ graph TD
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf --fork
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
     ```
-*   **Thực hiện (Chỉ trên 1 máy):** Khởi tạo RS cho từng shard (nhớ đổi port).
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
+- **Bật `authorization` trước `rs.initiate()` và kết nối *không phải* từ localhost** → `rs.initiate()` bị chặn
+- **Nhầm tham số `mongosh -c`** → lệnh không chạy (đúng là `--eval`)
+- **Không đặt `priority` hợp lý** → PRIMARY rơi vào máy yếu/xa
+
+*   **Thực hiện (Chỉ trên 1 máy):** Khởi tạo RS cho từng shard.
+
+💡 **CÁCH AN TOÀN:** Nếu đã bật `authorization` ngay từ đầu trên shard, **bắt buộc chạy từ localhost**: `mongosh --host 127.0.0.1 --port 27011 --eval 'rs.initiate(...)'` (tận dụng "localhost exception").
+
     ```bash
-    # Initiate cho shard01
-    mongosh --port 27011 -c 'rs.initiate({_id: "shard01", members: [{_id: 0, host: "mongo-cfg-1:27011"},{_id: 1, host: "mongo-cfg-2:27011"},{_id: 2, host: "mongo-cfg-3:27011"}]})'
-    # Tương tự cho shard02 (port 27012) và shard03 (port 27013)
+    # Shard01 - SỬA LỖI: dùng --eval thay vì -c
+    mongosh --host mongo-cfg-1 --port 27011 --eval \
+    'rs.initiate({_id:"shard01",members:[{_id:0,host:"mongo-cfg-1:27011"},{_id:1,host:"mongo-cfg-2:27011"},{_id:2,host:"mongo-cfg-3:27011"}]})'
+    
+    # Shard02
+    mongosh --host mongo-cfg-1 --port 27012 --eval \
+    'rs.initiate({_id:"shard02",members:[{_id:0,host:"mongo-cfg-1:27012"},{_id:1,host:"mongo-cfg-2:27012"},{_id:2,host:"mongo-cfg-3:27012"}]})'
+    
+    # Shard03
+    mongosh --host mongo-cfg-1 --port 27013 --eval \
+    'rs.initiate({_id:"shard03",members:[{_id:0,host:"mongo-cfg-1:27013"},{_id:1,host:"mongo-cfg-2:27013"},{_id:2,host:"mongo-cfg-3:27013"}]})'
     ```
 
 ---
@@ -529,9 +583,15 @@ tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config 
 
 #### **3. Thêm các Shard vào Cluster**
 
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 5:**
+- **`configDB` sai `replSetName`** hoặc **nhầm thứ tự host** → mongos không kết nối nổi
+- **Chỉ chạy một `mongos`** trong production → SPOF về truy vấn (nên có nhiều `mongos`)
+- **Dùng mật khẩu hard-code trong lệnh** → rò rỉ credential
+
 *   **Thực hiện (Kết nối vào Mongos):**
     ```bash
-    mongosh --port 27020 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin
+    mongosh --port 27020 -u mongodba --authenticationDatabase admin
+    # Sẽ prompt nhập password an toàn
     ```
     Bên trong mongosh:
     ```javascript
@@ -604,6 +664,28 @@ flowchart LR
     *   **Backup:** Thường xuyên sao lưu `config server` vì nó chứa toàn bộ metadata của cluster.
     *   **Giám sát:** Sử dụng các công cụ như MongoDB Atlas, Ops Manager, hoặc Prometheus để theo dõi sức khỏe hệ thống.
     *   **Mở rộng:** Có thể thêm các instance `mongos` trên các máy khác để cân bằng tải truy vấn.
+    *   **systemd Unit:** Khuyến nghị tạo unit file cho `mongod`/`mongos` thay vì dùng `--fork` trong production.
+
+💡 **Mẫu systemd Unit cho Production:**
+```ini
+# /etc/systemd/system/mongod-shard01.service
+[Unit]
+Description=MongoDB Shard01
+After=network.target disable-transparent-huge-pages.service
+
+[Service]
+User=mongod
+Group=mongod
+ExecStart=/usr/bin/mongod --config /etc/mongod-shard1.conf
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+LimitNOFILE=64000
+LimitNPROC=64000
+
+[Install]
+WantedBy=multi-user.target
+```
+Kích hoạt: `systemctl daemon-reload && systemctl enable --now mongod-shard01`
 
 ---
 
@@ -760,10 +842,14 @@ flowchart TD
 Một cluster không được bảo mật là một thảm họa. MongoDB cung cấp hệ thống Role-Based Access Control (RBAC) mạnh mẽ để đảm bảo "đúng người, đúng việc".
 
 *   **Mục đích:** Kiểm soát chặt chẽ ai được phép làm gì trên những dữ liệu nào. Xác thực (bạn là ai?) và Ủy quyền (bạn được làm gì?).
-*   **Bẫy người mới:**
-    *   Chạy cluster mà không bật `authorization`.
-    *   Tạo một user `root` duy nhất và dùng nó cho tất cả ứng dụng. Nếu user này bị lộ, toàn bộ hệ thống sẽ bị chiếm quyền.
-*   **Thực hiện đúng:** Tuân thủ nguyên tắc đặc quyền tối thiểu (Principle of Least Privilege). Mỗi user hoặc ứng dụng chỉ nên có những quyền hạn thực sự cần thiết để thực hiện công việc của mình.
+
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 8:**
+- **Chạy cluster mà không bật `authorization`** → ai cũng có thể truy cập
+- **Dùng user `root` cho ứng dụng** → rủi ro lớn khi bị hack
+- **Bật `auditLog` trên Community** → mongod không khởi động (chỉ Enterprise/Atlas)
+- **Không áp dụng Least Privilege** → user có quyền quá rộng không cần thiết
+
+💡 **NGUYÊN TẮC:** Mỗi user/ứng dụng chỉ nên có những quyền hạn thực sự cần thiết.
 
 #### **1. Tạo User và Gán Role có sẵn**
 
@@ -1172,6 +1258,14 @@ Chúng ta đã dựng cluster sharding, nhưng việc phân chia dữ liệu di�
 
 #### **2. Bẫy người mới khi chọn Shard Key**
 
+⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 12:**
+- **Chọn `_id` mặc định với Ranged Sharding** → hot shard (đây là lỗi kinh điển)
+- **Chọn key cardinality thấp** (ví dụ: `country` khi 90% là Việt Nam) → jumbo chunk
+- **Khẳng định chunk size cứng 64MB** → khác theo version
+- **Quên rằng Shard Key là bất biến** → không thể thay đổi sau khi sharding
+
+💡 **MẸO:** Kiểm tra `maxChunkSizeBytes` hoặc tài liệu version đang chạy thay vì giả định.
+
 *   **Chọn `_id` mặc định với Ranged Sharding:** Đây là lỗi kinh điển. `_id` của MongoDB có chứa timestamp và luôn tăng. Kết quả là tạo ra một "hot shard" hứng chịu toàn bộ lưu lượng ghi.
 *   **Chọn một key có số lượng giá trị thấp (Low Cardinality):** Ví dụ, sharding collection người dùng theo trường `country` trong khi 90% người dùng đến từ "Việt Nam". Điều này sẽ tạo ra một chunk khổng lồ không thể chia tách (jumbo chunk) và không thể cân bằng.
 *   **Quên rằng Shard Key là bất biến:** Không thể thay đổi Shard Key của một collection sau khi đã sharding. Nếu chọn sai, cách duy nhất để sửa là tạo một collection mới, sharding lại với key đúng, và di chuyển toàn bộ dữ liệu sang.
@@ -1331,6 +1425,16 @@ Khi bạn đã xác định được `opid` (Operation ID) của một truy vấ
 ---
 
 ### **Giai đoạn 14: Kỹ thuật Phục hồi Nâng cao - Point-in-Time Recovery (PITR)**
+
+⚠️ **CẢNH BÁO SHARDED CLUSTER:**
+- **`mongorestore --oplogReplay` chỉ áp dụng cho MỘT replica set**
+- **Với sharded cluster, cần đồng bộ TỪNG SHARD hoặc dùng giải pháp chuyên dụng**
+- **ĐỪNG dump oplog từ `mongos` rồi kỳ vọng replay cho cả cụm**
+
+💡 **PITR SHARDED CLUSTER đúng cách:**
+- Full backup đồng bộ + oplog từng shard
+- Kiểm soát timestamp phối hợp
+- Hoặc dùng MongoDB Atlas/Ops Manager backup
 
 ```mermaid
 sequenceDiagram
