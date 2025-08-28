@@ -3,7 +3,6 @@
       - [**1. Cấu hình File `/etc/hosts`**](#1-cấu-hình-file-etchosts)
       - [**2. Tắt Transparent Huge Pages (THP)**](#2-tắt-transparent-huge-pages-thp)
       - [**3. Tinh chỉnh Kernel (`sysctl`) và Giới hạn (`ulimit`)**](#3-tinh-chỉnh-kernel-sysctl-và-giới-hạn-ulimit)
-      - [**4. Xử Lý SELinux (Nếu bạn dùng CentOS/RHEL)**](#4-xử-lý-selinux-nếu-bạn-dùng-centosrhel)
     - [**Giai đoạn 2: Cài đặt và Chuẩn bị Tài nguyên**](#giai-đoạn-2-cài-đặt-và-chuẩn-bị-tài-nguyên)
       - [**1. Cài đặt MongoDB**](#1-cài-đặt-mongodb)
       - [**2. Tạo KeyFile (Xác thực nội bộ)**](#2-tạo-keyfile-xác-thực-nội-bộ)
@@ -176,30 +175,87 @@ flowchart TD
 
 #### **1. Cấu hình File `/etc/hosts`**
 
-*   **Mục đích:** Dùng hostname (tên dễ nhớ) thay vì IP, giúp cấu hình dễ đọc và quản lý.
+*   **Mục đích cốt lõi:** Việc sử dụng các hostname dễ nhớ (ví dụ: `mongo-cfg-1`) thay vì địa chỉ IP trực tiếp (ví dụ: `192.168.0.38`) mang lại nhiều lợi ích quan trọng, đặc biệt trong một môi trường phân tán như MongoDB sharded cluster:
+    *   **Dễ đọc và quản lý:** Cấu hình trở nên trực quan hơn rất nhiều. Sẽ dễ dàng hơn để nhớ và tham chiếu đến `mongo-cfg-1` trong các file cấu hình hoặc khi gõ lệnh, thay vì một dãy số IP.
+    *   **Tính nhất quán trong giao tiếp:** Trong các hệ thống phân tán, các thành phần thường xuyên cần giao tiếp với nhau bằng cách gọi tên. Nếu các node MongoDB trong cluster sử dụng hostname, chúng có thể tự nhận diện và tìm thấy nhau một cách đáng tin cậy.
+    *   **Giảm thiểu lỗi cấu hình:** Khi địa chỉ IP thay đổi (mặc dù không mong muốn trong production, nhưng có thể xảy ra trong môi trường lab hoặc phát triển), bạn chỉ cần cập nhật một lần trong file `/etc/hosts` thay vì phải tìm kiếm và sửa đổi nhiều file cấu hình của MongoDB.
+    *   **Tránh "name resolution lộn xộn":** Nếu mỗi máy có một ánh xạ IP-hostname khác nhau hoặc không đầy đủ, các node sẽ không thể xác định chính xác các node khác trong cluster. Điều này dẫn đến các lỗi khó gỡ rối như "node không tìm thấy", "replica set không thể bầu chọn primary", hoặc "mongos không thể kết nối đến config server", gây mất ổn định toàn bộ cluster.
+
+*   **Hostname của hệ thống:** Bên cạnh việc ánh xạ IP sang hostname trong `/etc/hosts`, mỗi máy chủ cũng cần có một hostname *duy nhất* của riêng nó. Hostname này là cách mà hệ điều hành và các ứng dụng (bao gồm MongoDB) tự nhận diện mình trong mạng. Trong một replica set hoặc sharded cluster, mỗi thành viên phải có một định danh duy nhất để tránh xung đột và cho phép các thuật toán bầu chọn hoạt động chính xác.
 
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
-- **Hosts file không đồng nhất giữa các máy** → name resolution lộn xộn
-- **Hostname trùng/đổi hostname nhưng không reboot** → nhầm lẫn replica set
-- **Quên kiểm tra `/etc/hosts` trên TẤT CẢ máy** → một máy không resolve được các máy khác
+-   **Hosts file không đồng nhất giữa các máy:** Đây là lỗi phổ biến nhất. Nếu `mongo-cfg-1` biết `mongo-cfg-2` là `192.168.0.241`, nhưng `mongo-cfg-2` lại nghĩ `mongo-cfg-1` là một IP khác hoặc không tìm thấy, chúng sẽ không thể thiết lập kết nối nội bộ. Kết quả là "name resolution lộn xộn" và cluster không thể khởi tạo hoặc hoạt động đúng.
+-   **Hostname trùng/đổi hostname nhưng không reboot:** Khi bạn đặt một hostname mới cho máy bằng `hostnamectl`, một số ứng dụng hoặc dịch vụ (bao gồm MongoDB) có thể không nhận ra sự thay đổi ngay lập tức mà vẫn sử dụng hostname cũ cho đến khi chúng được khởi động lại hoặc hệ thống được reboot. Nếu hai máy trong cluster vô tình có cùng một hostname (hoặc một máy vẫn sử dụng hostname cũ trùng với máy khác), MongoDB sẽ bị nhầm lẫn và không thể quản lý các thành viên của replica set.
+-   **Quên kiểm tra `/etc/hosts` trên TẤT CẢ máy:** Việc chỉ kiểm tra trên một hoặc hai máy có thể dẫn đến một máy bị cô lập, không thể resolve được các máy khác, gây ra lỗi kết nối và sự cố trong cluster.
+
 *   **Thực hiện đúng:**
-    1.  Mở file: `sudo vi /etc/hosts`
-    2.  Thêm các dòng sau vào cuối file. **File hosts trên cả 3 máy phải giống hệt nhau.**
+    1.  **Mở file `/etc/hosts`:** Sử dụng `sudo vi /etc/hosts` (hoặc trình soạn thảo yêu thích) để chỉnh sửa file này.
+    2.  **Thêm các dòng ánh xạ:** Thêm danh sách các cặp IP-hostname cho *tất cả các node* trong cluster vào cuối file. **Điểm mấu chốt là nội dung của file `/etc/hosts` trên CẢ 3 MÁY PHẢI GIỐNG HỆT NHAU.** Điều này đảm bảo mỗi node đều có một "bản đồ" mạng nhất quán và chính xác về tất cả các node khác.
         ```
         # --- Mongo Cluster ---
         192.168.0.38   mongo-cfg-1
         192.168.0.241  mongo-cfg-2
         192.168.0.215  mongo-cfg-3
         ```
-    3.  Đặt hostname duy nhất cho từng máy:
-        ```bash
-        # Trên máy 192.168.0.38
-        sudo hostnamectl set-hostname mongo-cfg-1
-        # Trên máy 192.168.0.241
-        sudo hostnamectl set-hostname mongo-cfg-2
-        # Trên máy 192.168.0.215
-        sudo hostnamectl set-hostname mongo-cfg-3
-        ```
+    3.  **Đặt hostname duy nhất cho từng máy:** Trên mỗi máy, bạn sẽ chạy lệnh `sudo hostnamectl set-hostname <tên-hostname>` tương ứng.
+        *   `sudo hostnamectl set-hostname mongo-cfg-1` (Trên máy có IP 192.168.0.38)
+        *   `sudo hostnamectl set-hostname mongo-cfg-2` (Trên máy có IP 192.168.0.241)
+        *   `sudo hostnamectl set-hostname mongo-cfg-3` (Trên máy có IP 192.168.0.215)
+        Thao tác này đảm bảo rằng mỗi máy tự nhận diện mình với một cái tên riêng biệt và nhất quán với những gì đã định nghĩa trong `/etc/hosts`. Sau khi đặt hostname, tốt nhất nên khởi động lại hoặc ít nhất đăng xuất/đăng nhập lại để đảm bảo tất cả các dịch vụ nhận hostname mới.
+
+* **Minh hoạ:**
+
+```mermaid
+flowchart TD
+    A[Bắt đầu: Cấu hình /etc/hosts và Hostname] --> B{Mục đích:<br/>Dùng Hostname dễ nhớ thay vì IP<br/>Giúp cấu hình rõ ràng, quản lý dễ dàng<br/>và giao tiếp nhất quán cho MongoDB Cluster};
+    
+    subgraph "Trên TẤT CẢ 3 MÁY"
+        IP1(192.168.0.38)
+        IP2(192.168.0.241)
+        IP3(192.168.0.215)
+        
+        S1["Mở và Sửa file /etc/hosts"]
+        S1 --> S2["Thêm ánh xạ IP <-> Hostname:<br/>(Nội dung file phải GIỐNG HỆT NHAU trên CẢ 3 MÁY)"];
+        S2 --> HostEntries{<br/># --- Mongo Cluster ---<br/>192.168.0.38 mongo-cfg-1<br/>192.168.0.241 mongo-cfg-2<br/>192.168.0.215 mongo-cfg-3<br/>}
+    end
+    
+    subgraph "Trên TỪNG MÁY RIÊNG BIỆT"
+        M1["Máy 1 (192.168.0.38):<br/>sudo hostnamectl set-hostname mongo-cfg-1"]
+        M2["Máy 2 (192.168.0.241):<br/>sudo hostnamectl set-hostname mongo-cfg-2"]
+        M3["Máy 3 (192.168.0.215):<br/>sudo hostnamectl set-hostname mongo-cfg-3"]
+    end
+    
+    B --> S1
+    HostEntries --> M1
+    HostEntries --> M2
+    HostEntries --> M3
+    
+    subgraph "⚠️ BẪY NGƯỜI MỚI (Cần tránh)"
+        P1["Hosts file KHÔNG ĐỒNG NHẤT"];
+        P2["Hostname TRÙNG/Không reboot sau đổi"];
+        P3["Quên kiểm tra trên TẤT CẢ máy"];
+    end
+    
+    M1 --> F[Cluster sẵn sàng giao tiếp bằng Hostname];
+    M2 --> F;
+    M3 --> F;
+    
+    %% Định nghĩa style classes
+    classDef startNode fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
+    classDef purposeNode fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
+    classDef sharedConfig fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
+    classDef uniqueConfig fill:#e0f2f1,stroke:#00695c,stroke-width:2px,color:#000
+    classDef resultNode fill:#e8f5e8,stroke:#388e3c,stroke-width:3px,color:#000
+    classDef trapNode fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
+    
+    %% Áp dụng styles
+    class A startNode
+    class B purposeNode
+    class S1,S2,HostEntries sharedConfig
+    class M1,M2,M3 uniqueConfig
+    class F resultNode
+    class P1,P2,P3 trapNode
+```
 
 #### **2. Tắt Transparent Huge Pages (THP)**
 
@@ -394,106 +450,6 @@ flowchart TD
     class E,F endNode
     class P1,P2,P3 trapNode
 ``` 
-
-#### **4. Xử Lý SELinux (Nếu bạn dùng CentOS/RHEL)**
-
-*   **Mục đích cốt lõi:** SELinux có thể chặn `mongod` truy cập các thư mục dữ liệu (`/data`) và file (như `mongo-keyfile`) ngay cả khi quyền file tiêu chuẩn (qua `chmod`, `chown`) đã được thiết lập đúng. Việc cấu hình SELinux chính xác là cần thiết để MongoDB hoạt động mà không bị cản trở, đồng thời duy trì mức độ bảo mật cao của hệ thống.
-
-*   **SELinux là gì và cách hoạt động?**
-    *   **Security-Enhanced Linux (SELinux)** là một cơ chế bảo mật bổ sung của nhân Linux, thực hiện **Kiểm soát Truy cập Bắt buộc (Mandatory Access Control - MAC)**. Nó khác với **Kiểm soát Truy cập Tự nguyện (Discretionary Access Control - DAC)** mà chúng ta quen thuộc qua các lệnh `chmod`, `chown`.
-    *   Với DAC, chủ sở hữu file có thể quyết định ai được phép truy cập file của họ. Với MAC của SELinux, toàn bộ hệ thống (kernel) sẽ kiểm soát quyền truy cập dựa trên một bộ quy tắc được định nghĩa sẵn bởi quản trị viên hệ thống.
-    *   **Context (Ngữ cảnh):** Trong SELinux, mọi file, thư mục, cổng mạng và tiến trình đều được gán một "nhãn" hay "ngữ cảnh" bảo mật. Ngữ cảnh này bao gồm nhiều phần, nhưng phần quan trọng nhất đối với chúng ta là "type" (kiểu), ví dụ `mongod_var_lib_t`.
-    *   **Quy trình kiểm tra:** Khi một tiến trình (ví dụ: `mongod`) muốn truy cập một tài nguyên (ví dụ: thư mục `/data`), SELinux kernel sẽ kiểm tra:
-        1.  Ngữ cảnh của tiến trình `mongod`.
-        2.  Ngữ cảnh của thư mục `/data`.
-        3.  Chính sách bảo mật của SELinux để xem liệu ngữ cảnh của tiến trình có được phép thực hiện hành động truy cập lên ngữ cảnh của thư mục hay không.
-    *   **Vấn đề với MongoDB:** Ngay cả khi bạn đã chạy `sudo chown -R mongod:mongod /data` và `sudo chmod -R 700 /data`, đảm bảo user `mongod` có quyền đầy đủ (DAC), nếu thư mục `/data` không có ngữ cảnh SELinux (`mongod_var_lib_t`) mà chính sách `mongod` mong đợi, SELinux sẽ chặn truy cập, dẫn đến lỗi "Permission denied" (EACCES) khó hiểu.
-
-*   **Tại sao không nên tắt SELinux?**
-    *   Tắt SELinux (chuyển sang chế độ `permissive` hoặc `disabled`) sẽ loại bỏ lớp bảo mật quan trọng này. Trong môi trường production, đây là một rủi ro bảo mật lớn, vì nó làm giảm khả năng hệ thống chống lại các cuộc tấn công leo thang đặc quyền hoặc các lỗ hổng phần mềm.
-    *   Việc cấu hình đúng SELinux là cách tốt nhất để đảm bảo cả bảo mật và khả năng hoạt động của ứng dụng.
-
-⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
--   **SELinux context chưa set lại sau khi đổi mount:** Nếu bạn mount một ổ đĩa mới vào `/data` hoặc di chuyển thư mục dữ liệu mà không gán lại ngữ cảnh, lỗi `EACCES` sẽ xảy ra dù `chmod` và `chown` đã đúng.
--   **Chỉ set context một lần, quên `restorecon` khi tạo thư mục/file mới:** Lệnh `semanage fcontext` chỉ định nghĩa một *quy tắc*. `restorecon` mới là lệnh áp dụng quy tắc đó cho các file/thư mục hiện có. Nếu bạn tạo file/thư mục mới sau khi chạy `semanage fcontext` nhưng quên `restorecon`, các file/thư mục mới này sẽ không có ngữ cảnh đúng.
--   **Tắt SELinux thay vì cấu hình đúng:** Giải pháp dễ nhất nhưng nguy hiểm nhất. Phải ưu tiên cấu hình đúng.
-
-💡 **MẸO:** **Mỗi khi tạo thư mục/file quan trọng trong `/data` hoặc đổi mount point**, hãy nhớ chạy lại `sudo restorecon -Rv /data` để đảm bảo ngữ cảnh SELinux được áp dụng chính xác.
-
-*   **Thực hiện đúng:**
-    1.  **Cài đặt công cụ cần thiết:** `sudo yum install policycoreutils-python-utils -y`
-        *   Gói này cung cấp các tiện ích quản lý SELinux như `semanage` và `restorecon`.
-    2.  **Gán "context" cho thư mục `/data`:**
-        ```bash
-        sudo semanage fcontext -a -t mongod_var_lib_t "/data(/.*)?"
-        sudo restorecon -Rv /data
-        ```
-        *   `semanage fcontext -a -t mongod_var_lib_t "/data(/.*)?"`: Dòng này định nghĩa một quy tắc: tất cả các file và thư mục nằm trong `/data` (bao gồm chính `/data` và các thư mục con) phải có ngữ cảnh kiểu `mongod_var_lib_t`. Quy tắc này được lưu vĩnh viễn.
-        *   `restorecon -Rv /data`: Dòng này sẽ quét thư mục `/data` và các thư mục con, sau đó áp dụng ngữ cảnh `mongod_var_lib_t` đã định nghĩa bởi `semanage` cho tất cả chúng.
-    3.  **Kiểm tra:** `ls -Z /data/mongo-keyfile` phải thấy context `mongod_var_lib_t`.
-        *   Lệnh `ls -Z` hiển thị ngữ cảnh SELinux của file. Việc thấy `mongod_var_lib_t` xác nhận rằng `mongod` giờ đây có thể truy cập file này một cách hợp lệ theo chính sách SELinux.
-
-
-* **Minh hoạ**
-
-```mermaid
-flowchart TD
-    A["🚀 Bắt đầu: Xử lý SELinux"] --> B{"🎯 Mục đích:<br/>Ngăn SELinux chặn MongoDB<br/>truy cập dữ liệu mà vẫn giữ<br/>an toàn hệ thống"}
-    
-    subgraph "🔒 SELinux - Cơ chế bảo mật MAC"
-        C1["📋 Mọi Process và File có Context bảo mật"]
-        C2["🔍 Kernel kiểm tra: Process Context + File Context + Policy"]
-        C3["❌ Vấn đề: Mongod Process truy cập /data Directory<br/>bị chặn EACCES dù quyền chmod/chown đã đúng"]
-    end
-    
-    B --> C1
-    C1 --> C2
-    C2 --> C3
-    C3 --> D1["📦 Bước 1: Cài đặt công cụ SELinux<br/>sudo yum install policycoreutils-python-utils"]
-    
-    subgraph "⚙️ Các Bước Thực Hiện Cấu hình"
-        D1 --> D2["📝 Bước 2: Định nghĩa quy tắc Context cho /data<br/>semanage fcontext -a -t mongod_var_lib_t /data/.*"]
-        D2 --> D3["🔄 Bước 3: Áp dụng Context đã định nghĩa<br/>restorecon -Rv /data"]
-    end
-    
-    D3 --> E["🔍 Bước 4: Kiểm tra Context của file/thư mục<br/>ls -Z /data/mongo-keyfile"]
-    E --> G{"✅ Context hiển thị:<br/>mongod_var_lib_t"}
-    
-    G -->|"Thành công"| F["🎉 MongoDB hoạt động an toàn<br/>và ổn định với SELinux"]
-    G -->|"Thất bại"| H["❌ Cần khắc phục lỗi cấu hình"]
-    
-    H --> I{"🚨 Phân tích nguyên nhân lỗi"}
-    
-    subgraph "⚠️ Bẫy Người Mới - Cần Tránh"
-        I --> P1["🔧 Context sai sau khi<br/>đổi mount point"]
-        I --> P2["📂 Quên chạy restorecon<br/>cho file/thư mục mới"]
-        I --> P3["🚫 Tắt SELinux hoàn toàn<br/>thay vì cấu hình đúng"]
-    end
-    
-    P1 --> J["🔄 Quay lại cấu hình Context"]
-    P2 --> J
-    P3 --> J
-    J --> D2
-    
-    style A fill:#fff3e0,stroke:#f57c00,stroke-width:3px,color:#000
-    style B fill:#e3f2fd,stroke:#1976d2,stroke-width:2px,color:#000
-    style C1 fill:#bbdefb,stroke:#2196f3,stroke-width:2px,color:#000
-    style C2 fill:#bbdefb,stroke:#2196f3,stroke-width:2px,color:#000
-    style C3 fill:#ffcdd2,stroke:#d32f2f,stroke-width:2px,color:#000
-    style D1 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style D2 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style D3 fill:#f3e5f5,stroke:#7b1fa2,stroke-width:2px,color:#000
-    style E fill:#ffebee,stroke:#d32f2f,stroke-width:2px,color:#000
-    style G fill:#e8f5e8,stroke:#388e3c,stroke-width:3px,color:#000
-    style F fill:#c8e6c9,stroke:#2e7d32,stroke-width:4px,color:#000
-    style H fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style I fill:#fff3e0,stroke:#f57c00,stroke-width:2px,color:#000
-    style P1 fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style P2 fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style P3 fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
-    style J fill:#fff9c4,stroke:#f9a825,stroke-width:2px,color:#000
-```
-
 
 ### **Giai đoạn 2: Cài đặt và Chuẩn bị Tài nguyên**
 
