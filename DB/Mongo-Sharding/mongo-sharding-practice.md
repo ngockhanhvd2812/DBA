@@ -285,28 +285,68 @@ flowchart TD
 💡 **MẸO:** Sau khi tạo service, luôn reboot và kiểm tra `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
 *   **Thực hiện đúng:**
     1.  Tạo file service: `sudo vi /etc/systemd/system/disable-transparent-huge-pages.service`
+
     2.  Dán nội dung chính xác sau:
-        ```ini
-        [Unit]
-        Description=Disable Transparent Huge Pages (THP)
-        DefaultDependencies=no
-        After=sysinit.target local-fs.target
-        Before=mongod.service
+    
+```bash
+[Unit]
+# Mô tả service
+Description=Disable Transparent Huge Pages (THP)
 
-        [Service]
-        Type=oneshot
-        ExecStart=/bin/sh -c 'echo never | tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null; test -e /sys/kernel/mm/transparent_hugepage/defrag && echo never | tee /sys/kernel/mm/transparent_hugepage/defrag > /dev/null'
+# Không phụ thuộc mặc định khác, để service chạy sớm trong quá trình boot
+DefaultDependencies=no
 
-        [Install]
-        WantedBy=multi-user.target
-        ```
-    3.  Kích hoạt service:
-        ```bash
-        sudo systemctl daemon-reload
-        sudo systemctl start disable-transparent-huge-pages
-        sudo systemctl enable disable-transparent-huge-pages
-        ```
-    4.  Kiểm tra: `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
+# Chạy sau khi hệ thống khởi tạo cơ bản xong (sysinit + local fs)
+After=sysinit.target local-fs.target
+
+# Đảm bảo service này chạy trước khi mongod khởi động
+Before=mongod.service
+
+[Service]
+# Chạy một lần duy nhất rồi thoát
+Type=oneshot
+
+# Lệnh tắt THP (chỉ disable "enabled")
+# Nếu cần tắt cả "defrag" thì nên thêm check file defrag và echo never
+ExecStart=/bin/sh -c 'echo never | tee /sys/kernel/mm/transparent_hugepage/enabled > /dev/null'
+
+[Install]
+# Service sẽ được kéo vào basic.target (chạy rất sớm khi boot)
+# Thường production hay dùng multi-user.target để quản lý dễ hơn
+WantedBy=basic.target
+```
+
+3.  Kích hoạt service:
+```bash
+# Nạp lại toàn bộ unit files từ disk vào memory của systemd
+# Bắt buộc khi bạn vừa tạo mới hoặc sửa file .service
+sudo systemctl daemon-reload
+
+# Khởi động service ngay lập tức (chỉ chạy cho lần boot hiện tại)
+sudo systemctl start disable-transparent-huge-pages
+
+# Bật service để tự động chạy lại khi reboot
+sudo systemctl enable disable-transparent-huge-pages
+
+# 👆 Nếu muốn gọn, có thể gộp start + enable bằng:
+# sudo systemctl enable --now disable-transparent-huge-pages
+
+```
+4.  Kiểm tra: `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
+
+5.  (Tuỳ chọn) Kiểm tra trạng thái của  disable-transparent-huge-pages để đọc log khởi chạy
+```bash
+# Kiểm tra trạng thái service disable-transparent-huge-pages
+# - Cho biết service đang "active" (đang chạy thành công) hay "failed"
+# - Hiển thị log khởi chạy từ journalctl (giúp debug khi lỗi)
+# - Dùng sau khi start/enable để chắc chắn service chạy đúng
+systemctl status disable-transparent-huge-pages
+``` 
+
+📌 Khi chạy bạn sẽ thấy:
+
+* `Active: active (exited)` → nghĩa là service chạy 1 lần thành công rồi thoát (Type=oneshot).
+* Nếu có lỗi (ví dụ file không tồn tại) → bạn sẽ thấy `failed` và log lỗi ngay dưới.  
    
 * **Minh hoạ**:
 
@@ -378,31 +418,84 @@ flowchart TD
 -   **Không áp dụng ngay bằng `sysctl -p`:** Sau khi sửa `sysctl.conf`, các thay đổi sẽ chỉ có hiệu lực sau khi reboot hoặc khi được áp dụng thủ công bằng `sysctl -p`.
 -   **Quên thêm NUMA parameter:** Trên các máy chủ có kiến trúc NUMA, việc thiếu cấu hình tối ưu có thể dẫn đến hiệu năng kém do kernel cố gắng ưu tiên bộ nhớ cục bộ quá mức, gây ra độ trễ cao.
 
+**Lưu ý quan trọng: Tại sao tạo file trong `/etc/sysctl.d/` mà không sửa `/etc/sysctl.conf`?**
+*   **Thực hành tốt nhất (Best Practice)**: Trong các hệ thống Linux hiện đại (như CentOS/RHEL 8), việc tạo các file cấu hình riêng biệt trong thư mục `/etc/sysctl.d/` là phương pháp được khuyến nghị. Điều này giúp:
+    *   **Dễ quản lý**: Mỗi ứng dụng hoặc mục đích tinh chỉnh có file riêng, giúp hệ thống gọn gàng, dễ theo dõi và bảo trì hơn.
+    *   **Tránh xung đột**: Bạn không làm thay đổi các cấu hình mặc định của hệ thống trong `/etc/sysctl.conf`, tránh được các lỗi không mong muốn hoặc xung đột với các cài đặt của gói phần mềm khác.
+    *   **Dễ gỡ bỏ**: Khi không còn cần MongoDB, bạn chỉ cần xóa file cấu hình này mà không cần dò tìm và sửa đổi một file lớn.
+*   **Cách hoạt động**: Khi hệ thống khởi động hoặc chạy `sysctl --system`, nó sẽ đọc `/etc/sysctl.conf` trước, sau đó là tất cả các file `.conf` trong `/etc/sysctl.d/` theo thứ tự bảng chữ cái. Nếu có tham số trùng lặp, giá trị trong file được đọc sau cùng sẽ được áp dụng.
+
+
 *   **Thực hiện đúng:**
-    1.  Chỉnh sửa file `/etc/sysctl.conf` để tinh chỉnh kernel vĩnh viễn:
-        ```bash
-        # Thêm vào cuối file /etc/sysctl.conf
-        vm.swappiness = 1
-        net.ipv4.ip_local_port_range = 1024 65530
-        vm.max_map_count=9999999
-        fs.file-max=6815744
-        kernel.pid_max=64000
-        kernel.threads-max=64000
-        net.ipv4.tcp_keepalive_time=120
-        # NUMA optimization - giảm reclaim cục bộ
-        vm.zone_reclaim_mode = 0
-        ```
-    2.  Áp dụng ngay: `sudo sysctl -p`
-    3.  Tạo file cấu hình `ulimit` vĩnh viễn cho user `mongod` và `root`:
-        ```bash
-        # Tạo file /etc/security/limits.d/99-mongodb-limits.conf
-        mongod   soft   nofile    64000
-        mongod   hard   nofile    64000
-        mongod   soft   nproc     64000
-        mongod   hard   nproc     64000
-        root     soft   nofile    64000
-        root     hard   nofile    64000
-        ```
+    1.  Tạo một file cấu hình mới cho MongoDB:
+    Chúng ta sẽ tạo một file có tên `99-mongodb.conf` trong thư mục `/etc/sysctl.d/` `(vi /etc/sysctl.d/99-mongodb.conf)`. Số `99` đảm bảo file này được đọc sau cùng (theo thứ tự bảng chữ cái) để các tinh chỉnh của MongoDB sẽ ghi đè lên bất kỳ cài đặt nào khác nếu có xung đột. 
+
+```bash
+    # Giảm sử dụng swap tối đa (MongoDB không thích swap vì tăng latency)
+    vm.swappiness = 1
+
+    # Mở rộng dải port ephemeral (outbound TCP connection) từ 1024 → 65530
+    # Giúp hỗ trợ nhiều kết nối đồng thời khi có nhiều client/app
+    net.ipv4.ip_local_port_range = 1024 65530
+
+    # Tăng số lượng memory map tối đa cho 1 process (MongoDB dùng nhiều mmap cho index/collection)
+    # Mặc định 65530 là quá thấp, tăng lên để tránh lỗi "out of memory maps"
+    vm.max_map_count = 9999999
+
+    # Tăng số lượng file descriptors toàn hệ thống
+    # Đảm bảo MongoDB có thể mở nhiều file dữ liệu, log, connection socket
+    fs.file-max = 6815744
+```
+2.  Áp dụng ngay: `sudo sysctl --system`  để load tất cả file trong `/etc/sysctl.d/, /run/sysctl.d/, /usr/lib/sysctl.d/ + /etc/sysctl.conf`. Nó mô phỏng đúng hành vi khi reboot.
+
+3.  Tạo file cấu hình `/etc/security/limits.d/99-mongodb.conf` vĩnh viễn cho user `mongod` :
+```bash
+# /etc/security/limits.d/99-mongodb.conf
+# File này đặt giới hạn (ulimit) vĩnh viễn cho user mongod.
+# Áp dụng khi mongod login hoặc khi service mongod khởi động lại.
+
+# Số file descriptors (ulimit -n), MongoDB cần nhiều FD cho connections và file data
+mongod soft nofile 64000
+mongod hard nofile 64000
+
+# Số process/threads (ulimit -u), đảm bảo MongoDB có thể tạo nhiều worker threads
+mongod soft nproc 64000
+mongod hard nproc 64000
+
+# Memory lock (ulimit -l), cho phép mongod lock memory (thường dùng để tránh swap key pages, TLS…)
+mongod soft memlock unlimited
+mongod hard memlock unlimited
+
+# File size (ulimit -f), giới hạn kích thước file mà process tạo ra → unlimited để không chặn write
+mongod soft fsize unlimited
+mongod hard fsize unlimited
+
+# CPU time (ulimit -t), giới hạn tổng thời gian CPU mà process dùng → unlimited
+mongod soft cpu unlimited
+mongod hard cpu unlimited
+
+# Virtual memory (ulimit -v), giới hạn address space process → unlimited để MongoDB không bị giới hạn RAM ảo
+mongod soft as unlimited
+mongod hard as unlimited
+
+# Resident memory (ulimit -m), thường Linux hiện đại bỏ qua, nhưng có thể set bằng rss
+# Optional: có thể bỏ nếu kernel > 2.4.30 vì ignore
+mongod soft rss unlimited
+mongod hard rss unlimited
+
+```
+
+* Sau khi sửa file `/etc/security/limits.d/99-mongodb.conf`, bạn chỉ cần **restart mongod** để nó nhận limit mới:
+
+```bash
+sudo systemctl restart mongod
+```
+* Muốn chắc chắn, kiểm tra:
+
+```bash
+pid=$(pgrep -xo mongod)
+cat /proc/$pid/limits | egrep 'Max open files|Max processes|Max locked memory'
+```
 
 * **Minh hoạ**:
 
