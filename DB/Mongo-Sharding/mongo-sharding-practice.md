@@ -148,7 +148,7 @@ Bài hướng dẫn này sẽ giúp bạn dựng một cụm MongoDB sharding ho
 ```mermaid
 flowchart TD
     A["Bắt đầu thiết lập môi trường"] --> B["Cấu hình /etc/hosts"]
-    B --> B1["Thiết lập IP addresses:<br/>mongo-cfg-1: 192.168.0.38<br/>mongo-cfg-2: 192.168.0.241<br/>mongo-cfg-3: 192.168.0.215"]
+    B --> B1["Thiết lập IP addresses:<br/>mongo-1: 192.168.0.38<br/>mongo-2: 192.168.0.241<br/>mongo-3: 192.168.0.215"]
     B1 --> C["Đặt hostname duy nhất"]
     C --> D["Tắt Transparent Huge Pages"]
     D --> E["Cấu hình tham số sysctl"]
@@ -175,8 +175,8 @@ flowchart TD
 
 #### **1. Cấu hình File `/etc/hosts`**
 
-*   **Mục đích cốt lõi:** Việc sử dụng các hostname dễ nhớ (ví dụ: `mongo-cfg-1`) thay vì địa chỉ IP trực tiếp (ví dụ: `192.168.0.38`) mang lại nhiều lợi ích quan trọng, đặc biệt trong một môi trường phân tán như MongoDB sharded cluster:
-    *   **Dễ đọc và quản lý:** Cấu hình trở nên trực quan hơn rất nhiều. Sẽ dễ dàng hơn để nhớ và tham chiếu đến `mongo-cfg-1` trong các file cấu hình hoặc khi gõ lệnh, thay vì một dãy số IP.
+*   **Mục đích cốt lõi:** Việc sử dụng các hostname dễ nhớ (ví dụ: `mongo-1`) thay vì địa chỉ IP trực tiếp (ví dụ: `192.168.0.38`) mang lại nhiều lợi ích quan trọng, đặc biệt trong một môi trường phân tán như MongoDB sharded cluster:
+    *   **Dễ đọc và quản lý:** Cấu hình trở nên trực quan hơn rất nhiều. Sẽ dễ dàng hơn để nhớ và tham chiếu đến `mongo-1` trong các file cấu hình hoặc khi gõ lệnh, thay vì một dãy số IP.
     *   **Tính nhất quán trong giao tiếp:** Trong các hệ thống phân tán, các thành phần thường xuyên cần giao tiếp với nhau bằng cách gọi tên. Nếu các node MongoDB trong cluster sử dụng hostname, chúng có thể tự nhận diện và tìm thấy nhau một cách đáng tin cậy.
     *   **Giảm thiểu lỗi cấu hình:** Khi địa chỉ IP thay đổi (mặc dù không mong muốn trong production, nhưng có thể xảy ra trong môi trường lab hoặc phát triển), bạn chỉ cần cập nhật một lần trong file `/etc/hosts` thay vì phải tìm kiếm và sửa đổi nhiều file cấu hình của MongoDB.
     *   **Tránh "name resolution lộn xộn":** Nếu mỗi máy có một ánh xạ IP-hostname khác nhau hoặc không đầy đủ, các node sẽ không thể xác định chính xác các node khác trong cluster. Điều này dẫn đến các lỗi khó gỡ rối như "node không tìm thấy", "replica set không thể bầu chọn primary", hoặc "mongos không thể kết nối đến config server", gây mất ổn định toàn bộ cluster.
@@ -184,7 +184,7 @@ flowchart TD
 *   **Hostname của hệ thống:** Bên cạnh việc ánh xạ IP sang hostname trong `/etc/hosts`, mỗi máy chủ cũng cần có một hostname *duy nhất* của riêng nó. Hostname này là cách mà hệ điều hành và các ứng dụng (bao gồm MongoDB) tự nhận diện mình trong mạng. Trong một replica set hoặc sharded cluster, mỗi thành viên phải có một định danh duy nhất để tránh xung đột và cho phép các thuật toán bầu chọn hoạt động chính xác.
 
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 1:**
--   **Hosts file không đồng nhất giữa các máy:** Đây là lỗi phổ biến nhất. Nếu `mongo-cfg-1` biết `mongo-cfg-2` là `192.168.0.241`, nhưng `mongo-cfg-2` lại nghĩ `mongo-cfg-1` là một IP khác hoặc không tìm thấy, chúng sẽ không thể thiết lập kết nối nội bộ. Kết quả là "name resolution lộn xộn" và cluster không thể khởi tạo hoặc hoạt động đúng.
+-   **Hosts file không đồng nhất giữa các máy:** Đây là lỗi phổ biến nhất. Nếu `mongo-1` biết `mongo-2` là `192.168.0.241`, nhưng `mongo-2` lại nghĩ `mongo-1` là một IP khác hoặc không tìm thấy, chúng sẽ không thể thiết lập kết nối nội bộ. Kết quả là "name resolution lộn xộn" và cluster không thể khởi tạo hoặc hoạt động đúng.
 -   **Hostname trùng/đổi hostname nhưng không reboot:** Khi bạn đặt một hostname mới cho máy bằng `hostnamectl`, một số ứng dụng hoặc dịch vụ (bao gồm MongoDB) có thể không nhận ra sự thay đổi ngay lập tức mà vẫn sử dụng hostname cũ cho đến khi chúng được khởi động lại hoặc hệ thống được reboot. Nếu hai máy trong cluster vô tình có cùng một hostname (hoặc một máy vẫn sử dụng hostname cũ trùng với máy khác), MongoDB sẽ bị nhầm lẫn và không thể quản lý các thành viên của replica set.
 -   **Quên kiểm tra `/etc/hosts` trên TẤT CẢ máy:** Việc chỉ kiểm tra trên một hoặc hai máy có thể dẫn đến một máy bị cô lập, không thể resolve được các máy khác, gây ra lỗi kết nối và sự cố trong cluster.
 
@@ -193,14 +193,14 @@ flowchart TD
     2.  **Thêm các dòng ánh xạ:** Thêm danh sách các cặp IP-hostname cho *tất cả các node* trong cluster vào cuối file. **Điểm mấu chốt là nội dung của file `/etc/hosts` trên CẢ 3 MÁY PHẢI GIỐNG HỆT NHAU.** Điều này đảm bảo mỗi node đều có một "bản đồ" mạng nhất quán và chính xác về tất cả các node khác.
         ```
         # --- Mongo Cluster ---
-        192.168.0.38   mongo-cfg-1
-        192.168.0.241  mongo-cfg-2
-        192.168.0.215  mongo-cfg-3
+        192.168.0.38   mongo-1
+        192.168.0.241  mongo-2
+        192.168.0.215  mongo-3
         ```
     3.  **Đặt hostname duy nhất cho từng máy:** Trên mỗi máy, bạn sẽ chạy lệnh `sudo hostnamectl set-hostname <tên-hostname>` tương ứng.
-        *   `sudo hostnamectl set-hostname mongo-cfg-1` (Trên máy có IP 192.168.0.38)
-        *   `sudo hostnamectl set-hostname mongo-cfg-2` (Trên máy có IP 192.168.0.241)
-        *   `sudo hostnamectl set-hostname mongo-cfg-3` (Trên máy có IP 192.168.0.215)
+        *   `sudo hostnamectl set-hostname mongo-1` (Trên máy có IP 192.168.0.38)
+        *   `sudo hostnamectl set-hostname mongo-2` (Trên máy có IP 192.168.0.241)
+        *   `sudo hostnamectl set-hostname mongo-3` (Trên máy có IP 192.168.0.215)
         Thao tác này đảm bảo rằng mỗi máy tự nhận diện mình với một cái tên riêng biệt và nhất quán với những gì đã định nghĩa trong `/etc/hosts`. Sau khi đặt hostname, tốt nhất nên khởi động lại hoặc ít nhất đăng xuất/đăng nhập lại để đảm bảo tất cả các dịch vụ nhận hostname mới.
 
 * **Minh hoạ:**
@@ -216,13 +216,13 @@ flowchart TD
         
         S1["Mở và Sửa file /etc/hosts"]
         S1 --> S2["Thêm ánh xạ IP <-> Hostname:<br/>(Nội dung file phải GIỐNG HỆT NHAU trên CẢ 3 MÁY)"];
-        S2 --> HostEntries{<br/># --- Mongo Cluster ---<br/>192.168.0.38 mongo-cfg-1<br/>192.168.0.241 mongo-cfg-2<br/>192.168.0.215 mongo-cfg-3<br/>}
+        S2 --> HostEntries{<br/># --- Mongo Cluster ---<br/>192.168.0.38 mongo-1<br/>192.168.0.241 mongo-2<br/>192.168.0.215 mongo-3<br/>}
     end
     
     subgraph "Trên TỪNG MÁY RIÊNG BIỆT"
-        M1["Máy 1 (192.168.0.38):<br/>sudo hostnamectl set-hostname mongo-cfg-1"]
-        M2["Máy 2 (192.168.0.241):<br/>sudo hostnamectl set-hostname mongo-cfg-2"]
-        M3["Máy 3 (192.168.0.215):<br/>sudo hostnamectl set-hostname mongo-cfg-3"]
+        M1["Máy 1 (192.168.0.38):<br/>sudo hostnamectl set-hostname mongo-1"]
+        M2["Máy 2 (192.168.0.241):<br/>sudo hostnamectl set-hostname mongo-2"]
+        M3["Máy 3 (192.168.0.215):<br/>sudo hostnamectl set-hostname mongo-3"]
     end
     
     B --> S1
@@ -549,7 +549,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph "Network Topology & Port Configuration"
-        subgraph "mongo-cfg-1 (192.168.0.38)"
+        subgraph "mongo-1 (192.168.0.38)"
             M1C[Config Server<br/>Port 27010]
             M1S1[Shard1 RS<br/>Port 27011]
             M1S2[Shard2 RS<br/>Port 27012] 
@@ -557,14 +557,14 @@ flowchart TD
             M1MOS[Mongos Router<br/>Port 27020]
         end
         
-        subgraph "mongo-cfg-2 (192.168.0.241)"
+        subgraph "mongo-2 (192.168.0.241)"
             M2C[Config Server<br/>Port 27010]
             M2S1[Shard1 RS<br/>Port 27011]
             M2S2[Shard2 RS<br/>Port 27012]
             M2S3[Shard3 RS<br/>Port 27013]
         end
         
-        subgraph "mongo-cfg-3 (192.168.0.215)"
+        subgraph "mongo-3 (192.168.0.215)"
             M3C[Config Server<br/>Port 27010]
             M3S1[Shard1 RS<br/>Port 27011]
             M3S2[Shard2 RS<br/>Port 27012]
@@ -616,7 +616,7 @@ flowchart TD
 - **Quên `chmod 400`** → MongoDB từ chối khởi động vì keyfile không an toàn
 - **Tạo thư mục bằng `root` rồi quên `chown mongod:mongod`** → "Permission denied"
 
-*   **Thực hiện đúng (Làm trên `mongo-cfg-1`, sau đó copy đi):**
+*   **Thực hiện đúng (Làm trên `mongo-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
         ```bash
         sudo mkdir -p /data
@@ -631,9 +631,9 @@ flowchart TD
 
         Trước tiên, hãy thử copy trực tiếp đến tài khoản `root` trên các máy đích:
         ```bash
-        # Trên máy mongo-cfg-1 (nơi có keyfile gốc)
-        scp /data/mongo-keyfile root@mongo-cfg-2:/data/
-        scp /data/mongo-keyfile root@mongo-cfg-3:/data/
+        # Trên máy mongo-1 (nơi có keyfile gốc)
+        scp /data/mongo-keyfile root@mongo-2:/data/
+        scp /data/mongo-keyfile root@mongo-3:/data/
         ```
 
         **💡 Xử lý tình huống: Không thể `scp` trực tiếp đến tài khoản `root`**
@@ -641,28 +641,28 @@ flowchart TD
         Trong nhiều môi trường production hoặc cài đặt bảo mật cao, việc đăng nhập trực tiếp bằng `root` qua SSH (bao gồm cả `scp` dưới quyền `root`) thường bị vô hiệu hóa. Khi cố gắng chạy các lệnh `scp` ở trên, bạn có thể nhận được các thông báo lỗi như:
         *   `Permission denied (publickey,password).`
         *   `Authentication failed.`
-        *   `ssh: connect to host mongo-cfg-2 port 22: Permission denied` (nếu SSH qua root bị chặn hoàn toàn)
+        *   `ssh: connect to host mongo-2 port 22: Permission denied` (nếu SSH qua root bị chặn hoàn toàn)
 
         Nếu gặp trường hợp này, bạn sẽ cần thực hiện các bước sau:
 
         *   **Bước 1: `scp` đến một tài khoản người dùng có quyền SSH trên máy đích.**
-            Giả sử bạn có một tài khoản người dùng thông thường (ví dụ: `youruser`) trên `mongo-cfg-2` và `mongo-cfg-3`, và tài khoản này có thể SSH vào. Bạn có thể copy keyfile đến thư mục `/home/youruser/` hoặc `/tmp/` của tài khoản đó.
+            Giả sử bạn có một tài khoản người dùng thông thường (ví dụ: `youruser`) trên `mongo-2` và `mongo-3`, và tài khoản này có thể SSH vào. Bạn có thể copy keyfile đến thư mục `/home/youruser/` hoặc `/tmp/` của tài khoản đó.
             
             **Quan trọng:** Đảm bảo tài khoản `youruser` có quyền ghi vào thư mục đích tạm thời này. Thông thường, thư mục `/home/youruser/` và `/tmp/` đều cho phép người dùng sở hữu ghi vào. Bạn có thể kiểm tra bằng lệnh `ls -ld /home/youruser` hoặc `ls -ld /tmp` sau khi SSH vào máy đích. Nếu cột quyền có ký tự `w` (write) cho `owner`, bạn có thể ghi vào đó.
 
             ```bash
-            # Trên máy mongo-cfg-1 (nơi có keyfile gốc)
+            # Trên máy mongo-1 (nơi có keyfile gốc)
             # Thay 'youruser' bằng tên user thực tế của bạn trên máy đích
-            scp /data/mongo-keyfile youruser@mongo-cfg-2:/home/youruser/mongo-keyfile
-            scp /data/mongo-keyfile youruser@mongo-cfg-3:/home/youruser/mongo-keyfile
+            scp /data/mongo-keyfile youruser@mongo-2:/home/youruser/mongo-keyfile
+            scp /data/mongo-keyfile youruser@mongo-3:/home/youruser/mongo-keyfile
             ```
 
         *   **Bước 2: SSH vào từng máy đích và di chuyển file, sau đó đặt lại quyền.**
-            Sau khi `scp` thành công, bạn cần đăng nhập vào từng máy đích (ví dụ: `mongo-cfg-2`) để di chuyển file `mongo-keyfile` về đúng vị trí `/data/` và đặt lại quyền.
+            Sau khi `scp` thành công, bạn cần đăng nhập vào từng máy đích (ví dụ: `mongo-2`) để di chuyển file `mongo-keyfile` về đúng vị trí `/data/` và đặt lại quyền.
 
             ```bash
-            # Trên máy mongo-cfg-2:
-            ssh youruser@mongo-cfg-2
+            # Trên máy mongo-2:
+            ssh youruser@mongo-2
             
             # Sau khi SSH thành công, chạy các lệnh sau (sử dụng sudo để có quyền root):
             sudo mv /home/youruser/mongo-keyfile /data/
@@ -671,11 +671,11 @@ flowchart TD
             exit # Thoát khỏi phiên SSH
             ```
 
-            Thực hiện tương tự cho `mongo-cfg-3`:
+            Thực hiện tương tự cho `mongo-3`:
 
             ```bash
-            # Trên máy mongo-cfg-3:
-            ssh youruser@mongo-cfg-3
+            # Trên máy mongo-3:
+            ssh youruser@mongo-3
             
             # Sau khi SSH thành công, chạy các lệnh sau:
             sudo mv /home/youruser/mongo-keyfile /data/
@@ -685,10 +685,10 @@ flowchart TD
             ```
 
         *   **Bước 3: Xác nhận quyền đã đúng trên TẤT CẢ các máy.**
-            Sau khi hoàn thành các bước trên cho cả 3 máy (`mongo-cfg-1`, `mongo-cfg-2`, `mongo-cfg-3`), hãy kiểm tra lại quyền của keyfile trên mỗi máy để đảm bảo mọi thứ chính xác:
+            Sau khi hoàn thành các bước trên cho cả 3 máy (`mongo-1`, `mongo-2`, `mongo-3`), hãy kiểm tra lại quyền của keyfile trên mỗi máy để đảm bảo mọi thứ chính xác:
 
             ```bash
-            # Chạy lệnh này trên từng máy: mongo-cfg-1, mongo-cfg-2, mongo-cfg-3
+            # Chạy lệnh này trên từng máy: mongo-1, mongo-2, mongo-3
             ls -l /data/mongo-keyfile
             
             # Kết quả mong muốn sẽ giống như sau (hãy chú ý cột quyền `-r--------` và chủ sở hữu `mongod mongod`):
@@ -703,9 +703,7 @@ flowchart TD
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
     sudo mkdir -p /data/config /data/shard1 /data/shard2 /data/shard3
-    sudo touch /data/config.log /data/shard1.log /data/shard2.log /data/shard3.log
     sudo chown -R mongod:mongod /data
-    sudo chmod 640 /data/*.log
     ```
 
 #### **4. Mở Firewall**
@@ -715,7 +713,7 @@ flowchart TD
     ```bash
     sudo firewall-cmd --add-port=27010-27020/tcp --permanent
     sudo firewall-cmd --reload
-    # Nếu không thấy port, kiểm tra zone: sudo firewall-cmd --get-active-zones
+    # Nếu không thấy port, kiểm tra firewall: sudo firewall-cmd --list-all
     ```
 
 ---
@@ -772,13 +770,33 @@ sequenceDiagram
     ```
 *   **Bẫy Người Mới:** Vội vàng bật `authorization: enabled`. Điều này sẽ chặn bạn khởi tạo replica set và tạo user admin đầu tiên (vấn đề "con gà quả trứng"). Quy trình đúng là giữ `keyFile` (xác thực nội bộ) nhưng tạm tắt `authorization` (xác thực client).
 
+    **Giải thích chi tiết về Bẫy Người Mới này:**
+
+    `keyFile` và `authorization: enabled` phục vụ hai mục đích bảo mật khác nhau:
+    *   **`keyFile` (Internal Authentication):** Đây là "mật khẩu chung" để các tiến trình MongoDB trong cluster (Config Server, Shard, Mongos) tin tưởng và giao tiếp an toàn với nhau. Khi `keyFile` được cấu hình, các node có thể tự nhận diện và xây dựng các Replica Set hoặc kết nối với nhau trong cluster. Nó hoạt động độc lập với việc xác thực người dùng cuối.
+    *   **`authorization: enabled` (Client Authentication):** Khi tham số này được bật, MongoDB sẽ yêu cầu BẤT KỲ kết nối từ bên ngoài (ví dụ: công cụ `mongosh` của bạn, ứng dụng client) phải cung cấp tên người dùng và mật khẩu hợp lệ trước khi được phép thực hiện các thao tác.
+
+    **Vấn đề "Con gà và Quả trứng" xảy ra khi bạn bật `authorization: enabled` quá sớm:**
+    1.  Ở giai đoạn này, bạn đang cố gắng khởi tạo một Config Server Replica Set lần đầu tiên bằng lệnh `rs.initiate()` thông qua `mongosh`.
+    2.  Nếu `authorization: enabled` đã được bật trong file cấu hình, thì ngay cả khi `mongosh` kết nối từ cùng một máy chủ (localhost), nó vẫn sẽ bị coi là một client "chưa được xác thực".
+    3.  MongoDB sẽ **từ chối** thực hiện lệnh `rs.initiate()` vì bạn không có quyền. Bạn sẽ thấy lỗi như `Not authorized to run command 'replSetInitiate'` hoặc tương tự.
+    4.  Điều trớ trêu là, để có quyền, bạn cần phải có một user admin. Nhưng user admin lại chỉ có thể được tạo *sau khi* Replica Set đã được khởi tạo thành công và có một node `PRIMARY` (nơi các thao tác ghi dữ liệu, bao gồm tạo user, có thể diễn ra).
+    5.  Bạn bị mắc kẹt: không thể khởi tạo Replica Set vì thiếu user, nhưng không thể tạo user vì Replica Set chưa được khởi tạo. Đây chính là vấn đề "con gà và quả trứng".
+
+    **Quy trình đúng đắn để tránh lỗi này:**
+    *   Tạm thời **COMMENT** hoặc SET `authorization: false` trong file cấu hình `mongod-config.conf` khi khởi động Config Server lần đầu.
+    *   Sau khi các Config Server đã khởi động, kết nối bằng `mongosh` (lúc này không cần xác thực) và chạy `rs.initiate()` để thiết lập Replica Set.
+    *   Đợi cho đến khi một node được bầu làm `PRIMARY`.
+    *   **Trên node `PRIMARY` đó**, tạo user admin đầu tiên bằng lệnh `db.createUser()`.
+    *   Sau khi user admin đã tồn tại, bạn mới nên **BỎ COMMENT** dòng `authorization: enabled` trong file cấu hình trên **TẤT CẢ** các Config Server và **khởi động lại an toàn** các tiến trình `mongod` để kích hoạt bảo mật. Từ lúc này, mọi kết nối từ client sẽ yêu cầu xác thực.
+
 #### **2. Khởi động Config Server**
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf --fork
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Theo dõi log để tìm "waiting for connections"
     ```
-*   **Lưu ý:** `--fork` phù hợp cho lab. Môi trường production nên tạo file unit systemd để quản lý dịch vụ chuyên nghiệp hơn.
+*   **Lưu ý:** ` &` phù hợp cho lab. Môi trường production nên tạo file unit systemd để quản lý dịch vụ chuyên nghiệp hơn.
 
 #### **3. Khởi tạo Replica Set và Tạo User Admin**
 
@@ -790,9 +808,9 @@ sequenceDiagram
         rs.initiate({
           _id: "Rep1", configsvr: true,
           members: [
-            { _id: 0, host: "mongo-cfg-1:27010" },
-            { _id: 1, host: "mongo-cfg-2:27010" },
-            { _id: 2, host: "mongo-cfg-3:27010" }
+            { _id: 0, host: "mongo-1:27010" },
+            { _id: 1, host: "mongo-2:27010" },
+            { _id: 2, host: "mongo-3:27010" }
           ]
         })
         ```
@@ -818,7 +836,7 @@ sequenceDiagram
     5.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
         ```javascript
         cfg = rs.conf()
-        cfg.members[0].priority = 3 // Node mongo-cfg-1 ưu tiên cao nhất
+        cfg.members[0].priority = 3 // Node mongo-1 ưu tiên cao nhất
         rs.reconfig(cfg)
         ```
     6.  Thoát khỏi mongosh: `exit`
@@ -831,7 +849,7 @@ sequenceDiagram
         ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
         sudo pkill -15 -f "mongod-config.conf"
-        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf --fork
+        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
@@ -850,27 +868,27 @@ graph TD
     end
     
     subgraph "Shard 1 - Port 27011"
-        S1A[mongo-cfg-1:27011]
-        S1B[mongo-cfg-2:27011]
-        S1C[mongo-cfg-3:27011]
+        S1A[mongo-1:27011]
+        S1B[mongo-2:27011]
+        S1C[mongo-3:27011]
         S1A --- S1B
         S1B --- S1C
         S1C --- S1A
     end
     
     subgraph "Shard 2 - Port 27012"
-        S2A[mongo-cfg-1:27012]
-        S2B[mongo-cfg-2:27012]
-        S2C[mongo-cfg-3:27012]
+        S2A[mongo-1:27012]
+        S2B[mongo-2:27012]
+        S2C[mongo-3:27012]
         S2A --- S2B
         S2B --- S2C
         S2C --- S2A
     end
     
     subgraph "Shard 3 - Port 27013"
-        S3A[mongo-cfg-1:27013]
-        S3B[mongo-cfg-2:27013]
-        S3C[mongo-cfg-3:27013]
+        S3A[mongo-1:27013]
+        S3B[mongo-2:27013]
+        S3C[mongo-3:27013]
         S3A --- S3B
         S3B --- S3C
         S3C --- S3A
@@ -909,9 +927,9 @@ graph TD
 
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     ```bash
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf --fork
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf --fork
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf --fork
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
     ```
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
@@ -925,16 +943,16 @@ graph TD
 
     ```bash
     # Shard01 - SỬA LỖI: dùng --eval thay vì -c
-    mongosh --host mongo-cfg-1 --port 27011 --eval \
-    'rs.initiate({_id:"shard01",members:[{_id:0,host:"mongo-cfg-1:27011"},{_id:1,host:"mongo-cfg-2:27011"},{_id:2,host:"mongo-cfg-3:27011"}]})'
+    mongosh --host mongo-1 --port 27011 --eval \
+    'rs.initiate({_id:"shard01",members:[{_id:0,host:"mongo-1:27011"},{_id:1,host:"mongo-2:27011"},{_id:2,host:"mongo-3:27011"}]})'
     
     # Shard02
-    mongosh --host mongo-cfg-1 --port 27012 --eval \
-    'rs.initiate({_id:"shard02",members:[{_id:0,host:"mongo-cfg-1:27012"},{_id:1,host:"mongo-cfg-2:27012"},{_id:2,host:"mongo-cfg-3:27012"}]})'
+    mongosh --host mongo-1 --port 27012 --eval \
+    'rs.initiate({_id:"shard02",members:[{_id:0,host:"mongo-1:27012"},{_id:1,host:"mongo-2:27012"},{_id:2,host:"mongo-3:27012"}]})'
     
     # Shard03
-    mongosh --host mongo-cfg-1 --port 27013 --eval \
-    'rs.initiate({_id:"shard03",members:[{_id:0,host:"mongo-cfg-1:27013"},{_id:1,host:"mongo-cfg-2:27013"},{_id:2,host:"mongo-cfg-3:27013"}]})'
+    mongosh --host mongo-1 --port 27013 --eval \
+    'rs.initiate({_id:"shard03",members:[{_id:0,host:"mongo-1:27013"},{_id:1,host:"mongo-2:27013"},{_id:2,host:"mongo-3:27013"}]})'
     ```
 
 ---
@@ -957,7 +975,7 @@ flowchart TD
     style J fill:#e8f5e8
     
     subgraph "Mongos Configuration"
-        M1["Port: 27020<br/>ConfigDB: Rep1/mongo-cfg-1:27010,mongo-cfg-2:27010,mongo-cfg-3:27010"]
+        M1["Port: 27020<br/>ConfigDB: Rep1/mongo-1:27010,mongo-2:27010,mongo-3:27010"]
     end
     
     B --> M1
@@ -977,7 +995,7 @@ flowchart TD
     security:
       keyFile: /data/mongo-keyfile
     sharding:
-      configDB: Rep1/mongo-cfg-1:27010,mongo-cfg-2:27010,mongo-cfg-3:27010
+      configDB: Rep1/mongo-1:27010,mongo-2:27010,mongo-3:27010
     processManagement:
       pidFilePath: /data/mongos.pid
     ```
@@ -985,7 +1003,7 @@ flowchart TD
 #### **2. Khởi động Mongos**
 
 ```bash
-sudo -u mongod /usr/bin/mongos --config /etc/mongos.conf --fork
+sudo -u mongod /usr/bin/mongos --config /etc/mongos.conf &
 tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config replica set"
 ```
 
@@ -1004,9 +1022,9 @@ tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config 
     Bên trong mongosh:
     ```javascript
     // Dùng định dạng replica set / seed list, hiệu quả hơn
-    sh.addShard("shard01/mongo-cfg-1:27011,mongo-cfg-2:27011,mongo-cfg-3:27011")
-    sh.addShard("shard02/mongo-cfg-1:27012,mongo-cfg-2:27012,mongo-cfg-3:27012")
-    sh.addShard("shard03/mongo-cfg-1:27013,mongo-cfg-2:27013,mongo-cfg-3:27013")
+    sh.addShard("shard01/mongo-1:27011,mongo-2:27011,mongo-3:27011")
+    sh.addShard("shard02/mongo-1:27012,mongo-2:27012,mongo-3:27012")
+    sh.addShard("shard03/mongo-1:27013,mongo-2:27013,mongo-3:27013")
     ```
 
 #### **4. Kích hoạt Sharding và Test**
@@ -1072,7 +1090,7 @@ flowchart LR
     *   **Backup:** Thường xuyên sao lưu `config server` vì nó chứa toàn bộ metadata của cluster.
     *   **Giám sát:** Sử dụng các công cụ như MongoDB Atlas, Ops Manager, hoặc Prometheus để theo dõi sức khỏe hệ thống.
     *   **Mở rộng:** Có thể thêm các instance `mongos` trên các máy khác để cân bằng tải truy vấn.
-    *   **systemd Unit:** Khuyến nghị tạo unit file cho `mongod`/`mongos` thay vì dùng `--fork` trong production.
+    *   **systemd Unit:** Khuyến nghị tạo unit file cho `mongod`/`mongos` thay vì dùng ` &` trong production.
 
 💡 **Mẫu systemd Unit cho Production:**
 ```ini
@@ -1389,10 +1407,10 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
     # Lấy cấu hình hiện tại
     cfg = rs.conf()
     
-    # Giả sử mongo-cfg-1 là máy mạnh nhất
-    cfg.members[0].priority = 3 // host: "mongo-cfg-1:27011"
-    cfg.members[1].priority = 2 // host: "mongo-cfg-2:27011"
-    cfg.members[2].priority = 1 // host: "mongo-cfg-3:27011"
+    # Giả sử mongo-1 là máy mạnh nhất
+    cfg.members[0].priority = 3 // host: "mongo-1:27011"
+    cfg.members[1].priority = 2 // host: "mongo-2:27011"
+    cfg.members[2].priority = 1 // host: "mongo-3:27011"
     
     # Áp dụng lại cấu hình
     rs.reconfig(cfg)
@@ -1404,7 +1422,7 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 *   **Thực hiện đúng:**
     ```javascript
     cfg = rs.conf()
-    // Giả sử muốn ẩn node mongo-cfg-3
+    // Giả sử muốn ẩn node mongo-3
     cfg.members[2].priority = 0
     cfg.members[2].hidden = true
     rs.reconfig(cfg)
@@ -1475,14 +1493,14 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Thực hiện đúng:**
     *   **Backup toàn bộ database `testDB` (chạy từ một máy client có cài mongo tools):**
         ```bash
-        mongodump --host=mongo-cfg-1 --port=27020 \
+        mongodump --host=mongo-1 --port=27020 \
                   -u mongodba --authenticationDatabase admin \
                   --db=testDB --out=/backup/testDB_`date +%F`
         # Sẽ prompt nhập password an toàn
         ```
     *   **Restore database `testDB`:**
         ```bash
-        mongorestore --host=mongo-cfg-1 --port=27020 \
+        mongorestore --host=mongo-1 --port=27020 \
                      -u mongodba --authenticationDatabase admin \
                      --db=testDB /backup/testDB_YYYY-MM-DD
         # Sẽ prompt nhập password an toàn
@@ -1496,7 +1514,7 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
     1.  **Luôn có một bản backup Oplog gần nhất:**
         ```bash
         # Lệnh này nên được chạy định kỳ (ví dụ mỗi giờ)
-        mongodump --host=mongo-cfg-1 --port=27011 \
+        mongodump --host=mongo-1 --port=27011 \
                   -d local -c oplog.rs --out /backup/oplogs
         ```    2.  **Khi có sự cố (ví dụ: xóa nhầm lúc 10:30:00 AM):**
         *   Tìm `timestamp` của thời điểm ngay trước khi xóa trong bản backup oplog.
@@ -1516,12 +1534,12 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Công cụ dòng lệnh:**
     *   `mongostat`: Cung cấp cái nhìn tổng quan theo thời gian thực về các hoạt động (inserts, queries, updates, deletes...), lỗi, và hàng đợi.
         ```bash
-        mongostat --host mongo-cfg-1 --port 27020 -u mongodba --authenticationDatabase admin
+        mongostat --host mongo-1 --port 27020 -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
         ```
     *   `mongotop`: Hiển thị thời gian đọc/ghi trên từng collection, giúp bạn biết collection nào đang hoạt động nhiều nhất.
         ```bash
-        mongotop --host mongo-cfg-1 --port 27020 -u mongodba --authenticationDatabase admin
+        mongotop --host mongo-1 --port 27020 -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
         ```
 *   **Database Profiler (Tìm truy vấn chậm):**
