@@ -616,7 +616,6 @@ flowchart TD
 - **Quên `chmod 400`** → MongoDB từ chối khởi động vì keyfile không an toàn
 - **Tạo thư mục bằng `root` rồi quên `chown mongod:mongod`** → "Permission denied"
 
-💡 **MẸO:** Keyfile phù hợp cho lab. Production nên dùng chứng chỉ x.509.
 *   **Thực hiện đúng (Làm trên `mongo-cfg-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
         ```bash
@@ -629,12 +628,74 @@ flowchart TD
         sudo chmod 400 /data/mongo-keyfile
         ```
     3.  Copy keyfile sang 2 máy còn lại và **set lại quyền trên từng máy đó**:
+
+        Trước tiên, hãy thử copy trực tiếp đến tài khoản `root` trên các máy đích:
         ```bash
+        # Trên máy mongo-cfg-1 (nơi có keyfile gốc)
         scp /data/mongo-keyfile root@mongo-cfg-2:/data/
         scp /data/mongo-keyfile root@mongo-cfg-3:/data/
-        # Trên mongo-cfg-2 và mongo-cfg-3, chạy lại chown và chmod
         ```
-    4.  **Lưu ý Production:** Keyfile phù hợp cho môi trường lab. Trong môi trường production, hãy sử dụng chứng chỉ x.509 để bảo mật cao hơn.
+
+        **💡 Xử lý tình huống: Không thể `scp` trực tiếp đến tài khoản `root`**
+
+        Trong nhiều môi trường production hoặc cài đặt bảo mật cao, việc đăng nhập trực tiếp bằng `root` qua SSH (bao gồm cả `scp` dưới quyền `root`) thường bị vô hiệu hóa. Khi cố gắng chạy các lệnh `scp` ở trên, bạn có thể nhận được các thông báo lỗi như:
+        *   `Permission denied (publickey,password).`
+        *   `Authentication failed.`
+        *   `ssh: connect to host mongo-cfg-2 port 22: Permission denied` (nếu SSH qua root bị chặn hoàn toàn)
+
+        Nếu gặp trường hợp này, bạn sẽ cần thực hiện các bước sau:
+
+        *   **Bước 1: `scp` đến một tài khoản người dùng có quyền SSH trên máy đích.**
+            Giả sử bạn có một tài khoản người dùng thông thường (ví dụ: `youruser`) trên `mongo-cfg-2` và `mongo-cfg-3`, và tài khoản này có thể SSH vào. Bạn có thể copy keyfile đến thư mục `/home/youruser/` hoặc `/tmp/` của tài khoản đó.
+            
+            **Quan trọng:** Đảm bảo tài khoản `youruser` có quyền ghi vào thư mục đích tạm thời này. Thông thường, thư mục `/home/youruser/` và `/tmp/` đều cho phép người dùng sở hữu ghi vào. Bạn có thể kiểm tra bằng lệnh `ls -ld /home/youruser` hoặc `ls -ld /tmp` sau khi SSH vào máy đích. Nếu cột quyền có ký tự `w` (write) cho `owner`, bạn có thể ghi vào đó.
+
+            ```bash
+            # Trên máy mongo-cfg-1 (nơi có keyfile gốc)
+            # Thay 'youruser' bằng tên user thực tế của bạn trên máy đích
+            scp /data/mongo-keyfile youruser@mongo-cfg-2:/home/youruser/mongo-keyfile
+            scp /data/mongo-keyfile youruser@mongo-cfg-3:/home/youruser/mongo-keyfile
+            ```
+
+        *   **Bước 2: SSH vào từng máy đích và di chuyển file, sau đó đặt lại quyền.**
+            Sau khi `scp` thành công, bạn cần đăng nhập vào từng máy đích (ví dụ: `mongo-cfg-2`) để di chuyển file `mongo-keyfile` về đúng vị trí `/data/` và đặt lại quyền.
+
+            ```bash
+            # Trên máy mongo-cfg-2:
+            ssh youruser@mongo-cfg-2
+            
+            # Sau khi SSH thành công, chạy các lệnh sau (sử dụng sudo để có quyền root):
+            sudo mv /home/youruser/mongo-keyfile /data/
+            sudo chown mongod:mongod /data/mongo-keyfile
+            sudo chmod 400 /data/mongo-keyfile
+            exit # Thoát khỏi phiên SSH
+            ```
+
+            Thực hiện tương tự cho `mongo-cfg-3`:
+
+            ```bash
+            # Trên máy mongo-cfg-3:
+            ssh youruser@mongo-cfg-3
+            
+            # Sau khi SSH thành công, chạy các lệnh sau:
+            sudo mv /home/youruser/mongo-keyfile /data/
+            sudo chown mongod:mongod /data/mongo-keyfile
+            sudo chmod 400 /data/mongo-keyfile
+            exit # Thoát khỏi phiên SSH
+            ```
+
+        *   **Bước 3: Xác nhận quyền đã đúng trên TẤT CẢ các máy.**
+            Sau khi hoàn thành các bước trên cho cả 3 máy (`mongo-cfg-1`, `mongo-cfg-2`, `mongo-cfg-3`), hãy kiểm tra lại quyền của keyfile trên mỗi máy để đảm bảo mọi thứ chính xác:
+
+            ```bash
+            # Chạy lệnh này trên từng máy: mongo-cfg-1, mongo-cfg-2, mongo-cfg-3
+            ls -l /data/mongo-keyfile
+            
+            # Kết quả mong muốn sẽ giống như sau (hãy chú ý cột quyền `-r--------` và chủ sở hữu `mongod mongod`):
+            
+            -r--------. 1 mongod mongod 1024 Aug 30 08:30 /data/mongo-keyfile
+            ```
+
 
 #### **3. Tạo Thư mục Dữ liệu và Log**
 
