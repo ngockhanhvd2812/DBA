@@ -13,6 +13,7 @@
       - [**2. Khởi động Config Server**](#2-khởi-động-config-server)
       - [**3. Khởi tạo Replica Set và Tạo User Admin**](#3-khởi-tạo-replica-set-và-tạo-user-admin)
       - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại)
+      - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại-1)
     - [**Giai đoạn 4: Dựng các Cụm Shard**](#giai-đoạn-4-dựng-các-cụm-shard)
       - [**1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**](#1-tạo-file-cấu-hình-trên-cả-3-máy-1)
       - [**2. Khởi động và Khởi tạo Replica Set cho từng Shard**](#2-khởi-động-và-khởi-tạo-replica-set-cho-từng-shard)
@@ -752,16 +753,25 @@ sequenceDiagram
     ```yaml
     systemLog:
       destination: file
-      path: /data/config.log
       logAppend: true
-      logRotate: reopen
+      path: /data/config.log
+     
     storage:
       dbPath: /data/config
+    #  journal:
+    #    enabled: true
+     
+    processManagement:
+    #  fork: true  # fork and run in background
+      pidFilePath: /data/mongod-config.pid  # location of pidfile
+      timeZoneInfo: /usr/share/zoneinfo
+     
     net:
       port: 27010
-      bindIp: 0.0.0.0
+      bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+    
     security:
-      keyFile: /data/mongo-keyfile
+      keyFile: /data/mongo-keyfile 
       # authorization: enabled  # <-- TẠM THỜI COMMENT ĐỂ BOOTSTRAP
     replication:
        replSetName: "Rep1"
@@ -802,7 +812,7 @@ sequenceDiagram
 
 *   **Bẫy người mới:** Tạo user trước khi `initiate`; bối rối vì prompt mặc định là `test>`.
 *   **Thực hiện đúng (Chỉ làm trên 1 máy):**
-    1.  Kết nối: `mongosh --port 27010`
+    1.  Kết nối: `mongosh localhost:27010`
     2.  Khởi tạo replica set:
         ```javascript
         rs.initiate({
@@ -821,25 +831,18 @@ sequenceDiagram
         ```
     4.  **Khi đã có PRIMARY**, tạo ngay user admin đầu tiên:
         
-⚠️ **BẪY BẢO MẬT QUAN TRỌNG:**
-- **Dùng mật khẩu text trong script** → rò rỉ qua shell history
-- **LUÔN dùng `passwordPrompt()` thay vì hard-code mật khẩu**
 
-        ```javascript
-        use admin
-        db.createUser({
-          user: "mongodba", 
-          pwd: passwordPrompt(), // <-- Nhập an toàn thay vì hard-code
-          roles: [{role: "root", db: "admin"}]
-        })
-        ```
-    5.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
+```bash
+use admin
+db.createUser({user: "mongodba", pwd: "Vnpt512478##", roles:[{role: "root", db: "admin"}]})
+```
+    1.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
         ```javascript
         cfg = rs.conf()
         cfg.members[0].priority = 3 // Node mongo-1 ưu tiên cao nhất
         rs.reconfig(cfg)
         ```
-    6.  Thoát khỏi mongosh: `exit`
+    2.  Thoát khỏi mongosh: `exit`
 
 #### **4. Bật Xác thực và Khởi động lại**
 
@@ -854,6 +857,91 @@ sequenceDiagram
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
         (Sẽ prompt nhập password an toàn)
+
+---
+**💡 XỬ LÝ LỖI PHỔ BIẾN: LỠ BẬT `authorization: enabled` QUÁ SỚM HOẶC QUÊN TẠO USER ADMIN NGAY LẬP TỨC**
+
+Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file cấu hình `/etc/mongod-config.conf` (hoặc khởi động lại Config Server với `authorization` bật) **trước khi tạo user admin** (`mongodba`), bạn sẽ gặp lỗi `MongoServerError[Unauthorized]` khi cố gắng thực hiện bất kỳ lệnh quản trị nào (ví dụ: `rs.initiate()`, `rs.conf()`, `db.createUser()`).
+
+**Cách khắc phục tình huống này để tiếp tục thiết lập Config Server:**
+
+**Mục tiêu:** Tạm thời tắt `authorization` để có thể kết nối `mongosh` mà không cần xác thực, từ đó tạo được user admin, sau đó mới bật lại bảo mật.
+
+**Thực hiện các bước sau trên CẢ 3 MÁY CONFIG SERVER (`mongo-1`, `mongo-2`, `mongo-3`):**
+
+1.  **Dừng tiến trình `mongod` của Config Server đang chạy:**
+    ```bash
+    sudo pkill -15 -f "mongod --config /etc/mongod-config.conf"
+    sleep 5 # Chờ 5 giây để tiến trình dừng hẳn
+    ```
+    *   **Giải thích:** Bước này đảm bảo tiến trình MongoDB đang chạy với cấu hình `authorization` bật bị tắt hoàn toàn.
+
+2.  **Sửa file cấu hình `/etc/mongod-config.conf` để tắt `authorization` tạm thời:**
+    ```bash
+    sudo vi /etc/mongod-config.conf
+    ```
+    Tìm dòng `authorization: enabled` và **COMMENT** nó lại bằng cách thêm dấu `#` vào đầu dòng:
+    ```yaml
+    security:
+      keyFile: /data/mongo-keyfile
+      # authorization: enabled  # <-- Đảm bảo dòng này có dấu # ở đầu
+    ```    Lưu và đóng file (`:wq`).
+    *   **Giải thích:** Việc này cho phép MongoDB khởi động mà không yêu cầu xác thực người dùng từ client.
+
+3.  **Khởi động lại tiến trình `mongod` của Config Server:**
+    ```bash
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+    tail -f /data/config.log # Kiểm tra log để đảm bảo không có lỗi xác thực
+    ```
+    *   **Giải thích:** Tiến trình `mongod` giờ sẽ khởi động với `authorization` đã tắt.
+
+**Sau khi hoàn thành 3 bước khắc phục trên cả 3 máy, bạn đã có thể tiếp tục với các bước thiết lập Config Server:**
+
+*   **Nếu bạn chưa từng chạy `rs.initiate()` thành công (ví dụ: bị lỗi `Unauthorized` ngay từ đầu):**
+    Quay lại **mục "3. Khởi tạo Replica Set và Tạo User Admin"** ở trên và thực hiện lại **từ bước 1 ("Kết nối: `mongosh localhost:27010`")**. Lần này, mọi lệnh sẽ chạy thành công vì `authorization` đã tắt.
+
+*   **Nếu bạn đã chạy `rs.initiate({})` nhưng quên thêm các member hoặc quên tạo user admin:**
+    Bạn có thể sử dụng `rs.reconfig()` để thêm các thành viên còn lại và sau đó tạo user admin (như đã hướng dẫn trong phần "Bẫy Người Mới" của mục này).
+
+    *   **Kết nối `mongosh` trên máy PRIMARY (ví dụ `mongo-1`):**
+        ```bash
+        mongosh --port 27010
+        ```
+    *   **Lấy cấu hình hiện tại và thêm các thành viên khác:**
+        ```javascript
+        cfg = rs.conf()
+        cfg.members = [
+          { _id: 0, host: "mongo-1:27010" },
+          { _id: 1, host: "mongo-2:27010" },
+          { _id: 2, host: "mongo-3:27010" }
+        ];
+        cfg.configsvr = true;
+        rs.reconfig(cfg, { force: true });
+        ```
+    *   **Chờ PRIMARY và tạo user admin:**
+        ```javascript
+        while (!db.hello().isWritablePrimary) { sleep(1000); print("...waiting for PRIMARY"); }
+        use admin
+        db.createUser({user: "mongodba", pwd: passwordPrompt(), roles:[{role: "root", db: "admin"}]})
+        exit
+        ```
+
+---
+
+#### **4. Bật Xác thực và Khởi động lại**
+
+*   **Thực hiện (Trên CẢ 3 MÁY):**
+    1.  Sửa file `/etc/mongod-config.conf`, **bỏ comment** dòng `authorization: enabled`.
+    2.  Khởi động lại tiến trình một cách an toàn:
+        ```bash
+        # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
+        sudo pkill -15 -f "mongod --config /etc/mongod-config.conf"
+        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+        ```
+    3.  Kiểm tra đăng nhập bằng tài khoản admin:
+        `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
+        (Sẽ prompt nhập password an toàn)
+
 
 ---
 
