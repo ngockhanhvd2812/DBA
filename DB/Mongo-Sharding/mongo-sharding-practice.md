@@ -59,6 +59,295 @@
 
 # **Hướng Dẫn Cài Đặt MongoDB Sharded Cluster**
 
+## **Mục Lục Lý Thuyết và Thực Hành**
+
+### **Phần I: Lý Thuyết Nền Tảng MongoDB Sharding**
+- [**Chương 1: Kiến Trúc MongoDB Sharded Cluster**](#chương-1-kiến-trúc-mongodb-sharded-cluster)
+- [**Chương 2: Nguyên Lý Phân Tán Dữ Liệu (Data Distribution)**](#chương-2-nguyên-lý-phân-tán-dữ-liệu-data-distribution)
+- [**Chương 3: Cơ Chế Replica Set và High Availability**](#chương-3-cơ-chế-replica-set-và-high-availability)
+- [**Chương 4: Security Authentication và Authorization Flow**](#chương-4-security-authentication-và-authorization-flow)
+- [**Chương 5: Backup Strategy và Disaster Recovery**](#chương-5-backup-strategy-và-disaster-recovery)
+
+### **Phần II: Thực Hành Triển Khai**
+
+---
+
+## **Phần I: Lý Thuyết Nền Tảng MongoDB Sharding**
+
+### **Chương 1: Kiến Trúc MongoDB Sharded Cluster**
+
+```mermaid
+flowchart TD
+    subgraph "Conceptual Architecture"
+        APP[Client Applications] --> ROUTER[Query Router<br/>Mongos]
+        ROUTER --> METADATA[Metadata Storage<br/>Config Servers]
+        ROUTER --> SHARDS[Data Storage<br/>Shards]
+        
+        subgraph "High-Level Components"
+            METADATA --> CS[Config Server<br/>Replica Set]
+            SHARDS --> S1[Shard 1<br/>Replica Set]
+            SHARDS --> S2[Shard 2<br/>Replica Set]
+            SHARDS --> S3[Shard N<br/>Replica Set]
+        end
+    end
+    
+    subgraph "Data Flow"
+        WRITE[Write Operation] --> ROUTER
+        READ[Read Operation] --> ROUTER
+        ROUTER --> |"Route based on<br/>Shard Key"| TARGET[Target Shard]
+        TARGET --> RESULT[Operation Result]
+        RESULT --> APP
+    end
+    
+    style APP fill:#e3f2fd
+    style ROUTER fill:#fff3e0
+    style METADATA fill:#f3e5f5
+    style SHARDS fill:#e8f5e8
+```
+
+**MongoDB Sharded Cluster** là một kiến trúc phân tán được thiết kế để giải quyết hai thách thức chính trong quản lý cơ sở dữ liệu quy mô lớn:
+
+1. **Horizontal Scaling (Mở rộng theo chiều ngang)**: Thay vì nâng cấp phần cứng của một máy chủ duy nhất (vertical scaling), sharding cho phép phân tán dữ liệu và tải truy vấn trên nhiều máy chủ.
+
+2. **High Availability (Tính sẵn sàng cao)**: Mỗi thành phần trong cluster đều được triển khai dưới dạng Replica Set, đảm bảo không có Single Point of Failure.
+
+#### **Các Thành Phần Cốt Lõi:**
+
+**1. Mongos (Query Router)**
+- Là điểm tiếp xúc duy nhất giữa ứng dụng và cluster
+- Không lưu trữ dữ liệu, chỉ định tuyến truy vấn
+- Phân tích Shard Key để xác định shard đích
+- Có thể triển khai nhiều instance để cân bằng tải
+
+**2. Config Servers**
+- Lưu trữ metadata của toàn bộ cluster
+- Quản lý thông tin về chunks, shards, và shard keys
+- Luôn triển khai dưới dạng Replica Set (tối thiểu 3 nodes)
+- Cực kỳ quan trọng - nếu mất Config Server, toàn bộ cluster sẽ không hoạt động
+
+**3. Shards**
+- Các máy chủ thực sự lưu trữ dữ liệu
+- Mỗi shard là một Replica Set độc lập
+- Dữ liệu được phân phối dựa trên Shard Key
+- Có thể thêm/bớt shard theo nhu cầu
+
+### **Chương 2: Nguyên Lý Phân Tán Dữ liệu (Data Distribution)**
+
+```mermaid
+flowchart TD
+    subgraph "Sharding Process"
+        DOC["New Document<br/>{_id: 'abc', userId: 12345, data: '...'}"] --> SK["Extract Shard Key<br/>userId: 12345"]
+        SK --> HASH["Calculate Hash/Range<br/>hash(12345) = 0x7A2B..."]
+        HASH --> CHUNK["Determine Target Chunk<br/>Chunk_A: [0x7000... - 0x8000...]"]
+        CHUNK --> SHARD["Route to Shard<br/>Shard02"]
+        SHARD --> STORE["Store Document"]
+    end
+    
+    subgraph "Chunk Management"
+        SIZE["Monitor Chunk Size"] --> SPLIT{"Size > 64MB?"}
+        SPLIT -->|Yes| DIVIDE["Split Chunk"]
+        SPLIT -->|No| CONTINUE["Continue Monitoring"]
+        DIVIDE --> BALANCE["Trigger Balancer"]
+        BALANCE --> MIGRATE["Migrate Chunks"]
+    end
+    
+    style DOC fill:#e3f2fd
+    style SHARD fill:#e8f5e8
+    style SPLIT fill:#fff3e0
+```
+
+#### **Shard Key - Chìa Khóa Của Sharding**
+
+Shard Key là một hoặc nhiều trường trong document được sử dụng để quyết định document đó sẽ được lưu trữ trên shard nào. Đây là quyết định quan trọng nhất khi thiết kế sharded cluster.
+
+**Các Chiến Lược Shard Key:**
+
+1. **Hashed Sharding**
+   - MongoDB tính hash của shard key value
+   - Phân phối đều nhất, tránh hotspot
+   - Không hiệu quả cho range queries
+   - Thích hợp cho write-heavy workloads
+
+2. **Ranged Sharding**
+   - Phân chia dựa trên giá trị thực của shard key
+   - Hiệu quả cho range queries
+   - Có nguy cơ tạo hotspot nếu chọn key không phù hợp
+   - Thích hợp khi có query patterns rõ ràng
+
+**Chunk và Balancing:**
+- Dữ liệu được tổ chức thành các chunk (mặc định 64MB)
+- Balancer tự động di chuyển chunk giữa các shard
+- Quá trình migration diễn ra trong suốt, không ảnh hưởng availability
+
+### **Chương 3: Cơ Chế Replica Set và High Availability**
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant P as Primary
+    participant S1 as Secondary 1
+    participant S2 as Secondary 2
+    participant A as Arbiter
+    
+    Note over P,S2: Normal Operation
+    C->>P: Write Operation
+    P->>S1: Replicate via Oplog
+    P->>S2: Replicate via Oplog
+    P->>C: Acknowledge Write
+    
+    Note over P,S2: Primary Failure Scenario
+    P->>X: Primary Fails
+    S1->>S2: Election Request
+    S1->>A: Request Vote
+    S2->>S1: Vote Granted
+    A->>S1: Vote Granted
+    S1->>S1: Becomes New Primary
+    
+    Note over S1,S2: Service Resumed
+    C->>S1: Write Operation (to new primary)
+    S1->>S2: Continue Replication
+```
+
+#### **Replica Set Fundamentals**
+
+Mỗi shard trong MongoDB cluster đều được triển khai dưới dạng Replica Set để đảm bảo high availability và data durability.
+
+**Các Loại Node trong Replica Set:**
+
+1. **Primary Node**
+   - Nhận tất cả write operations
+   - Có thể phục vụ read operations
+   - Duy trì oplog (operations log)
+   - Tự động được bầu chọn qua election process
+
+2. **Secondary Nodes**
+   - Sao chép dữ liệu từ Primary via oplog
+   - Có thể phục vụ read operations (với read preference)
+   - Tham gia vào election process
+   - Có thể được cấu hình với different priorities
+
+3. **Arbiter Node** (Optional)
+   - Chỉ tham gia voting, không lưu trữ dữ liệu
+   - Giúp phá tie trong election với số node chẵn
+   - Tiết kiệm tài nguyên trong small deployments
+
+**Election Process:**
+- Heartbeat mechanism giữa các nodes
+- Automatic failover khi Primary không response
+- Majority voting để bầu Primary mới
+- Write concern và read concern để control consistency
+
+### **Chương 4: Security Authentication và Authorization Flow**
+
+```mermaid
+flowchart TD
+    subgraph "Client Authentication Flow"
+        CLIENT[Client Application] --> MONGOS[Mongos Router]
+        MONGOS --> |"1. Validate Credentials"| AUTHDB[(Authentication Database)]
+        AUTHDB --> |"2. Return User Info + Roles"| MONGOS
+        MONGOS --> |"3. Authorize Request"| OPERATION[Perform Operation]
+    end
+    
+    subgraph "Internal Cluster Authentication"
+        MONGOS2[Mongos] --> |"KeyFile/x.509"| CONFIG[Config Server]
+        CONFIG --> |"KeyFile/x.509"| SHARD1[Shard 1]
+        SHARD1 --> |"Replica Set Auth"| SHARD1_SEC[Shard 1 Secondary]
+    end
+    
+    subgraph "Authorization (RBAC)"
+        USER[User] --> ROLES[Assigned Roles]
+        ROLES --> PRIVILEGES[Role Privileges]
+        PRIVILEGES --> RESOURCES[Database/Collection]
+        RESOURCES --> ACTIONS[Allowed Actions]
+    end
+    
+    style CLIENT fill:#e3f2fd
+    style AUTHDB fill:#fff3e0
+    style ACTIONS fill:#e8f5e8
+```
+
+#### **Multi-Layer Security Architecture**
+
+MongoDB sharded cluster sử dụng mô hình bảo mật đa tầng:
+
+**1. Network Security**
+- Firewall configuration cho từng port
+- SSL/TLS encryption cho client connections
+- Inter-cluster communication encryption
+
+**2. Authentication (Xác thực)**
+- **Client Authentication**: SCRAM-SHA-256, x.509 certificates
+- **Internal Authentication**: Shared keyFile hoặc x.509 certificates
+- **Database Users**: Role-based access control
+
+**3. Authorization (Ủy quyền)**
+- **Built-in Roles**: read, readWrite, dbAdmin, userAdmin, etc.
+- **Custom Roles**: Fine-grained privileges
+- **Resource-specific Permissions**: Database/collection level control
+
+**4. Auditing** (Enterprise Only)
+- Comprehensive audit trail
+- Security event logging
+- Compliance reporting
+
+### **Chương 5: Backup Strategy và Disaster Recovery**
+
+```mermaid
+flowchart TD
+    subgraph "Backup Strategy"
+        PROD[Production Data] --> FULL["Full Backup<br/>Daily via mongodump"]
+        PROD --> OPLOG["Incremental Oplog<br/>Every 15 minutes"]
+        PROD --> SNAPSHOT["Storage Snapshots<br/>LVM/Cloud snapshots"]
+    end
+    
+    subgraph "Recovery Scenarios"
+        DISASTER["Complete Disaster"] --> FULL_RESTORE["Full Restore<br/>+ Latest Oplog Replay"]
+        CORRUPTION["Data Corruption"] --> PITR["Point-in-Time Recovery<br/>Oplog replay to timestamp"]
+        ACCIDENT["Accidental Deletion"] --> SELECTIVE["Selective Restore<br/>Specific collections"]
+    end
+    
+    subgraph "Recovery Validation"
+        RESTORE[Restored Data] --> VERIFY["Data Integrity Check"]
+        VERIFY --> INDEX["Rebuild Indexes"]
+        INDEX --> TEST["Application Testing"]
+        TEST --> PRODUCTION["Return to Production"]
+    end
+    
+    style PROD fill:#e3f2fd
+    style PITR fill:#fff3e0
+    style PRODUCTION fill:#e8f5e8
+```
+
+#### **Comprehensive Backup Strategy**
+
+**1. Full Backups**
+- Complete database snapshots using `mongodump`
+- Scheduled daily during low-traffic periods
+- Stored in multiple locations (local + remote)
+- Retention policy based on business requirements
+
+**2. Incremental Backups**
+- Oplog backup every 15-30 minutes
+- Enables point-in-time recovery
+- Smaller storage footprint
+- Faster backup process
+
+**3. Storage-Level Snapshots**
+- Filesystem or volume snapshots
+- Fastest backup and restore
+- Requires storage-level consistency
+- Ideal for large datasets
+
+**4. Cross-Region Replication**
+- Delayed replica sets for disaster recovery
+- Geographic distribution of data
+- Protection against regional disasters
+- Network-level redundancy
+
+---
+
+## **Kiến Trúc Triển Khai Cụ Thể**
+
 
 ```mermaid
 graph TB
@@ -434,6 +723,9 @@ flowchart TD
 ```bash
     # Giảm sử dụng swap tối đa (MongoDB không thích swap vì tăng latency)
     vm.swappiness = 1
+
+    # Tối ưu NUMA - Vô hiệu hóa zone reclaim mode để tránh độ trễ NUMA
+    vm.zone_reclaim_mode = 0
 
     # Mở rộng dải port ephemeral (outbound TCP connection) từ 1024 → 65530
     # Giúp hỗ trợ nhiều kết nối đồng thời khi có nhiều client/app
@@ -831,11 +1123,18 @@ sequenceDiagram
         ```
     4.  **Khi đã có PRIMARY**, tạo ngay user admin đầu tiên:
         
+⚠️ **BẪY BẢO MẬT QUAN TRỌNG:**
+- **Dùng mật khẩu text trong script** → rò rỉ qua shell history
+- **LUÔN dùng `passwordPrompt()` thay vì hard-code mật khẩu**
 
-```bash
-use admin
-db.createUser({user: "mongodba", pwd: "Vnpt512478##", roles:[{role: "root", db: "admin"}]})
-```
+        ```javascript
+        use admin
+        db.createUser({
+          user: "mongodba", 
+          pwd: passwordPrompt(), // <-- Nhập an toàn thay vì hard-code
+          roles: [{role: "root", db: "admin"}]
+        })
+        ```
     1.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
         ```javascript
         cfg = rs.conf()
@@ -1381,7 +1680,8 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 #### **1. Tạo User và Gán Role có sẵn**
 
 1.  **Kết nối với quyền admin:** (Như đã làm ở Giai đoạn 3)
-    `mongosh --port 27020 -u mongodba -p 'Vnpt512478##' --authenticationDatabase admin`
+    `mongosh --port 27020 -u mongodba --authenticationDatabase admin`
+    # Sẽ prompt nhập password an toàn
 2.  **Tạo user cho ứng dụng:**
     ```javascript
     use reporting // Chuyển sang DB mà user sẽ thao tác
@@ -1436,8 +1736,13 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 
 #### **3. Cấu hình Audit Log (Ghi lại hoạt động)**
 
+⚠️ **CẢNH BÁO MONGODB COMMUNITY EDITION:**
+- **Audit Log chỉ khả dụng trong MongoDB Enterprise/Atlas**
+- **MongoDB Community KHÔNG hỗ trợ cấu hình `auditLog`**
+- **Nếu đang dùng Community, bỏ qua phần này để tránh lỗi cấu hình**
+
 *   **Mục đích:** Ghi lại các sự kiện quan trọng (đăng nhập, thay đổi schema, tạo user...) ra một file log riêng để phục vụ cho việc điều tra an ninh.
-*   **Thực hiện đúng:**
+*   **Thực hiện đúng (CHỈ DÀNH CHO MONGODB ENTERPRISE/ATLAS):**
     1.  Tạo thư mục cho audit log trên **CẢ 3 MÁY**:
         ```bash
         sudo mkdir /data/audit
@@ -1449,7 +1754,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
           authorization: enabled
           keyFile: /data/mongo-keyfile
         
-        # --- Thêm đoạn này vào ---
+        # --- CHỈ THÊM ĐOẠN NÀY NẾU DÙNG ENTERPRISE/ATLAS ---
         auditLog:
           destination: file
           format: JSON
@@ -2170,3 +2475,522 @@ Hệ sinh thái MongoDB rất rộng lớn. Với những kiến thức này, b�
 *   **Bảo mật Chuyên sâu:** Triển khai xác thực qua chứng chỉ x.509, tích hợp với LDAP/Kerberos.
 
 Chúc mừng bạn một lần nữa vì đã hoàn thành một chặng đường rất dài và chuyên sâu. Chúc bạn thành công trên con đường làm chủ MongoDB
+
+---
+
+## **Phần III: Vận Hành Production và Best Practices**
+
+### **Giai đoạn 16: Production Readiness Checklist**
+
+```mermaid
+flowchart TD
+    A["🎯 Production Deployment"] --> B["🔒 Security Hardening"]
+    B --> C["📊 Monitoring Setup"]
+    C --> D["🔄 Backup Strategy"]
+    D --> E["⚖️ Performance Tuning"]
+    E --> F["🚨 Alerting Configuration"]
+    F --> G["📋 Documentation"]
+    G --> H["✅ Production Ready"]
+    
+    subgraph "Security Checklist"
+        S1["Replace KeyFile with x.509"]
+        S2["Enable SSL/TLS"]
+        S3["Configure Firewall Rules"]
+        S4["Implement Network Segmentation"]
+        S5["Setup Audit Logging"]
+        S6["Regular Security Updates"]
+    end
+    
+    subgraph "Monitoring Checklist"
+        M1["Deploy MongoDB Ops Manager"]
+        M2["Configure Prometheus/Grafana"]
+        M3["Setup Log Aggregation"]
+        M4["Configure Health Checks"]
+        M5["Implement Custom Metrics"]
+        M6["Setup Alert Fatigue Prevention"]
+    end
+    
+    B --> S1
+    C --> M1
+    
+    style A fill:#e3f2fd
+    style H fill:#e8f5e8
+    style S1 fill:#fff3e0
+    style M1 fill:#f3e5f5
+```
+
+#### **1. Security Hardening cho Production**
+
+**Thay thế KeyFile bằng x.509 Certificates:**
+
+```bash
+# Tạo CA certificate
+openssl genrsa -out ca-key.pem 4096
+openssl req -new -x509 -days 365 -key ca-key.pem -out ca.pem -subj "/CN=MongoDB-CA"
+
+# Tạo server certificates cho mỗi node
+for host in mongo-1 mongo-2 mongo-3; do
+    openssl genrsa -out ${host}-key.pem 4096
+    openssl req -new -key ${host}-key.pem -out ${host}.csr -subj "/CN=${host}"
+    openssl x509 -req -in ${host}.csr -CA ca.pem -CAkey ca-key.pem -CAcreateserial -out ${host}.pem -days 365
+    cat ${host}.pem ${host}-key.pem > ${host}-combined.pem
+done
+```
+
+**Cấu hình SSL/TLS trong MongoDB:**
+
+```yaml
+# Cập nhật mongod configuration
+net:
+  port: 27017
+  bindIp: 0.0.0.0
+  ssl:
+    mode: requireSSL
+    PEMKeyFile: /etc/mongodb/ssl/mongo-1-combined.pem
+    CAFile: /etc/mongodb/ssl/ca.pem
+    clusterFile: /etc/mongodb/ssl/mongo-1-combined.pem
+    allowConnectionsWithoutCertificates: false
+    allowInvalidHostnames: false
+
+security:
+  clusterAuthMode: x509
+  authorization: enabled
+```
+
+#### **2. Systemd Service Files cho Production**
+
+**Template cho MongoDB Services:**
+
+```ini
+# /etc/systemd/system/mongod-config.service
+[Unit]
+Description=MongoDB Config Server
+After=network.target disable-transparent-huge-pages.service
+Documentation=https://docs.mongodb.org/manual
+
+[Service]
+User=mongod
+Group=mongod
+Environment="OPTIONS=-f /etc/mongod-config.conf"
+ExecStart=/usr/bin/mongod $OPTIONS
+ExecStartPre=/usr/bin/mkdir -p /var/run/mongodb
+ExecStartPre=/usr/bin/chown mongod:mongod /var/run/mongodb
+ExecReload=/bin/kill -HUP $MAINPID
+Restart=on-failure
+RestartSec=10
+KillMode=mixed
+KillSignal=SIGTERM
+TimeoutStopSec=120
+LimitFSIZE=infinity
+LimitCPU=infinity
+LimitAS=infinity
+LimitNOFILE=64000
+LimitNPROC=64000
+LimitMEMLOCK=infinity
+TasksMax=infinity
+TasksAccounting=false
+
+[Install]
+WantedBy=multi-user.target
+```
+
+#### **3. Advanced Monitoring với Prometheus và Grafana**
+
+**MongoDB Exporter Configuration:**
+
+```yaml
+# docker-compose.yml for monitoring stack
+version: '3.8'
+services:
+  mongodb-exporter:
+    image: percona/mongodb_exporter:latest
+    ports:
+      - "9216:9216"
+    environment:
+      - MONGODB_URI=mongodb://monitor_user:password@mongo-1:27020,mongo-2:27020,mongo-3:27020/?authSource=admin
+    command:
+      - '--mongodb.uri=mongodb://monitor_user:password@mongo-1:27020,mongo-2:27020,mongo-3:27020/?authSource=admin'
+      - '--collect-all'
+      - '--compatible-mode'
+  
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+  
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin123
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage:
+```
+
+### **Giai đoạn 17: Advanced Operational Procedures**
+
+#### **1. Zero-Downtime Maintenance Procedures**
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Primary
+    participant Secondary1
+    participant Secondary2
+    participant LoadBalancer
+    
+    Note over Admin,LoadBalancer: Rolling Maintenance Strategy
+    
+    Admin->>LoadBalancer: Remove Secondary1 from rotation
+    Admin->>Secondary1: Stop mongod service
+    Admin->>Secondary1: Perform maintenance (OS update, etc)
+    Admin->>Secondary1: Start mongod service
+    Admin->>Secondary1: Verify replica set status
+    Admin->>LoadBalancer: Add Secondary1 back to rotation
+    
+    Note over Admin,LoadBalancer: Repeat for Secondary2
+    
+    Admin->>Primary: Trigger step-down
+    Primary->>Secondary1: Election process
+    Secondary1->>Secondary1: Becomes new Primary
+    Admin->>Primary: Perform maintenance on old Primary
+    Admin->>Primary: Restart as Secondary
+```
+
+**Script để thực hiện Rolling Maintenance:**
+
+```bash
+#!/bin/bash
+# rolling-maintenance.sh
+
+SERVERS=("mongo-1" "mongo-2" "mongo-3")
+PORTS=(27011 27012 27013)  # Shard ports
+
+for i in "${!SERVERS[@]}"; do
+    SERVER=${SERVERS[$i]}
+    PORT=${PORTS[$i]}
+    
+    echo "Starting maintenance on $SERVER:$PORT"
+    
+    # Check if this is primary
+    IS_PRIMARY=$(mongosh --host $SERVER --port $PORT --quiet --eval "db.hello().isWritablePrimary")
+    
+    if [ "$IS_PRIMARY" == "true" ]; then
+        echo "$SERVER is PRIMARY, triggering step-down"
+        mongosh --host $SERVER --port $PORT --eval "db.adminCommand({replSetStepDown: 60})"
+        sleep 70  # Wait for election to complete
+    fi
+    
+    echo "Stopping mongod on $SERVER"
+    ssh $SERVER "sudo systemctl stop mongod-shard1"
+    
+    echo "Performing maintenance on $SERVER"
+    ssh $SERVER "sudo yum update -y && sudo reboot"
+    
+    # Wait for server to come back online
+    echo "Waiting for $SERVER to come back online..."
+    while ! ping -c 1 $SERVER &> /dev/null; do
+        sleep 10
+    done
+    
+    sleep 60  # Additional wait for services to start
+    
+    echo "Verifying replica set status"
+    mongosh --host $SERVER --port $PORT --eval "rs.status()"
+    
+    echo "Maintenance completed on $SERVER"
+    echo "Waiting before next server..."
+    sleep 120
+done
+
+echo "Rolling maintenance completed for all servers"
+```
+
+#### **2. Disaster Recovery Procedures**
+
+**Complete Cluster Recovery từ Backup:**
+
+```bash
+#!/bin/bash
+# disaster-recovery.sh
+
+BACKUP_DIR="/backup/mongodb-disaster-recovery"
+TIMESTAMP=$(date +%Y%m%d_%H%M%S)
+RECOVERY_LOG="/var/log/mongodb-recovery-${TIMESTAMP}.log"
+
+log() {
+    echo "[$(date '+%Y-%m-%d %H:%M:%S')] $1" | tee -a $RECOVERY_LOG
+}
+
+log "Starting MongoDB Cluster Disaster Recovery"
+
+# Step 1: Stop all MongoDB processes
+log "Stopping all MongoDB processes"
+for server in mongo-1 mongo-2 mongo-3; do
+    ssh $server "sudo systemctl stop mongod-config mongod-shard1 mongod-shard2 mongod-shard3 mongos"
+done
+
+# Step 2: Restore Config Server
+log "Restoring Config Server data"
+mongorestore --host mongo-1:27010 --dir $BACKUP_DIR/config-server/ --drop
+
+# Step 3: Restore each Shard
+for shard in shard1 shard2 shard3; do
+    log "Restoring $shard data"
+    mongorestore --host mongo-1:2701${shard: -1} --dir $BACKUP_DIR/$shard/ --drop
+done
+
+# Step 4: Start services in correct order
+log "Starting Config Servers"
+for server in mongo-1 mongo-2 mongo-3; do
+    ssh $server "sudo systemctl start mongod-config"
+done
+
+log "Waiting for Config Server election"
+sleep 30
+
+log "Starting Shards"
+for server in mongo-1 mongo-2 mongo-3; do
+    ssh $server "sudo systemctl start mongod-shard1 mongod-shard2 mongod-shard3"
+done
+
+log "Waiting for Shard elections"
+sleep 60
+
+log "Starting Mongos"
+ssh mongo-1 "sudo systemctl start mongos"
+
+# Step 5: Verify cluster health
+log "Verifying cluster health"
+mongosh --port 27020 --eval "sh.status()" | tee -a $RECOVERY_LOG
+
+log "Disaster recovery completed. Check $RECOVERY_LOG for details."
+```
+
+### **Giai đoạn 18: Performance Optimization và Capacity Planning**
+
+#### **1. Advanced Performance Monitoring**
+
+```javascript
+// Comprehensive performance monitoring script
+// performance-monitor.js
+
+function collectPerformanceMetrics() {
+    var metrics = {
+        timestamp: new Date(),
+        serverStatus: db.serverStatus(),
+        replSetStatus: rs.status(),
+        currentOp: db.currentOp({"active": true}),
+        shardingStats: sh.status(),
+        indexStats: []
+    };
+    
+    // Collect index usage statistics
+    db.adminCommand("listCollections").cursor.firstBatch.forEach(function(collection) {
+        var collName = collection.name;
+        if (!collName.startsWith("system.")) {
+            try {
+                var indexStats = db[collName].aggregate([
+                    {$indexStats: {}}
+                ]).toArray();
+                metrics.indexStats.push({
+                    collection: collName,
+                    indexes: indexStats
+                });
+            } catch (e) {
+                // Skip collections that don't support indexStats
+            }
+        }
+    });
+    
+    return metrics;
+}
+
+// Usage: mongosh --port 27020 < performance-monitor.js
+var metrics = collectPerformanceMetrics();
+printjson(metrics);
+```
+
+#### **2. Capacity Planning Guidelines**
+
+**CPU Capacity Planning:**
+- Monitor CPU utilization during peak hours
+- Target 70% average utilization untuk normal operations
+- Scale out when sustained >80% utilization
+
+**Memory Capacity Planning:**
+```bash
+# Script to calculate optimal WiredTiger cache size
+#!/bin/bash
+
+TOTAL_RAM=$(free -g | awk 'NR==2{print $2}')
+OS_RESERVED=2  # GB reserved for OS
+OTHER_PROCESSES=1  # GB for other processes
+
+AVAILABLE_RAM=$((TOTAL_RAM - OS_RESERVED - OTHER_PROCESSES))
+WIREDTIGER_CACHE=$((AVAILABLE_RAM * 50 / 100))  # 50% of available RAM
+
+echo "Total RAM: ${TOTAL_RAM}GB"
+echo "Available for MongoDB: ${AVAILABLE_RAM}GB"
+echo "Recommended WiredTiger Cache: ${WIREDTIGER_CACHE}GB"
+echo ""
+echo "Add to mongod.conf:"
+echo "storage:"
+echo "  wiredTiger:"
+echo "    engineConfig:"
+echo "      cacheSizeGB: ${WIREDTIGER_CACHE}"
+```
+
+**Storage Capacity Planning:**
+```javascript
+// Storage growth analysis
+function analyzeStorageGrowth() {
+    var stats = db.stats();
+    var collections = [];
+    
+    db.adminCommand("listCollections").cursor.firstBatch.forEach(function(coll) {
+        if (!coll.name.startsWith("system.")) {
+            var collStats = db[coll.name].stats();
+            collections.push({
+                name: coll.name,
+                size: collStats.size,
+                storageSize: collStats.storageSize,
+                indexSize: collStats.totalIndexSize,
+                documents: collStats.count
+            });
+        }
+    });
+    
+    return {
+        database: db.getName(),
+        totalSize: stats.dataSize,
+        totalStorageSize: stats.storageSize,
+        totalIndexSize: stats.indexSize,
+        collections: collections.sort((a, b) => b.storageSize - a.storageSize)
+    };
+}
+
+// Run on each shard to get complete picture
+var growth = analyzeStorageGrowth();
+printjson(growth);
+```
+
+### **Giai đoạn 19: Troubleshooting Common Issues**
+
+#### **1. Balancer Issues**
+
+```javascript
+// Comprehensive balancer diagnostic
+function diagnoseBalancer() {
+    print("=== Balancer Diagnostic Report ===");
+    
+    // Check balancer status
+    var balancerStatus = sh.getBalancerState();
+    print("Balancer Enabled: " + balancerStatus);
+    
+    // Check if balancer is running
+    var balancerRunning = sh.isBalancerRunning();
+    print("Balancer Running: " + balancerRunning);
+    
+    // Check balancer window
+    var balancerWindow = db.settings.findOne({_id: "balancer"});
+    if (balancerWindow) {
+        print("Balancer Window: " + JSON.stringify(balancerWindow));
+    } else {
+        print("Balancer Window: Not configured (runs 24/7)");
+    }
+    
+    // Check chunk distribution
+    print("\n=== Chunk Distribution ===");
+    var shards = db.shards.find().toArray();
+    shards.forEach(function(shard) {
+        var chunkCount = db.chunks.count({shard: shard._id});
+        print("Shard " + shard._id + ": " + chunkCount + " chunks");
+    });
+    
+    // Check for jumbo chunks
+    print("\n=== Jumbo Chunks ===");
+    var jumboChunks = db.chunks.find({jumbo: true}).toArray();
+    if (jumboChunks.length > 0) {
+        print("Found " + jumboChunks.length + " jumbo chunks:");
+        jumboChunks.forEach(function(chunk) {
+            print("  Namespace: " + chunk.ns + ", Shard: " + chunk.shard);
+        });
+    } else {
+        print("No jumbo chunks found");
+    }
+    
+    // Check recent balancer operations
+    print("\n=== Recent Balancer Operations ===");
+    var recentOps = db.changelog.find({what: /moveChunk/}).sort({time: -1}).limit(5).toArray();
+    recentOps.forEach(function(op) {
+        print(op.time + ": " + op.what + " - " + op.ns + " from " + op.details.from + " to " + op.details.to);
+    });
+}
+
+// Run diagnostic
+diagnoseBalancer();
+```
+
+#### **2. Replica Set Election Issues**
+
+```bash
+#!/bin/bash
+# replica-set-diagnostic.sh
+
+PORT=$1
+if [ -z "$PORT" ]; then
+    echo "Usage: $0 <port>"
+    echo "Example: $0 27011"
+    exit 1
+fi
+
+echo "=== Replica Set Diagnostic for Port $PORT ==="
+
+# Check replica set status
+echo "--- Replica Set Status ---"
+mongosh --port $PORT --quiet --eval "rs.status()"
+
+# Check replica set configuration
+echo "--- Replica Set Configuration ---"
+mongosh --port $PORT --quiet --eval "rs.conf()"
+
+# Check server status
+echo "--- Server Status ---"
+mongosh --port $PORT --quiet --eval "db.serverStatus().repl"
+
+# Check oplog status
+echo "--- Oplog Status ---"
+mongosh --port $PORT --quiet --eval "
+    use local;
+    var first = db.oplog.rs.find().sort({ts: 1}).limit(1).next();
+    var last = db.oplog.rs.find().sort({ts: -1}).limit(1).next();
+    var timeDiff = (last.ts.getTime() - first.ts.getTime()) / 1000 / 3600;
+    print('Oplog time window: ' + timeDiff.toFixed(2) + ' hours');
+    print('Oplog size: ' + (db.oplog.rs.stats().size / 1024 / 1024 / 1024).toFixed(2) + ' GB');
+"
+
+# Check for election issues
+echo "--- Election Logs ---"
+sudo journalctl -u mongod-shard$(echo $PORT | tail -c 2) --since="1 hour ago" | grep -i "election\|primary\|secondary"
+
+echo "=== Diagnostic Complete ==="
+```
+
+### **Kết luận: MongoDB Production Excellence**
+
+Việc triển khai và vận hành một MongoDB Sharded Cluster trong môi trường production đòi hỏi sự kết hợp giữa:
+
+1. **Kiến thức lý thuyết vững chắc** về kiến trúc phân tán
+2. **Kỹ năng thực hành** trong việc cấu hình và triển khai
+3. **Quy trình vận hành** có hệ thống và automation
+4. **Monitoring và alerting** chủ động
+5. **Disaster recovery planning** chi tiết
+
+Thông qua hướng dẫn này, bạn đã có được một nền tảng vững chắc để xây dựng và vận hành các hệ thống MongoDB quy mô lớn một cách an toàn và hiệu quả.
