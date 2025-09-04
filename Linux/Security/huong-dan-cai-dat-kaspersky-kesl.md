@@ -27,8 +27,6 @@ Bạn cần cấu hình tường lửa (trên máy chủ Linux hoặc trên thi�
 *   **Cổng `13000`:** Dùng cho kết nối được mã hóa SSL (an toàn). Đây là cổng ưu tiên.
 *   **Cổng `14000`:** Dùng cho kết nối không mã hóa.
 
-**Sơ đồ Mermaid:**
-
 *   **Luồng giao tiếp giữa Client và KSC:**
 
 ```mermaid
@@ -93,8 +91,6 @@ graph TD
     *   `Please enter Administration Server ssl port number [13000]:`: Nhấn `Enter` (chấp nhận mặc định).
     *   `Please enter 'Y' to confirm that you want to use SSL encryption... [Y]:`: Nhấn `Enter` (chấp nhận mặc định).
     *   `Please choose connection gateway mode: [1]:`: Nhấn `Enter` hoặc gõ `1` rồi nhấn `Enter`.
-
-**Sơ đồ Mermaid:**
 
 *   **Quy trình cài đặt KLNAgent:**
 
@@ -170,8 +166,6 @@ sequenceDiagram
     *   `Do you want to enable scheduled updates? [y]:`: Gõ `n` và nhấn `Enter`.
     *   `Enter an empty string to add the built-in trial key:`: Nhấn `Enter`.
 
-**Sơ đồ Mermaid:**
-
 *   **Luồng cấu hình KESL:**
 
 ```mermaid
@@ -198,7 +192,7 @@ Khi một dịch vụ mới (như `kesl-supervisor`) được cài đặt, nếu
 
 Mục tiêu của bước này là cô lập và xác nhận rằng chính sách SELinux đang ở chế độ `Enforcing` là nguyên nhân trực tiếp gây ra lỗi khởi động dịch vụ.
 
-#### **Sơ đồ Chẩn đoán Mermaid (Luồng Logic Kỹ thuật)**
+#### **Sơ đồ Chẩn đoán**
 
 ```mermaid
 graph TD
@@ -335,8 +329,6 @@ graph LR
     chkconfig klnagent64 off
     ```
 
-**Sơ đồ Mermaid:**
-
 *   **Trạng thái dịch vụ:**
 
 ```mermaid
@@ -363,8 +355,6 @@ Chạy một lệnh duy nhất để cài đặt tất cả các gói Perl cần
 yum install -y perl-podlators perl-Encode perl-Storable perl-Socket 'perl-Scalar-List-Utils' perl-threads-shared perl perl-HTTP-Tiny perl-Pod-Perldoc perl-Text-ParseWords perl-Pod-Usage perl-macros perl-Exporter perl-Time-Local perl-Carp perl-PathTools perl-Pod-Simple perl-File-Path perl-threads perl-Getopt-Long perl-parent perl-Pod-Escapes perl-libs perl-constant perl-Time-HiRes perl-File-Temp perl-Filter
 ```
 *   **Ghi chú:** `perl-Scalar-List-Utils` được đặt trong dấu nháy đơn vì tên của nó chứa các ký tự đặc biệt có thể bị shell hiểu nhầm.
-
-**Sơ đồ Mermaid:**
 
 *   **Logic xử lý lỗi cài đặt gói:**
 
@@ -425,8 +415,6 @@ graph TD
     chkconfig klnagent64 on
     ```
 
-**Sơ đồ Mermaid:**
-
 *   **Kích hoạt lại dịch vụ:**
 
 ```mermaid
@@ -456,8 +444,6 @@ graph TD
 2.  **Đăng nhập vào Kaspersky Security Center (KSC):**
     *   Tìm máy chủ Linux của bạn trong danh sách các thiết bị được quản lý.
     *   Kiểm tra trạng thái của nó. Ban đầu có thể là màu vàng hoặc xám, sau vài phút đồng bộ, nó nên chuyển sang màu xanh lá cây, cho thấy trạng thái "OK".
-
-**Sơ đồ Mermaid:**
 
 *   **Quy trình xác thực cuối cùng:**
 
