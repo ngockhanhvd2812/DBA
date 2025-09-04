@@ -128,7 +128,7 @@ sequenceDiagram
 
 1.  **Chuyển hướng đến IP mới:**
     ```bash
-    /opt/kaspersky/klnagent64/bin/klmover -address IP của Kaspersky Security Center (KSC) Administration Server 
+    /opt/kaspersky/klnagent64/bin/klmover -address <IP của Kaspersky Security Center (KSC) Administration Server> 
     ```
 2.  **Kiểm tra trạng thái kết nối:**
     ```bash
@@ -157,7 +157,7 @@ sequenceDiagram
     ```
 3.  **Trả lời các câu hỏi cấu hình:**
     *   `[en_US.UTF-8]:`: Nhấn `Enter` (chấp nhận ngôn ngữ mặc định).
-    *   `Press ENTER to display the EULA...`: Nhấn `Enter`, đọc qua (nhấn `Space` để cuộn), sau đó nhấn `Q` để thoát.
+    *   `Press ENTER to display the EULA...`: Nhấn `Enter`, đọc qua (nhấn `Space` để cuộn).
     *   `I confirm that I have fully read... EULA [y/n]:`: Gõ `y` và nhấn `Enter`.
     *   `I am aware and agree that my data will be handled... Privacy Policy [y/n]:`: Gõ `y` và nhấn `Enter`.
     *   `I confirm that I have fully read... Kaspersky Security Network Statement [y/n]:`: Gõ `n` và nhấn `Enter`.
@@ -183,6 +183,132 @@ flowchart TD
     E --> F[Kích hoạt bản dùng thử];
     F --> G[Hoàn tất];
 ```
+
+### **Bước 4 (Tiếp theo): Xử lý Lỗi Khởi Động Dịch Vụ do Xung đột Chính sách SELinux (Bước Bổ Sung Kỹ thuật)**
+
+**Tình huống:** Sau khi script `kesl-setup.pl` hoàn tất, Systemd không thể khởi động `kesl-supervisor.service`. Kiểm tra trạng thái dịch vụ cho thấy lỗi `code=exited, status=203/EXEC`, và nhật ký hệ thống (`journalctl`) xác nhận tiến trình trả về mã lỗi `13 (EACCES - Permission Denied)`.
+
+**Lý thuyết:** Lỗi `EACCES` trong bối cảnh này, khi các quyền DAC (`rwx`) đã được xác nhận là đúng, thường chỉ ra rằng một cơ chế **Kiểm soát Truy cập Bắt buộc (Mandatory Access Control - MAC)** đang thực thi chính sách từ chối. Trên các hệ điều hành dựa trên RHEL như CentOS, Oracle Linux, triển khai MAC mặc định là **SELinux (Security-Enhanced Linux)**.
+
+Khi một dịch vụ mới (như `kesl-supervisor`) được cài đặt, nếu không có chính sách (policy) nào được định nghĩa sẵn để cấp cho nó các quyền cần thiết, SELinux sẽ hoạt động theo nguyên tắc "từ chối theo mặc định" (default deny) và ngăn chặn các hành động không được cho phép rõ ràng, ví dụ như thực thi một file từ một context không xác định hoặc chuyển đổi sang một domain không được cấp phép.
+
+---
+
+### **4A. Chẩn Đoán và Xác Nhận Nguyên Nhân do SELinux**
+
+Mục tiêu của bước này là cô lập và xác nhận rằng chính sách SELinux đang ở chế độ `Enforcing` là nguyên nhân trực tiếp gây ra lỗi khởi động dịch vụ.
+
+#### **Sơ đồ Chẩn đoán Mermaid (Luồng Logic Kỹ thuật)**
+
+```mermaid
+graph TD
+    style Start fill:#87CEEB,stroke:#333,stroke-width:2px
+    style CheckMode fill:#FFD700,stroke:#333,stroke-width:2px
+    style Denied fill:#FF6347,stroke:#333,stroke-width:2px
+    style SetPermissive fill:#FFA500,stroke:#333,stroke-width:2px
+    style Success fill:#90EE90,stroke:#333,stroke-width:2px
+    style Final fill:#DDA0DD,stroke:#333,stroke-width:2px
+
+    Start(Systemd: systemctl start kesl-supervisor) --> A{Lấy context từ file service};
+    A --> B{Thực thi ExecStart};
+    B --> CheckMode{SELinux Mode: Enforcing?};
+    CheckMode -- Yes --> C{Kernel kiểm tra Policy DB};
+    C -- "Không tìm thấy luật 'allow'" --> Denied(Tạo thông báo AVC Denial<br/>Trả về lỗi EACCES);
+    Denied --> SetPermissive(Admin: setenforce 0);
+    SetPermissive --> Start;
+    CheckMode -- No (Permissive/Disabled) --> Success(Tiến trình được thực thi);
+    Success --> Final(Dịch vụ chuyển sang trạng thái Active);
+```
+
+#### **Các bước thực hiện:**
+
+1.  **Xác định chế độ hoạt động của SELinux:**
+    ```bash
+    getenforce
+    ```
+    *   Kết quả `Enforcing` xác nhận rằng chính sách đang được áp dụng một cách nghiêm ngặt.
+
+2.  **Chuyển SELinux sang chế độ `Permissive` để chẩn đoán:**
+    Thao tác này sẽ vô hiệu hóa việc thực thi chính sách (enforcement) nhưng vẫn duy trì việc ghi lại các vi phạm (logging AVC denials).
+    ```bash
+    setenforce 0
+    ```
+3.  **Cố gắng khởi động lại dịch vụ:**
+    ```bash
+    systemctl start kesl-supervisor.service
+    systemctl status kesl-supervisor.service
+    ```
+    *   Kết quả `Active: active (running)` chứng tỏ rằng khi không có sự can thiệp của SELinux enforcement, dịch vụ hoạt động bình thường. Điều này xác nhận SELinux là nguyên nhân gốc rễ.
+
+---
+
+### **4B. Xây Dựng và Cài Đặt Module Chính Sách SELinux Tùy Chỉnh**
+
+Mục tiêu của bước này là tạo ra một module chính sách tùy chỉnh (custom policy module) để cấp các quyền cần thiết cho dịch vụ `kesl-supervisor` hoạt động trong môi trường SELinux `Enforcing`.
+
+#### **Sơ đồ Quy trình Xây dựng Module SELinux**
+
+```mermaid
+graph LR
+    subgraph "Nguồn Dữ liệu"
+        A(AVC Denials trong<br/>'/var/log/audit/audit.log')
+    end
+
+    subgraph "Công cụ (policycoreutils-python-utils)"
+        B(grep)
+        C(audit2allow)
+        D(semodule)
+    end
+
+    subgraph "Sản phẩm"
+        E(Type Enforcement File<br/>'kaspersky_kesl.te')
+        F(Policy Module Package<br/>'kaspersky_kesl.pp')
+        G(Kernel's Active Policy DB)
+    end
+
+    style A fill:#lightblue,stroke:#333,stroke-width:2px
+    style E fill:#lightyellow,stroke:#333,stroke-width:2px
+    style F fill:#lightgreen,stroke:#333,stroke-width:2px
+    style G fill:#f9f,stroke:#333,stroke-width:4px
+
+    A -- "Log entries" --> B;
+    B -- "Filtered AVCs" --> C;
+    C -- "Tạo file .te và biên dịch ra .pp" --> E & F;
+    F -- "Cài đặt module" --> D;
+    D -- "Load module vào" --> G;
+```
+
+#### **Các bước thực hiện:**
+
+1.  **Khôi phục trạng thái `Enforcing` của SELinux:**
+    Đảm bảo hệ thống quay lại trạng thái bảo mật mặc định trước khi áp dụng chính sách mới.
+    ```bash
+    setenforce 1
+    ```
+2.  **Cài đặt các công cụ cần thiết:**
+    Gói `policycoreutils-python-utils` cung cấp tiện ích `audit2allow`, công cụ thiết yếu để phân tích các thông báo từ chối của auditd và tạo ra các luật SELinux.
+    ```bash
+    yum install -y policycoreutils-python-utils
+    ```
+3.  **Tự động tạo và cài đặt module chính sách:**
+    *   **Bước 1: Phân tích nhật ký audit và tạo module chính sách**
+        Lệnh này sẽ trích xuất tất cả các thông báo từ chối (AVC denials) liên quan đến `kesl-supervisor` từ `audit.log`, sau đó `audit2allow` sẽ phân tích và tạo ra một file Type Enforcement (`.te`) và một Policy Package (`.pp`) có tên là `kaspersky_kesl`.
+        ```bash
+        grep kesl-supervisor /var/log/audit/audit.log | audit2allow -M kaspersky_kesl
+        ```
+    *   **Bước 2: Cài đặt và kích hoạt module chính sách**
+        Lệnh `semodule -i` sẽ cài đặt package chính sách (`.pp`) vào kho lưu trữ module của hệ thống và sau đó tải nó vào chính sách đang hoạt động trong kernel.
+        ```bash
+        semodule -i kaspersky_kesl.pp
+        ```
+4.  **Xác thực lại hoạt động của dịch vụ:**
+    Bây giờ, với SELinux ở chế độ `Enforcing` và đã có chính sách tùy chỉnh, dịch vụ phải khởi động thành công.
+    ```bash
+    systemctl start kesl-supervisor.service
+    systemctl status kesl-supervisor.service
+    ```
+    *   Kết quả `Active: active (running)` xác nhận rằng module chính sách đã được áp dụng thành công và giải quyết triệt để vấn đề tương thích.
+
 
 ---
 
