@@ -8,16 +8,26 @@ Trước khi bắt đầu, cần hiểu rõ các thành phần của kiến trú
 
 ```mermaid
 graph LR
-    subgraph "Sharded Cluster"
-        A[Client/mongorestore] --> B(mongos Router);
-        B -- Reads/Writes Data --> C{Shard 1 (Replica Set)};
-        B -- Reads/Writes Data --> D{Shard 2 (Replica Set)};
-        B -- Reads/Writes Data --> E{Shard 3 (Replica Set)};
-        B -- Reads Metadata --> F[Config Servers (Replica Set)];
-        C --- F;
-        D --- F;
-        E --- F;
+    subgraph "Cụm MongoDB Phân Mảnh"
+        A["Ứng dụng/mongorestore"] --> B["Bộ định tuyến mongos"]
+        B --> C["Mảnh 1 (Replica Set)"]
+        B --> D["Mảnh 2 (Replica Set)"]
+        B --> E["Mảnh 3 (Replica Set)"]
+        B --> F["Máy chủ cấu hình (Replica Set)"]
+        C --> F
+        D --> F
+        E --> F
     end
+
+    classDef clientStyle fill:#e1f5fe,stroke:#01579b,stroke-width:2px,color:#000
+    classDef routerStyle fill:#f3e5f5,stroke:#4a148c,stroke-width:2px,color:#000
+    classDef shardStyle fill:#e8f5e8,stroke:#1b5e20,stroke-width:2px,color:#000
+    classDef configStyle fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
+
+    class A clientStyle
+    class B routerStyle
+    class C,D,E shardStyle
+    class F configStyle
 ```
 
 ---
@@ -88,32 +98,38 @@ graph TD
 
 ```mermaid
 graph LR
-    subgraph "Trước khi Cấu hình"
-        direction LR
-        db1[Database bcqg_gris]
-        col1[Collection INP_DATA]
-        col2[Collection FLW_FLOW]
+    subgraph "Trước khi cấu hình"
+        db1["Cơ sở dữ liệu vsr"]
+        col1["Collection INP_DATA"]
+        col2["Collection FLW_FLOW"]
     end
     
-    subgraph "Sau khi Cấu hình"
-        direction LR
-        db2[Database bcqg_gris<br/>(sharding enabled)]
-        col3[INP_DATA<br/>shard key: {ORG_ID: 'hashed'}]
-        col4[FLW_FLOW<br/>shard key: {SND_ORG: 'hashed'}]
+    subgraph "Sau khi cấu hình"
+        db2["Cơ sở dữ liệu vsr#40;đã bật sharding#41;"]
+        col3["INP_DATA#40;shard key: ORG_ID hashed#41;"]
+        col4["FLW_FLOW#40;shard key: SND_ORG hashed#41;"]
     end
 
-    db1 -- Chạy sh.enableSharding --> db2;
-    col1 -- Chạy sh.shardCollection --> col3;
-    col2 -- Chạy sh.shardCollection --> col4;
+    db1 --"sh.enableSharding#40;#41;"--> db2
+    col1 --"sh.shardCollection#40;#41;"--> col3
+    col2 --"sh.shardCollection#40;#41;"--> col4
+
+    classDef beforeStyle fill:#ffebee,stroke:#c62828,stroke-width:2px,color:#000
+    classDef afterStyle fill:#e8f5e8,stroke:#2e7d32,stroke-width:2px,color:#000
+    classDef processStyle stroke:#1565c0,stroke-width:3px,color:#1565c0
+
+    class db1,col1,col2 beforeStyle
+    class db2,col3,col4 afterStyle
+    class db1,col1,col2 processStyle
 ```
 *   **Hành động:** Dựa trên kết quả từ Giai đoạn 1.3, chạy các lệnh sau trong `mongo shell`:
     ```javascript
     // 1. Bật sharding cho database
-    sh.enableSharding("bcqg_gris");
+    sh.enableSharding("vsr");
 
     // 2. Cấu hình shard key cho từng collection
-    sh.shardCollection("bcqg_gris.INP_DATA", { "ORG_ID": "hashed" });
-    sh.shardCollection("bcqg_gris.FLW_FLOW", { "SND_ORG": "hashed" });
+    sh.shardCollection("vsr.INP_DATA", { "ORG_ID": "hashed" });
+    sh.shardCollection("vsr.FLW_FLOW", { "SND_ORG": "hashed" });
     ```
 
 #### **Bước 3: Thực thi Khôi phục Dữ liệu**
@@ -149,7 +165,7 @@ graph TD
 *   **Mục đích:** Xác minh rằng dữ liệu đã được phân tán trên các shard như mong đợi.
 *   **Hành động:** Trong `mongo shell`, chạy lệnh sau cho các collection đã được sharding:
     ```javascript
-    use bcqg_gris;
+    use vsr;
     printjson(db.INP_DATA.getShardDistribution());
     ```
 *   **Phân tích kết quả:** Output thành công sẽ liệt kê nhiều shard (ví dụ: `shard01`, `shard02`, `shard03`) và cho thấy mỗi shard đều đang chứa dữ liệu (`data`), tài liệu (`docs`) và các chunk (`chunks`).
