@@ -1,3 +1,19 @@
+- [**Hướng dẫn Kỹ thuật: Khôi phục Dữ liệu (`mongodump`) vào MongoDB Sharded Cluster**](#hướng-dẫn-kỹ-thuật-khôi-phục-dữ-liệu-mongodump-vào-mongodb-sharded-cluster)
+  - [**Tổng quan Kiến trúc Sharded Cluster**](#tổng-quan-kiến-trúc-sharded-cluster)
+- [**Giai đoạn 1: Phân tích \& Chuẩn bị**](#giai-đoạn-1-phân-tích--chuẩn-bị)
+  - [**1.1. Xác định Loại và Nội dung Backup**](#11-xác-định-loại-và-nội-dung-backup)
+  - [**1.2. Phân tích Rủi ro \& Xác định Phạm vi Restore**](#12-phân-tích-rủi-ro--xác-định-phạm-vi-restore)
+  - [**1.3. Trích xuất Cấu trúc Sharding Gốc**](#13-trích-xuất-cấu-trúc-sharding-gốc)
+- [**Giai đoạn 2: Quy trình Thực thi**](#giai-đoạn-2-quy-trình-thực-thi)
+  - [**Bước 1: Chuẩn bị Môi trường (Tắt Balancer)**](#bước-1-chuẩn-bị-môi-trường-tắt-balancer)
+  - [**Bước 2: Tái tạo Cấu trúc Sharding**](#bước-2-tái-tạo-cấu-trúc-sharding)
+  - [**Bước 3: Thực thi Khôi phục Dữ liệu**](#bước-3-thực-thi-khôi-phục-dữ-liệu)
+- [**Giai đoạn 3: Kiểm tra \& Hoàn tất**](#giai-đoạn-3-kiểm-tra--hoàn-tất)
+  - [**Bước 4: Kiểm tra Phân phối Dữ liệu**](#bước-4-kiểm-tra-phân-phối-dữ-liệu)
+  - [**Bước 5: Kích hoạt lại Balancer**](#bước-5-kích-hoạt-lại-balancer)
+- [**Phụ lục: So sánh Quy trình Restore**](#phụ-lục-so-sánh-quy-trình-restore)
+
+
 ### **Hướng dẫn Kỹ thuật: Khôi phục Dữ liệu (`mongodump`) vào MongoDB Sharded Cluster**
 
 **Mục tiêu:** Tài liệu này cung cấp một quy trình chi tiết, an toàn và hiệu quả để khôi phục một bản sao lưu luận lý (logical backup) được tạo bởi `mongodump` vào một hệ thống MongoDB Sharded Cluster đang hoạt động.
