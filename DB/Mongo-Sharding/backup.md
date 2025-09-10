@@ -197,6 +197,121 @@ graph LR
 
 3. Script sẽ tạo thư mục backup với timestamp và lưu log vào file log.
 
+## Tự động hóa Sao lưu với Cron
+
+Để tự động hóa quá trình sao lưu, bạn có thể sử dụng cron để lập lịch chạy script định kỳ. Dưới đây là quy trình cài đặt:
+
+```mermaid
+flowchart LR
+    A[Bắt đầu] --> B[Tạo script backup]
+    B --> C[Thiết lập biến môi trường]
+    C --> D[Chỉnh sửa crontab]
+    D --> E[Thêm lịch trình]
+    E --> F[Kiểm tra cron]
+    F --> G[Hoàn tất]
+    
+    style A fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
+    style B fill:#f3e5f5,stroke:#9c27b0,stroke-width:2px
+    style C fill:#e8f5e8,stroke:#4caf50,stroke-width:2px
+    style D fill:#fff3e0,stroke:#f57c00,stroke-width:2px
+    style E fill:#fce4ec,stroke:#e91e63,stroke-width:2px
+    style F fill:#f1f8e9,stroke:#689f38,stroke-width:2px
+    style G fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+```
+
+### 1. Tạo script wrapper
+
+Tạo một script wrapper để thiết lập biến môi trường và gọi script backup:
+
+```bash
+#!/bin/bash
+# File: /home/user/mongo_backup_wrapper.sh
+
+# Export password
+export MONGO_PASS="your_actual_password"
+
+# Đường dẫn tới script backup
+BACKUP_SCRIPT="/path/to/backup.md"
+
+# Chạy backup script
+$BACKUP_SCRIPT
+```
+
+### 2. Thiết lập quyền thực thi
+
+```bash
+chmod +x /home/user/mongo_backup_wrapper.sh
+```
+
+### 3. Chỉnh sửa crontab
+
+Mở crontab để chỉnh sửa:
+
+```bash
+crontab -e
+```
+
+### 4. Thêm lịch trình backup
+
+Thêm dòng sau để chạy backup hàng ngày lúc 2:00 AM:
+
+```bash
+0 2 * * * /home/user/mongo_backup_wrapper.sh >> /var/log/mongo_backup_cron.log 2>&1
+```
+
+**Giải thích định dạng cron:**
+- `0`: Phút (0 = đầu giờ)
+- `2`: Giờ (2 = 2:00 AM)
+- `*`: Ngày trong tháng (tất cả các ngày)
+- `*`: Tháng (tất cả các tháng)
+- `*`: Ngày trong tuần (tất cả các ngày trong tuần)
+
+### 5. Các tùy chọn lịch trình khác
+
+| Mục đích | Lịch trình | Câu lệnh Cron |
+|---------|------------|---------------|
+| Mỗi ngày lúc 2:00 AM | Daily at 2:00 AM | `0 2 * * *` |
+| Mỗi tuần vào chủ nhật lúc 3:00 AM | Weekly on Sunday at 3:00 AM | `0 3 * * 0` |
+| Mỗi tháng vào ngày 1 lúc 4:00 AM | Monthly on 1st at 4:00 AM | `0 4 1 * *` |
+| Mỗi 6 giờ | Every 6 hours | `0 */6 * * *` |
+
+### 6. Kiểm tra cron job
+
+Kiểm tra danh sách cron jobs:
+
+```bash
+crontab -l
+```
+
+Kiểm tra log để xác nhận cron đang chạy:
+
+```bash
+tail -f /var/log/mongo_backup_cron.log
+```
+
+## Quản lý Backup
+
+### 1. Xóa backup cũ
+
+Tạo script để xóa các backup cũ hơn 7 ngày:
+
+```bash
+#!/bin/bash
+# File: /home/user/cleanup_backups.sh
+
+BACKUP_PATH="/mnt/backup"
+KEEP_DAYS=7
+
+find $BACKUP_PATH -name "mongo_backup_*" -type d -mtime +$KEEP_DAYS -exec rm -rf {} \;
+```
+
+### 2. Thêm vào crontab để tự động xóa
+
+```bash
+# Xóa backup cũ mỗi ngày lúc 3:00 AM
+0 3 * * * /home/user/cleanup_backups.sh >> /var/log/cleanup_backups.log 2>&1
+```
+
 ## Script hoàn chỉnh
 
 ```bash
