@@ -509,7 +509,7 @@ flowchart TD
 -   **Quên kiểm tra `/etc/hosts` trên TẤT CẢ máy:** Việc chỉ kiểm tra trên một hoặc hai máy có thể dẫn đến một máy bị cô lập, không thể resolve được các máy khác, gây ra lỗi kết nối và sự cố trong cluster.
 
 *   **Thực hiện đúng:**
-    1.  **Mở file `/etc/hosts`:** Sử dụng `sudo vi /etc/hosts` (hoặc trình soạn thảo yêu thích) để chỉnh sửa file này.
+    1.  **Mở file `/etc/hosts`:** Sử dụng `vi /etc/hosts` (hoặc trình soạn thảo yêu thích) để chỉnh sửa file này.
     2.  **Thêm các dòng ánh xạ:** Thêm danh sách các cặp IP-hostname cho *tất cả các node* trong cluster vào cuối file. **Điểm mấu chốt là nội dung của file `/etc/hosts` trên CẢ 3 MÁY PHẢI GIỐNG HỆT NHAU.** Điều này đảm bảo mỗi node đều có một "bản đồ" mạng nhất quán và chính xác về tất cả các node khác.
         ```
         # --- Mongo Cluster ---
@@ -517,10 +517,10 @@ flowchart TD
         192.168.0.241  mongo-2
         192.168.0.215  mongo-3
         ```
-    3.  **Đặt hostname duy nhất cho từng máy:** Trên mỗi máy, bạn sẽ chạy lệnh `sudo hostnamectl set-hostname <tên-hostname>` tương ứng.
-        *   `sudo hostnamectl set-hostname mongo-1` (Trên máy có IP 192.168.0.38)
-        *   `sudo hostnamectl set-hostname mongo-2` (Trên máy có IP 192.168.0.241)
-        *   `sudo hostnamectl set-hostname mongo-3` (Trên máy có IP 192.168.0.215)
+    3.  **Đặt hostname duy nhất cho từng máy:** Trên mỗi máy, bạn sẽ chạy lệnh `hostnamectl set-hostname <tên-hostname>` tương ứng.
+        *   `hostnamectl set-hostname mongo-1` (Trên máy có IP 192.168.0.38)
+        *   `hostnamectl set-hostname mongo-2` (Trên máy có IP 192.168.0.241)
+        *   `hostnamectl set-hostname mongo-3` (Trên máy có IP 192.168.0.215)
         Thao tác này đảm bảo rằng mỗi máy tự nhận diện mình với một cái tên riêng biệt và nhất quán với những gì đã định nghĩa trong `/etc/hosts`. Sau khi đặt hostname, tốt nhất nên khởi động lại hoặc ít nhất đăng xuất/đăng nhập lại để đảm bảo tất cả các dịch vụ nhận hostname mới.
 
 * **Minh hoạ:**
@@ -540,9 +540,9 @@ flowchart TD
     end
     
     subgraph "Trên TỪNG MÁY RIÊNG BIỆT"
-        M1["Máy 1 (192.168.0.38):<br/>sudo hostnamectl set-hostname mongo-1"]
-        M2["Máy 2 (192.168.0.241):<br/>sudo hostnamectl set-hostname mongo-2"]
-        M3["Máy 3 (192.168.0.215):<br/>sudo hostnamectl set-hostname mongo-3"]
+        M1["Máy 1 (192.168.0.38):<br/>hostnamectl set-hostname mongo-1"]
+        M2["Máy 2 (192.168.0.241):<br/>hostnamectl set-hostname mongo-2"]
+        M3["Máy 3 (192.168.0.215):<br/>hostnamectl set-hostname mongo-3"]
     end
     
     B --> S1
@@ -604,7 +604,7 @@ flowchart TD
 
 💡 **MẸO:** Sau khi tạo service, luôn reboot và kiểm tra `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
 *   **Thực hiện đúng:**
-    1.  Tạo file service: `sudo vi /etc/systemd/system/disable-transparent-huge-pages.service`
+    1.  Tạo file service: `vi /etc/systemd/system/disable-transparent-huge-pages.service`
 
     2.  Dán nội dung chính xác sau:
     
@@ -640,16 +640,16 @@ WantedBy=basic.target
 ```bash
 # Nạp lại toàn bộ unit files từ disk vào memory của systemd
 # Bắt buộc khi bạn vừa tạo mới hoặc sửa file .service
-sudo systemctl daemon-reload
+systemctl daemon-reload
 
 # Khởi động service ngay lập tức (chỉ chạy cho lần boot hiện tại)
-sudo systemctl start disable-transparent-huge-pages
+systemctl start disable-transparent-huge-pages
 
 # Bật service để tự động chạy lại khi reboot
-sudo systemctl enable disable-transparent-huge-pages
+systemctl enable disable-transparent-huge-pages
 
 # 👆 Nếu muốn gọn, có thể gộp start + enable bằng:
-# sudo systemctl enable --now disable-transparent-huge-pages
+# systemctl enable --now disable-transparent-huge-pages
 
 ```
 4.  Kiểm tra: `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
@@ -678,9 +678,9 @@ flowchart TD
         B --> C["📄 Bước 1: Tạo file service<br/>/etc/systemd/system/disable-transparent-huge-pages.service"]
         C --> D["✏️ Bước 2: Dán nội dung cấu hình service<br/>ExecStart: echo never tee các đường dẫn THP"]
         D --> E["⚙️ Bước 3: Kích hoạt service"]
-        E --> E1["🔄 sudo systemctl daemon-reload"]
-        E1 --> E2["▶️ sudo systemctl start disable-transparent-huge-pages"]
-        E2 --> E3["🔗 sudo systemctl enable disable-transparent-huge-pages"]
+        E --> E1["🔄 systemctl daemon-reload"]
+        E1 --> E2["▶️ systemctl start disable-transparent-huge-pages"]
+        E2 --> E3["🔗 systemctl enable disable-transparent-huge-pages"]
     end
     
     E3 --> F["🔍 Bước 4: Kiểm tra trạng thái THP<br/>cat /sys/kernel/mm/transparent_hugepage/enabled"]
@@ -769,7 +769,7 @@ flowchart TD
     # Đảm bảo MongoDB có thể mở nhiều file dữ liệu, log, connection socket
     fs.file-max = 6815744
 ```
-2.  Áp dụng ngay: `sudo sysctl --system`  để load tất cả file trong `/etc/sysctl.d/, /run/sysctl.d/, /usr/lib/sysctl.d/ + /etc/sysctl.conf`. Nó mô phỏng đúng hành vi khi reboot.
+2.  Áp dụng ngay: `sysctl --system`  để load tất cả file trong `/etc/sysctl.d/, /run/sysctl.d/, /usr/lib/sysctl.d/ + /etc/sysctl.conf`. Nó mô phỏng đúng hành vi khi reboot.
 
 3.  Tạo file cấu hình `/etc/security/limits.d/99-mongodb.conf` vĩnh viễn cho user `mongod` :
 ```bash
@@ -811,7 +811,7 @@ mongod hard rss unlimited
 * Sau khi sửa file `/etc/security/limits.d/99-mongodb.conf`, bạn chỉ cần **restart mongod** để nó nhận limit mới:
 
 ```bash
-sudo systemctl restart mongod
+systemctl restart mongod
 ```
 * Muốn chắc chắn, kiểm tra:
 
@@ -828,7 +828,7 @@ flowchart TD
     
     subgraph "1. Tinh chỉnh Kernel (sysctl)"
         C1["Sửa /etc/sysctl.conf"] --> C2["Thêm các tham số tối ưu<br/>(Bộ nhớ, Mạng, Giới hạn File/Process, NUMA)"];
-        C2 --> C3["Áp dụng ngay:<br/>sudo sysctl -p"];
+        C2 --> C3["Áp dụng ngay:<br/>sysctl -p"];
     end
     
     subgraph "2. Thiết lập Giới hạn Người dùng (ulimit)"
@@ -924,9 +924,9 @@ flowchart TD
 
 *   **Thực hiện đúng (nếu cài lại từ đầu):**
     ```bash
-    sudo yum remove mongodb* -y
-    sudo rm -rf /var/log/mongodb /var/lib/mongo /tmp/*.sock
-    sudo yum install mongodb-org -y
+    yum remove mongodb* -y
+    rm -rf /var/log/mongodb /var/lib/mongo /tmp/*.sock
+    yum install mongodb-org -y
     rpm -qa | grep mongodb-org # Xác nhận phiên bản 7.0+
     ```
 
@@ -942,13 +942,13 @@ flowchart TD
 *   **Thực hiện đúng (Làm trên `mongo-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
         ```bash
-        sudo mkdir -p /data
-        sudo openssl rand -base64 756 | sudo tee /data/mongo-keyfile >/dev/null
+        mkdir -p /data
+        openssl rand -base64 756 | tee /data/mongo-keyfile >/dev/null
         ```
     2.  **Cực kỳ quan trọng:** Đặt đúng chủ sở hữu và quyền:
         ```bash
-        sudo chown mongod:mongod /data/mongo-keyfile
-        sudo chmod 400 /data/mongo-keyfile
+        chown mongod:mongod /data/mongo-keyfile
+        chmod 400 /data/mongo-keyfile
         ```
     3.  Copy keyfile sang 2 máy còn lại và **set lại quyền trên từng máy đó**:
 
@@ -987,10 +987,10 @@ flowchart TD
             # Trên máy mongo-2:
             ssh youruser@mongo-2
             
-            # Sau khi SSH thành công, chạy các lệnh sau (sử dụng sudo để có quyền root):
-            sudo mv /home/youruser/mongo-keyfile /data/
-            sudo chown mongod:mongod /data/mongo-keyfile
-            sudo chmod 400 /data/mongo-keyfile
+            # Sau khi SSH thành công, chạy các lệnh sau (sử dụng để có quyền root):
+            mv /home/youruser/mongo-keyfile /data/
+            chown mongod:mongod /data/mongo-keyfile
+            chmod 400 /data/mongo-keyfile
             exit # Thoát khỏi phiên SSH
             ```
 
@@ -1001,9 +1001,9 @@ flowchart TD
             ssh youruser@mongo-3
             
             # Sau khi SSH thành công, chạy các lệnh sau:
-            sudo mv /home/youruser/mongo-keyfile /data/
-            sudo chown mongod:mongod /data/mongo-keyfile
-            sudo chmod 400 /data/mongo-keyfile
+            mv /home/youruser/mongo-keyfile /data/
+            chown mongod:mongod /data/mongo-keyfile
+            chmod 400 /data/mongo-keyfile
             exit # Thoát khỏi phiên SSH
             ```
 
@@ -1025,8 +1025,8 @@ flowchart TD
 *   **Bẫy người mới:** Tạo thư mục bằng `root` và quên `chown`, dẫn đến lỗi "Permission denied".
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
-    sudo mkdir -p /data/config /data/shard1 /data/shard2 /data/shard3
-    sudo chown -R mongod:mongod /data
+    mkdir -p /data/config /data/shard1 /data/shard2 /data/shard3
+    chown -R mongod:mongod /data
     ```
 
 #### **4. Mở Firewall**
@@ -1034,9 +1034,9 @@ flowchart TD
 *   **Bẫy người mới:** Thêm rule `--permanent` nhưng quên `--reload`.
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
-    sudo firewall-cmd --add-port=27010-27020/tcp --permanent
-    sudo firewall-cmd --reload
-    # Nếu không thấy port, kiểm tra firewall: sudo firewall-cmd --list-all
+    firewall-cmd --add-port=27010-27020/tcp --permanent
+    firewall-cmd --reload
+    # Nếu không thấy port, kiểm tra firewall: firewall-cmd --list-all
     ```
 
 ---
@@ -1125,7 +1125,7 @@ sequenceDiagram
 #### **2. Khởi động Config Server**
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+    -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Theo dõi log để tìm "waiting for connections"
     ```
 *   **Lưu ý:** ` &` phù hợp cho lab. Môi trường production nên tạo file unit systemd để quản lý dịch vụ chuyên nghiệp hơn.
@@ -1180,8 +1180,8 @@ sequenceDiagram
     2.  Khởi động lại tiến trình một cách an toàn:
         ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
-        sudo pkill -15 -f "mongod-config.conf"
-        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+        pkill -15 -f "mongod-config.conf"
+        -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
@@ -1200,14 +1200,14 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
 
 1.  **Dừng tiến trình `mongod` của Config Server đang chạy:**
     ```bash
-    sudo pkill -15 -f "mongod --config /etc/mongod-config.conf"
+    pkill -15 -f "mongod --config /etc/mongod-config.conf"
     sleep 5 # Chờ 5 giây để tiến trình dừng hẳn
     ```
     *   **Giải thích:** Bước này đảm bảo tiến trình MongoDB đang chạy với cấu hình `authorization` bật bị tắt hoàn toàn.
 
 2.  **Sửa file cấu hình `/etc/mongod-config.conf` để tắt `authorization` tạm thời:**
     ```bash
-    sudo vi /etc/mongod-config.conf
+    vi /etc/mongod-config.conf
     ```
     Tìm dòng `authorization: enabled` và **COMMENT** nó lại bằng cách thêm dấu `#` vào đầu dòng:
     ```yaml
@@ -1219,7 +1219,7 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
 
 3.  **Khởi động lại tiến trình `mongod` của Config Server:**
     ```bash
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+    -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Kiểm tra log để đảm bảo không có lỗi xác thực
     ```
     *   **Giải thích:** Tiến trình `mongod` giờ sẽ khởi động với `authorization` đã tắt.
@@ -1264,8 +1264,8 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
     2.  Khởi động lại tiến trình một cách an toàn:
         ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
-        sudo pkill -15 -f "mongod --config /etc/mongod-config.conf"
-        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+        pkill -15 -f "mongod --config /etc/mongod-config.conf"
+        -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
@@ -1344,9 +1344,9 @@ graph TD
 
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     ```bash
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
-    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
+    -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
+    -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
+    -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
     ```
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
@@ -1420,7 +1420,7 @@ flowchart TD
 #### **2. Khởi động Mongos**
 
 ```bash
-sudo -u mongod /usr/bin/mongos --config /etc/mongos.conf &
+-u mongod /usr/bin/mongos --config /etc/mongos.conf &
 tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config replica set"
 ```
 
@@ -1501,7 +1501,7 @@ flowchart LR
     *   `ps -ef | grep mongo`: Phải có 4 tiến trình `mongod` và 1 tiến trình `mongos` (trên node chạy mongos).
     *   `sh.status()`: Các shard phải ở trạng thái `active`.
 *   **Xem Logs:** `tail -n 100 /data/*.log` để tìm lỗi `ERROR` hoặc `WARNING`.
-*   **Test Failover:** Thử kill tiến trình PRIMARY của một shard (`sudo pkill -15 -f shard01.conf`) và dùng `rs.status()` trên port của shard đó để xem một node SECONDARY có được bầu lên làm PRIMARY hay không.
+*   **Test Failover:** Thử kill tiến trình PRIMARY của một shard (`pkill -15 -f shard01.conf`) và dùng `rs.status()` trên port của shard đó để xem một node SECONDARY có được bầu lên làm PRIMARY hay không.
 *   **Lưu ý Production:**
     *   **Bảo mật:** Thay thế `keyFile` bằng chứng chỉ **x.509** để mã hóa và xác thực mạnh hơn.
     *   **Backup:** Thường xuyên sao lưu `config server` vì nó chứa toàn bộ metadata của cluster.
@@ -1775,8 +1775,8 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 *   **Thực hiện đúng (CHỈ DÀNH CHO MONGODB ENTERPRISE/ATLAS):**
     1.  Tạo thư mục cho audit log trên **CẢ 3 MÁY**:
         ```bash
-        sudo mkdir /data/audit
-        sudo chown mongod:mongod /data/audit
+        mkdir /data/audit
+        chown mongod:mongod /data/audit
         ```
     2.  Thêm cấu hình `auditLog` vào **tất cả các file config** (`mongod-config.conf`, `mongod-shard1.conf`...):
         ```yaml
@@ -2718,10 +2718,10 @@ for i in "${!SERVERS[@]}"; do
     fi
     
     echo "Stopping mongod on $SERVER"
-    ssh $SERVER "sudo systemctl stop mongod-shard1"
+    ssh $SERVER "systemctl stop mongod-shard1"
     
     echo "Performing maintenance on $SERVER"
-    ssh $SERVER "sudo yum update -y && sudo reboot"
+    ssh $SERVER "yum update -y && reboot"
     
     # Wait for server to come back online
     echo "Waiting for $SERVER to come back online..."
@@ -2763,7 +2763,7 @@ log "Starting MongoDB Cluster Disaster Recovery"
 # Step 1: Stop all MongoDB processes
 log "Stopping all MongoDB processes"
 for server in mongo-1 mongo-2 mongo-3; do
-    ssh $server "sudo systemctl stop mongod-config mongod-shard1 mongod-shard2 mongod-shard3 mongos"
+    ssh $server "systemctl stop mongod-config mongod-shard1 mongod-shard2 mongod-shard3 mongos"
 done
 
 # Step 2: Restore Config Server
@@ -2779,7 +2779,7 @@ done
 # Step 4: Start services in correct order
 log "Starting Config Servers"
 for server in mongo-1 mongo-2 mongo-3; do
-    ssh $server "sudo systemctl start mongod-config"
+    ssh $server "systemctl start mongod-config"
 done
 
 log "Waiting for Config Server election"
@@ -2787,14 +2787,14 @@ sleep 30
 
 log "Starting Shards"
 for server in mongo-1 mongo-2 mongo-3; do
-    ssh $server "sudo systemctl start mongod-shard1 mongod-shard2 mongod-shard3"
+    ssh $server "systemctl start mongod-shard1 mongod-shard2 mongod-shard3"
 done
 
 log "Waiting for Shard elections"
 sleep 60
 
 log "Starting Mongos"
-ssh mongo-1 "sudo systemctl start mongos"
+ssh mongo-1 "systemctl start mongos"
 
 # Step 5: Verify cluster health
 log "Verifying cluster health"
@@ -3008,7 +3008,7 @@ mongosh --port $PORT --quiet --eval "
 
 # Check for election issues
 echo "--- Election Logs ---"
-sudo journalctl -u mongod-shard$(echo $PORT | tail -c 2) --since="1 hour ago" | grep -i "election\|primary\|secondary"
+journalctl -u mongod-shard$(echo $PORT | tail -c 2) --since="1 hour ago" | grep -i "election\|primary\|secondary"
 
 echo "=== Diagnostic Complete ==="
 ```
