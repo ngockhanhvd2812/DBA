@@ -25,11 +25,6 @@
       - [**4. Mở Firewall**](#4-mở-firewall)
     - [**Giai đoạn 3: Dựng Cụm Config Server**](#giai-đoạn-3-dựng-cụm-config-server)
       - [**1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**](#1-tạo-file-cấu-hình-trên-cả-3-máy)
-- [journal:](#journal)
-- [enabled: true](#enabled-true)
-- [fork: true  # fork and run in background](#fork-true---fork-and-run-in-background)
-- [pidFilePath: /data/mongod-config.pid  # location of pidfile](#pidfilepath-datamongod-configpid---location-of-pidfile)
-- [authorization: enabled](#authorization-enabled)
       - [**2. Khởi động Config Server**](#2-khởi-động-config-server)
       - [**3. Khởi tạo Replica Set và Tạo User Admin**](#3-khởi-tạo-replica-set-và-tạo-user-admin)
       - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại)
@@ -1077,7 +1072,7 @@ sequenceDiagram
 #### **1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**
 
 *   **File `/etc/mongod-config.conf`:**
-    ```yaml
+```yaml
 systemLog:
   destination: file
   logAppend: true
@@ -1104,8 +1099,7 @@ replication:
    replSetName: "Rep1"
 sharding:
    clusterRole: configsvr
-
-    ```
+```
 *   **Bẫy Người Mới:** Vội vàng bật `authorization: enabled`. Điều này sẽ chặn bạn khởi tạo replica set và tạo user admin đầu tiên (vấn đề "con gà quả trứng"). Quy trình đúng là giữ `keyFile` (xác thực nội bộ) nhưng tạm tắt `authorization` (xác thực client).
 
     **Giải thích chi tiết về Bẫy Người Mới này:**
