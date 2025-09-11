@@ -48,6 +48,7 @@
       - [**3. Cấu hình Audit Log (Ghi lại hoạt động)**](#3-cấu-hình-audit-log-ghi-lại-hoạt-động)
     - [**Giai đoạn 9: Quản trị Nâng cao và Vận hành Replica Set**](#giai-đoạn-9-quản-trị-nâng-cao-và-vận-hành-replica-set)
       - [**1. Điều chỉnh Primary (Election)**](#1-điều-chỉnh-primary-election)
+      - [**2. Cấu hình Hidden Node**](#2-cấu-hình-hidden-node)
       - [**3. Điều chỉnh Kích thước Oplog**](#3-điều-chỉnh-kích-thước-oplog)
     - [**Giai đoạn 10: Sao lưu, Phục hồi và Giám sát**](#giai-đoạn-10-sao-lưu-phục-hồi-và-giám-sát)
       - [**1. Sao lưu và Phục hồi (`mongodump` / `mongorestore`)**](#1-sao-lưu-và-phục-hồi-mongodump--mongorestore)
@@ -510,12 +511,12 @@ flowchart TD
 *   **Thực hiện đúng:**
     1.  **Mở file `/etc/hosts`:** Sử dụng `vi /etc/hosts` (hoặc trình soạn thảo yêu thích) để chỉnh sửa file này.
     2.  **Thêm các dòng ánh xạ:** Thêm danh sách các cặp IP-hostname cho *tất cả các node* trong cluster vào cuối file. **Điểm mấu chốt là nội dung của file `/etc/hosts` trên CẢ 3 MÁY PHẢI GIỐNG HỆT NHAU.** Điều này đảm bảo mỗi node đều có một "bản đồ" mạng nhất quán và chính xác về tất cả các node khác.
-```
+        ```
         # --- Mongo Cluster ---
         192.168.0.38   mongo-1
         192.168.0.241  mongo-2
         192.168.0.215  mongo-3
-```
+        ```
     3.  **Đặt hostname duy nhất cho từng máy:** Trên mỗi máy, bạn sẽ chạy lệnh `hostnamectl set-hostname <tên-hostname>` tương ứng.
         *   `hostnamectl set-hostname mongo-1` (Trên máy có IP 192.168.0.38)
         *   `hostnamectl set-hostname mongo-2` (Trên máy có IP 192.168.0.241)
@@ -922,12 +923,12 @@ flowchart TD
 #### **1. Cài đặt MongoDB**
 
 *   **Thực hiện đúng (nếu cài lại từ đầu):**
-```bash
+    ```bash
     yum remove mongodb* -y
     rm -rf /var/log/mongodb /var/lib/mongo /tmp/*.sock
     yum install mongodb-org -y
     rpm -qa | grep mongodb-org # Xác nhận phiên bản 7.0+
-```
+    ```
 
 #### **2. Tạo KeyFile (Xác thực nội bộ)**
 
@@ -940,23 +941,23 @@ flowchart TD
 
 *   **Thực hiện đúng (Làm trên `mongo-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
-```bash
+        ```bash
         mkdir -p /data
         openssl rand -base64 756 | tee /data/mongo-keyfile >/dev/null
-```
+        ```
     2.  **Cực kỳ quan trọng:** Đặt đúng chủ sở hữu và quyền:
-```bash
+        ```bash
         chown mongod:mongod /data/mongo-keyfile
         chmod 400 /data/mongo-keyfile
-```
+        ```
     3.  Copy keyfile sang 2 máy còn lại và **set lại quyền trên từng máy đó**:
 
         Trước tiên, hãy thử copy trực tiếp đến tài khoản `root` trên các máy đích:
-```bash
+        ```bash
         # Trên máy mongo-1 (nơi có keyfile gốc)
         scp /data/mongo-keyfile root@mongo-2:/data/
         scp /data/mongo-keyfile root@mongo-3:/data/
-```
+        ```
 
         **💡 Xử lý tình huống: Không thể `scp` trực tiếp đến tài khoản `root`**
 
@@ -972,17 +973,17 @@ flowchart TD
             
             **Quan trọng:** Đảm bảo tài khoản `youruser` có quyền ghi vào thư mục đích tạm thời này. Thông thường, thư mục `/home/youruser/` và `/tmp/` đều cho phép người dùng sở hữu ghi vào. Bạn có thể kiểm tra bằng lệnh `ls -ld /home/youruser` hoặc `ls -ld /tmp` sau khi SSH vào máy đích. Nếu cột quyền có ký tự `w` (write) cho `owner`, bạn có thể ghi vào đó.
 
-    ```bash
+            ```bash
             # Trên máy mongo-1 (nơi có keyfile gốc)
             # Thay 'youruser' bằng tên user thực tế của bạn trên máy đích
             scp /data/mongo-keyfile youruser@mongo-2:/home/youruser/mongo-keyfile
             scp /data/mongo-keyfile youruser@mongo-3:/home/youruser/mongo-keyfile
-    ```
+            ```
 
         *   **Bước 2: SSH vào từng máy đích và di chuyển file, sau đó đặt lại quyền.**
             Sau khi `scp` thành công, bạn cần đăng nhập vào từng máy đích (ví dụ: `mongo-2`) để di chuyển file `mongo-keyfile` về đúng vị trí `/data/` và đặt lại quyền.
 
-    ```bash
+            ```bash
             # Trên máy mongo-2:
             ssh youruser@mongo-2
             
@@ -991,11 +992,11 @@ flowchart TD
             chown mongod:mongod /data/mongo-keyfile
             chmod 400 /data/mongo-keyfile
             exit # Thoát khỏi phiên SSH
-    ```
+            ```
 
             Thực hiện tương tự cho `mongo-3`:
 
-    ```bash
+            ```bash
             # Trên máy mongo-3:
             ssh youruser@mongo-3
             
@@ -1004,39 +1005,39 @@ flowchart TD
             chown mongod:mongod /data/mongo-keyfile
             chmod 400 /data/mongo-keyfile
             exit # Thoát khỏi phiên SSH
-    ```
+            ```
 
         *   **Bước 3: Xác nhận quyền đã đúng trên TẤT CẢ các máy.**
             Sau khi hoàn thành các bước trên cho cả 3 máy (`mongo-1`, `mongo-2`, `mongo-3`), hãy kiểm tra lại quyền của keyfile trên mỗi máy để đảm bảo mọi thứ chính xác:
 
-    ```bash
+            ```bash
             # Chạy lệnh này trên từng máy: mongo-1, mongo-2, mongo-3
             ls -l /data/mongo-keyfile
             
             # Kết quả mong muốn sẽ giống như sau (hãy chú ý cột quyền `-r--------` và chủ sở hữu `mongod mongod`):
             
             -r--------. 1 mongod mongod 1024 Aug 30 08:30 /data/mongo-keyfile
-    ```
+            ```
 
 
 #### **3. Tạo Thư mục Dữ liệu và Log**
 
 *   **Bẫy người mới:** Tạo thư mục bằng `root` và quên `chown`, dẫn đến lỗi "Permission denied".
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
-```bash
+    ```bash
     mkdir -p /data/config /data/shard1 /data/shard2 /data/shard3
     chown -R mongod:mongod /data
-```
+    ```
 
 #### **4. Mở Firewall**
 
 *   **Bẫy người mới:** Thêm rule `--permanent` nhưng quên `--reload`.
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
-```bash
+    ```bash
     firewall-cmd --add-port=27010-27020/tcp --permanent
     firewall-cmd --reload
     # Nếu không thấy port, kiểm tra firewall: firewall-cmd --list-all
-```
+    ```
 
 ---
 
@@ -1123,10 +1124,10 @@ sharding:
 
 #### **2. Khởi động Config Server**
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
-```bash
+    ```bash
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Theo dõi log để tìm "waiting for connections"
-```
+    ```
 *   **Lưu ý:** ` &` phù hợp cho lab. Môi trường production nên tạo file unit systemd để quản lý dịch vụ chuyên nghiệp hơn.
 
 #### **3. Khởi tạo Replica Set và Tạo User Admin**
@@ -1135,7 +1136,7 @@ sharding:
 *   **Thực hiện đúng (Chỉ làm trên 1 máy):**
     1.  Kết nối: `mongosh localhost:27010`
     2.  Khởi tạo replica set:
-```javascript
+        ```javascript
         rs.initiate({
           _id: "Rep1", configsvr: true,
           members: [
@@ -1144,32 +1145,32 @@ sharding:
             { _id: 2, host: "mongo-3:27010" }
           ]
         })
-```
+        ```
     3.  **Đợi node lên PRIMARY** (prompt chuyển thành `Rep1 [primary]>`):
-```javascript
+        ```javascript
         // Lệnh để chờ tự động
         while (!db.hello().isWritablePrimary) { sleep(1000); print("...waiting for PRIMARY"); }
-```
+        ```
     4.  **Khi đã có PRIMARY**, tạo ngay user admin đầu tiên:
         
 ⚠️ **BẪY BẢO MẬT QUAN TRỌNG:**
 - **Dùng mật khẩu text trong script** → rò rỉ qua shell history
 - **LUÔN dùng `passwordPrompt()` thay vì hard-code mật khẩu**
 
-```javascript
+        ```javascript
         use admin
         db.createUser({
           user: "mongodba", 
           pwd: passwordPrompt(), // <-- Nhập an toàn thay vì hard-code
           roles: [{role: "root", db: "admin"}]
         })
-```
+        ```
     1.  *(Tùy chọn)*: Nếu muốn một node mạnh hơn luôn được ưu tiên làm PRIMARY, bạn có thể chỉnh `priority`. Mặc định không cần thiết.
-```javascript
+        ```javascript
         cfg = rs.conf()
         cfg.members[0].priority = 3 // Node mongo-1 ưu tiên cao nhất
         rs.reconfig(cfg)
-```
+        ```
     2.  Thoát khỏi mongosh: `exit`
 
 #### **4. Bật Xác thực và Khởi động lại**
@@ -1177,11 +1178,11 @@ sharding:
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     1.  Sửa file `/etc/mongod-config.conf`, **bỏ comment** dòng `authorization: enabled`.
     2.  Khởi động lại tiến trình một cách an toàn:
-```bash
+        ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
         pkill -15 -f "mongod-config.conf"
         sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
-```
+        ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 sudo -u mongodba --authenticationDatabase admin`
         (Sẽ prompt nhập password an toàn)
@@ -1198,29 +1199,29 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
 **Thực hiện các bước sau trên CẢ 3 MÁY CONFIG SERVER (`mongo-1`, `mongo-2`, `mongo-3`):**
 
 1.  **Dừng tiến trình `mongod` của Config Server đang chạy:**
-```bash
+    ```bash
     pkill -15 -f "mongod --config /etc/mongod-config.conf"
     sleep 5 # Chờ 5 giây để tiến trình dừng hẳn
-```
+    ```
     *   **Giải thích:** Bước này đảm bảo tiến trình MongoDB đang chạy với cấu hình `authorization` bật bị tắt hoàn toàn.
 
 2.  **Sửa file cấu hình `/etc/mongod-config.conf` để tắt `authorization` tạm thời:**
-```bash
+    ```bash
     vi /etc/mongod-config.conf
-```
+    ```
     Tìm dòng `authorization: enabled` và **COMMENT** nó lại bằng cách thêm dấu `#` vào đầu dòng:
-```yaml
+    ```yaml
     security:
       keyFile: /data/mongo-keyfile
       # authorization: enabled  # <-- Đảm bảo dòng này có dấu # ở đầu
-```    Lưu và đóng file (`:wq`).
+    ```    Lưu và đóng file (`:wq`).
     *   **Giải thích:** Việc này cho phép MongoDB khởi động mà không yêu cầu xác thực người dùng từ client.
 
 3.  **Khởi động lại tiến trình `mongod` của Config Server:**
-```bash
+    ```bash
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Kiểm tra log để đảm bảo không có lỗi xác thực
-```
+    ```
     *   **Giải thích:** Tiến trình `mongod` giờ sẽ khởi động với `authorization` đã tắt.
 
 **Sau khi hoàn thành 3 bước khắc phục trên cả 3 máy, bạn đã có thể tiếp tục với các bước thiết lập Config Server:**
@@ -1232,11 +1233,11 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
     Bạn có thể sử dụng `rs.reconfig()` để thêm các thành viên còn lại và sau đó tạo user admin (như đã hướng dẫn trong phần "Bẫy Người Mới" của mục này).
 
     *   **Kết nối `mongosh` trên máy PRIMARY (ví dụ `mongo-1`):**
-```bash
+        ```bash
         mongosh --port 27010
-```
+        ```
     *   **Lấy cấu hình hiện tại và thêm các thành viên khác:**
-```javascript
+        ```javascript
         cfg = rs.conf()
         cfg.members = [
           { _id: 0, host: "mongo-1:27010" },
@@ -1245,14 +1246,14 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
         ];
         cfg.configsvr = true;
         rs.reconfig(cfg, { force: true });
-```
+        ```
     *   **Chờ PRIMARY và tạo user admin:**
-```javascript
+        ```javascript
         while (!db.hello().isWritablePrimary) { sleep(1000); print("...waiting for PRIMARY"); }
         use admin
         db.createUser({user: "mongodba", pwd: passwordPrompt(), roles:[{role: "root", db: "admin"}]})
         exit
-```
+        ```
 
 ---
 
@@ -1261,11 +1262,11 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     1.  Sửa file `/etc/mongod-config.conf`, **bỏ comment** dòng `authorization: enabled`.
     2.  Khởi động lại tiến trình một cách an toàn:
-```bash
+        ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
         pkill -15 -f "mongod --config /etc/mongod-config.conf"
         sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
-```
+        ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
         `mongosh --port 27010 sudo -u mongodba --authenticationDatabase admin`
         (Sẽ prompt nhập password an toàn)
@@ -1414,12 +1415,12 @@ sharding:
 #### **2. Khởi động và Khởi tạo Replica Set cho từng Shard**
 
 *   **Thực hiện (Trên CẢ 3 MÁY):**
-```bash
+    ```bash
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
-```
+    ```
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
 - **Bật `authorization` trước `rs.initiate()` và kết nối *không phải* từ localhost** → `rs.initiate()` bị chặn
 - **Nhầm tham số `mongosh -c`** → lệnh không chạy (đúng là `--eval`)
@@ -1429,7 +1430,7 @@ sharding:
 
 💡 **CÁCH AN TOÀN:** Nếu đã bật `authorization` ngay từ đầu trên shard, **bắt buộc chạy từ localhost**: `mongosh --host 127.0.0.1 --port 27011 --eval 'rs.initiate(...)'` (tận dụng "localhost exception").
 
-```bash
+    ```bash
     # Shard01 - SỬA LỖI: dùng --eval thay vì -c
     mongosh --host mongo-1 --port 27011 --eval \
     'rs.initiate({_id:"shard01",members:[{_id:0,host:"mongo-1:27011"},{_id:1,host:"mongo-2:27011"},{_id:2,host:"mongo-3:27011"}]})'
@@ -1441,7 +1442,7 @@ sharding:
     # Shard03
     mongosh --host mongo-1 --port 27013 --eval \
     'rs.initiate({_id:"shard03",members:[{_id:0,host:"mongo-1:27013"},{_id:1,host:"mongo-2:27013"},{_id:2,host:"mongo-3:27013"}]})'
-```
+    ```
 
 ---
 
@@ -1507,34 +1508,34 @@ tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config 
 - **Dùng mật khẩu hard-code trong lệnh** → rò rỉ credential
 
 *   **Thực hiện (Kết nối vào Mongos):**
-```bash
+    ```bash
     mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin
     # Sẽ prompt nhập password an toàn
-```
+    ```
     Bên trong mongosh:
-```javascript
+    ```javascript
     // Dùng định dạng replica set / seed list, hiệu quả hơn
     sh.addShard("shard01/mongo-1:27011,mongo-2:27011,mongo-3:27011")
     sh.addShard("shard02/mongo-1:27012,mongo-2:27012,mongo-3:27012")
     sh.addShard("shard03/mongo-1:27013,mongo-2:27013,mongo-3:27013")
-```
+    ```
 
 #### **4. Kích hoạt Sharding và Test**
 
 1.  **Kiểm tra trạng thái:** `sh.status()` sẽ hiển thị các shard đã được thêm.
 2.  **Bật sharding cho database:** `sh.enableSharding("testDB")`
 3.  **Shard collection với `hashed` key để phân phối đều:**
-```javascript
+    ```javascript
     use testDB
     sh.shardCollection("testDB.myCollection", { "_id": "hashed" } )
-```
+    ```
 4.  **Insert dữ liệu để kiểm tra:**
-```javascript
+    ```javascript
     for (var i = 1; i <= 100000; i++) {
       db.myCollection.insertOne({ name: "test_data_" + i });
     }
     db.myCollection.getShardDistribution() // Xem dữ liệu đã được phân phối đều chưa
-```
+    ```
 
 ---
 
@@ -1631,7 +1632,7 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
 #### **1. Bài toán 1: Lọc, Sắp xếp và Định hình Dữ liệu**
 
 *   **Chuẩn bị dữ liệu:**
-```javascript
+    ```javascript
     use testDB // Sử dụng lại database từ Giai đoạn 4
     db.persons.insertMany([
       { "person_id": "6392529400", "firstname": "Elise", "lastname": "Smith", "dateofbirth": ISODate("1972-01-13T09:32:07Z"), "vocation": "ENGINEER", "address": { "number": 5625, "street": "Tipa Circle", "city": "Wojzinmoj" } },
@@ -1641,10 +1642,10 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
       { "person_id": "1029648329", "firstname": "Sophie", "lastname": "Celements", "dateofbirth": ISODate("1959-07-06T17:35:45Z"), "vocation": "ENGINEER", "address": { "number": 5, "street": "Innings Close", "city": "Basilbridge" } },
       { "person_id": "7363626383", "firstname": "Carl", "lastname": "Simmons", "dateofbirth": ISODate("1998-12-26T13:13:55Z"), "vocation": "ENGINEER", "address": { "number": 187, "street": "Hillside Road", "city": "Kenningford" } }
     ]);
-```
+    ```
 *   **Yêu cầu:** Trả về 3 người kỹ sư (ENGINEER) trẻ nhất, chỉ hiển thị `firstname`, `lastname`, `dateofbirth`.
 *   **Lời giải:**
-```javascript
+    ```javascript
     db.persons.aggregate([
       // Giai đoạn 1: Lọc ra những người là ENGINEER
       { $match: { vocation: "ENGINEER" } },
@@ -1660,12 +1661,12 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
           dateofbirth: 1
       }}
     ])
-```
+    ```
 
 #### **2. Bài toán 2: Thống kê và Nhóm Dữ liệu**
 
 *   **Chuẩn bị dữ liệu:**
-```javascript
+    ```javascript
     db.orders.insertMany([
       { "customer_id": "elise_smith@myemail.com", "orderdate": ISODate("2020-05-30T08:35:52Z"), "value": NumberDecimal("231.43")},
       { "customer_id": "elise_smith@myemail.com", "orderdate": ISODate("2020-01-13T09:32:07Z"), "value": NumberDecimal("99.99")},
@@ -1674,10 +1675,10 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
       { "customer_id": "tj@wheresmyemail.com", "orderdate": ISODate("2020-11-23T22:56:53Z"), "value": NumberDecimal("187.99")},
       { "customer_id": "elise_smith@myemail.com", "orderdate": ISODate("2020-12-26T08:55:46Z"), "value": NumberDecimal("48.50")}
     ]);
-```
+    ```
 *   **Yêu cầu:** Thống kê dữ liệu khách hàng trong năm 2020, thể hiện: ngày mua hàng đầu tiên, tổng giá trị đơn hàng, và số lần mua.
 *   **Lời giải:**
-```javascript
+    ```javascript
     db.orders.aggregate([
       // Giai đoạn 1: Lọc các đơn hàng trong năm 2020
       { $match: {
@@ -1694,22 +1695,22 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
           purchase_count: { $sum: 1 }                 // Đếm số lượng document trong nhóm
       }}
     ])
-```
+    ```
 
 #### **3. Bài toán 3: Join Dữ liệu giữa các Collection**
 
 *   **Chuẩn bị dữ liệu:**
-```javascript
+    ```javascript
     db.products.insertMany([
       { "id": "a1b2c3d4", "name": "Asus Laptop", "category": "ELECTRONICS" },
       { "id": "z9y8x7w6", "name": "The Day Of The Triffids", "category": "BOOKS" },
       { "id": "ff11gg22hh33", "name": "Morphy Richards Food Mixer", "category": "KITCHENWARE" }
     ]);
     // Giả sử collection 'orders' đã có từ bài 2
-```
+    ```
 *   **Yêu cầu:** Lấy dữ liệu đơn hàng trong năm 2020, nhưng thay vì hiển thị `product_id`, hãy tra cứu và hiển thị `product_name` và `product_category`.
 *   **Lời giải:**
-```javascript
+    ```javascript
     db.orders.aggregate([
       // Giai đoạn 1: Lọc đơn hàng trong năm 2020
       { $match: {
@@ -1732,7 +1733,7 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
           product_category: { $arrayElemAt: ["$product_details.category", 0] }
       }}
     ])
-```
+    ```
 
 ---
 
@@ -1788,7 +1789,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
     `mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin`
     # Sẽ prompt nhập password an toàn
 2.  **Tạo user cho ứng dụng:**
-```javascript
+    ```javascript
     use reporting // Chuyển sang DB mà user sẽ thao tác
     db.createUser({
       user: "reportUser",
@@ -1806,7 +1807,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
         { role: "readWrite", db: "testDB" } // Cho phép đọc và ghi trên DB 'testDB'
       ]
     })
-```
+    ```
 
 #### **2. Tạo Role Tùy chỉnh (Custom Role)**
 
@@ -1814,7 +1815,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 
 *   **Yêu cầu:** Tạo một role `inventoryManager` chỉ được phép `find`, `update`, `insert` trên collection `inventory` và chỉ `find` trên collection `orders` trong database `products`.
 *   **Thực hiện:**
-```javascript
+    ```javascript
     use products
     db.createRole({
       role: "inventoryManager",
@@ -1837,7 +1838,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
       pwd: passwordPrompt(),
       roles: [ { role: "inventoryManager", db: "products" } ]
     })
-```
+    ```
 
 #### **3. Cấu hình Audit Log (Ghi lại hoạt động)**
 
@@ -1849,12 +1850,12 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 *   **Mục đích:** Ghi lại các sự kiện quan trọng (đăng nhập, thay đổi schema, tạo user...) ra một file log riêng để phục vụ cho việc điều tra an ninh.
 *   **Thực hiện đúng (CHỈ DÀNH CHO MONGODB ENTERPRISE/ATLAS):**
     1.  Tạo thư mục cho audit log trên **CẢ 3 MÁY**:
-```bash
+        ```bash
         mkdir /data/audit
         chown mongod:mongod /data/audit
-```
+        ```
     2.  Thêm cấu hình `auditLog` vào **tất cả các file config** (`mongod-config.conf`, `mongod-shard1.conf`...):
-```yaml
+        ```yaml
         security:
           authorization: enabled
           keyFile: /data/mongo-keyfile
@@ -1864,7 +1865,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
           destination: file
           format: JSON
           path: /data/audit/audit.log
-```
+        ```
     3.  Khởi động lại tất cả các tiến trình `mongod`. Giờ đây, mọi hành động quan trọng sẽ được ghi lại trong file `/data/audit/audit.log`.
 
 ---
@@ -1898,7 +1899,7 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 *   **Mục đích:** Đảm bảo node máy chủ mạnh nhất, có độ trễ mạng thấp nhất sẽ được ưu tiên làm `PRIMARY` để tối ưu hiệu năng ghi.
 *   **Bẫy người mới:** Để tất cả các node có priority bằng nhau, dẫn đến việc một node yếu có thể được bầu làm `PRIMARY`, ảnh hưởng đến toàn bộ replica set.
 *   **Thực hiện đúng:** Kết nối vào replica set (ví dụ shard01) và điều chỉnh `priority`.
-```bash
+    ```bash
     # Kết nối vào một member bất kỳ của shard01
     mongosh --port 27011
     
@@ -1912,33 +1913,33 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
     
     # Áp dụng lại cấu hình
     rs.reconfig(cfg)
-```    Node có `priority` cao nhất sẽ được ưu tiên trong các cuộc bầu cử. Node có `priority: 0` sẽ không bao giờ trở thành `PRIMARY`.
+    ```    Node có `priority` cao nhất sẽ được ưu tiên trong các cuộc bầu cử. Node có `priority: 0` sẽ không bao giờ trở thành `PRIMARY`.
 
 #### **2. Cấu hình Hidden Node**
 
 *   **Mục đích:** Tạo một member ẩn, không được ứng dụng nhìn thấy và không thể trở thành `PRIMARY`. Nó chuyên dùng cho các tác vụ như backup, phân tích dữ liệu mà không ảnh hưởng đến tải của các node chính.
 *   **Thực hiện đúng:**
-```javascript
+    ```javascript
     cfg = rs.conf()
     // Giả sử muốn ẩn node mongo-3
     cfg.members[2].priority = 0
     cfg.members[2].hidden = true
     rs.reconfig(cfg)
-```
+    ```
 
 #### **3. Điều chỉnh Kích thước Oplog**
 
 *   **Mục đích:** Oplog (operations log) là một collection đặc biệt lưu lại tất cả các thao tác ghi. Kích thước oplog quyết định "cửa sổ thời gian" mà một node `SECONDARY` có thể offline mà không cần phải resync toàn bộ dữ liệu.
 *   **Bẫy người mới:** Để kích thước oplog mặc định. Với hệ thống ghi nhiều, oplog sẽ bị ghi đè rất nhanh, khiến node `SECONDARY` bị lỗi và phải resync, gây tốn tài nguyên.
 *   **Thực hiện đúng:** (Làm trên `PRIMARY` của replica set)
-```javascript
+    ```javascript
     // Kiểm tra kích thước hiện tại (bytes)
     use local
     db.oplog.rs.stats().maxSize
     
     // Thay đổi kích thước oplog thành 20GB (20000 MB)
     db.adminCommand({ replSetResizeOplog: 1, size: 20000 })
-```
+    ```
 
 ---
 
@@ -1990,19 +1991,19 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Mục đích:** Tạo bản sao lưu logic của database để phòng trường hợp xảy ra sự cố.
 *   **Thực hiện đúng:**
     *   **Backup toàn bộ database `testDB` (chạy từ một máy client có cài mongo tools):**
-```bash
+        ```bash
         mongodump --host=mongo-1 --port=27020 \
                   sudo -u mongodba --authenticationDatabase admin \
                   --db=testDB --out=/backup/testDB_`date +%F`
         # Sẽ prompt nhập password an toàn
-```
+        ```
     *   **Restore database `testDB`:**
-```bash
+        ```bash
         mongorestore --host=mongo-1 --port=27020 \
                      sudo -u mongodba --authenticationDatabase admin \
                      --db=testDB /backup/testDB_YYYY-MM-DD
         # Sẽ prompt nhập password an toàn
-```
+        ```
 
 #### **2. Phục hồi tại một thời điểm (Point-in-Time Recovery)**
 
@@ -2010,46 +2011,46 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Bẫy người mới:** Chỉ có backup hàng đêm. Nếu sai sót xảy ra lúc 9 giờ sáng, bạn sẽ mất toàn bộ dữ liệu từ đêm hôm trước.
 *   **Thực hiện đúng (Quy trình):**
     1.  **Luôn có một bản backup Oplog gần nhất:**
-```bash
+        ```bash
         # Lệnh này nên được chạy định kỳ (ví dụ mỗi giờ)
         mongodump --host=mongo-1 --port=27011 \
                   -d local -c oplog.rs --out /backup/oplogs
-```    2.  **Khi có sự cố (ví dụ: xóa nhầm lúc 10:30:00 AM):**
+        ```    2.  **Khi có sự cố (ví dụ: xóa nhầm lúc 10:30:00 AM):**
         *   Tìm `timestamp` của thời điểm ngay trước khi xóa trong bản backup oplog.
     3.  **Restore:**
         *   Khôi phục từ bản backup đầy đủ gần nhất.
         *   Dùng `mongorestore` với cờ `--oplogReplay` và `--oplogLimit` để áp dụng lại các thay đổi từ oplog cho đến thời điểm mong muốn.
-```bash
+        ```bash
         # Ví dụ restore tới timestamp 1729073314:3
         mongorestore --port 27017 --oplogReplay \
                      --oplogLimit=1729073314:3 \
                      /backup/mongo/local/oplog.rs.bson
-```
+        ```
 
 #### **3. Giám sát Hiệu năng**
 
 *   **Mục đích:** Theo dõi sức khỏe hệ thống, phát hiện các "điểm nóng" và truy vấn chậm.
 *   **Công cụ dòng lệnh:**
     *   `mongostat`: Cung cấp cái nhìn tổng quan theo thời gian thực về các hoạt động (inserts, queries, updates, deletes...), lỗi, và hàng đợi.
-```bash
+        ```bash
         mongostat --host mongo-1 --port 27020 sudo -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
-```
+        ```
     *   `mongotop`: Hiển thị thời gian đọc/ghi trên từng collection, giúp bạn biết collection nào đang hoạt động nhiều nhất.
-```bash
+        ```bash
         mongotop --host mongo-1 --port 27020 sudo -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
-```
+        ```
 *   **Database Profiler (Tìm truy vấn chậm):**
     1.  **Bật profiler:** Ghi lại các truy vấn chạy chậm hơn 100ms.
-```javascript
+        ```javascript
         use testDB
         db.setProfilingLevel(1, { slowms: 100 })
-```
+        ```
     2.  **Xem các truy vấn chậm:**
-```javascript
+        ```javascript
         db.system.profile.find().pretty()
-```
+        ```
     3.  **Tắt profiler:** `db.setProfilingLevel(0)`
 
 ---
@@ -2100,32 +2101,32 @@ Nếu Sharding là giải pháp cho bài toán *dung lượng* (scale-out), thì
 #### **1. Các loại Index cơ bản và cách tạo**
 
 *   **Kết nối vào Mongos để thực hiện:**
-```bash
+    ```bash
     mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin
     # Sẽ prompt nhập password an toàn
     use testDB
-```
+    ```
 
 *   **Single Field Index (Chỉ mục trên một trường):**
-```javascript
+    ```javascript
     // Tạo index trên trường 'vocation' của collection 'persons'
     // 1: sắp xếp tăng dần, -1: sắp xếp giảm dần
     db.persons.createIndex({ "vocation": 1 })
-```
+    ```
     *Phục vụ cho các truy vấn như:* `db.persons.find({ vocation: "ENGINEER" })`
 
 *   **Compound Index (Chỉ mục phức hợp trên nhiều trường):**
-```javascript
+    ```javascript
     // Tạo index trên 'vocation' và 'lastname'
     db.persons.createIndex({ "vocation": 1, "lastname": 1 })
-```
+    ```
     *Quan trọng:* Thứ tự các trường trong index rất quan trọng. Index này sẽ phục vụ tốt cho:
     1.  `db.persons.find({ vocation: "ENGINEER" })`
     2.  `db.persons.find({ vocation: "ENGINEER", lastname: "Smith" })`
     *Nhưng sẽ **không** phục vụ tốt cho:* `db.persons.find({ lastname: "Smith" })`
 
 *   **Text Index (Chỉ mục văn bản):** Dùng cho tìm kiếm toàn văn bản (full-text search).
-```javascript
+    ```javascript
     // Chuẩn bị dữ liệu
     db.articles.insertOne({ title: "MongoDB Performance Tuning", content: "Indexing is a key concept for tuning databases." })
     db.articles.insertOne({ title: "Sharding Guide", content: "A guide to horizontal scaling with MongoDB." })
@@ -2135,19 +2136,19 @@ Nếu Sharding là giải pháp cho bài toán *dung lượng* (scale-out), thì
     
     // Tìm kiếm
     db.articles.find({ $text: { $search: "tuning scaling" } }) // Sẽ tìm các document chứa 'tuning' hoặc 'scaling'
-```
+    ```
 
 #### **2. Phân tích Kế hoạch Thực thi (Execution Plan)**
 
 Làm sao để biết một truy vấn có đang sử dụng index hay không? Hãy dùng lệnh `explain()`.
 
 *   **Thực hiện:**
-```javascript
+    ```javascript
     db.persons.find({ vocation: "ENGINEER", lastname: "Smith" }).explain("executionStats")
-```*   **Phân tích kết quả:**
+    ```*   **Phân tích kết quả:**
     Bạn cần tìm đến mục `executionStats.winningPlan`.
     *   **TỐT (`IXSCAN`):** Nếu `stage` là `IXSCAN` (Index Scan), nghĩa là truy vấn của bạn đã sử dụng index.
-```json
+        ```json
         "winningPlan": {
           "stage": "FETCH",
           "inputStage": {
@@ -2156,16 +2157,16 @@ Làm sao để biết một truy vấn có đang sử dụng index hay không? H
             // ...
           }
         }
-```
+        ```
     *   **TỆ (`COLLSCAN`):** Nếu `stage` là `COLLSCAN` (Collection Scan), nghĩa là MongoDB đã phải đọc toàn bộ collection. Bạn cần phải xem lại và tạo index phù hợp.
-```json
+        ```json
         "winningPlan": {
           "stage": "COLLSCAN", // <-- Cảnh báo hiệu năng!
           "filter": {
              // ...
           }
         }
-```
+        ```
 
 ---
 
@@ -2256,7 +2257,7 @@ Chúng ta đã dựng cluster sharding, nhưng việc phân chia dữ liệu di�
 #### **3. Kiểm tra Phân phối Dữ liệu**
 
 *   **Kết nối vào `mongos` và chạy các lệnh sau:**
-```javascript
+    ```javascript
     use testDB
     
     // Xem thống kê phân phối của collection
@@ -2264,7 +2265,7 @@ Chúng ta đã dựng cluster sharding, nhưng việc phân chia dữ liệu di�
     
     // Xem trạng thái tổng quan của cluster, bao gồm các chunk và balancer
     sh.status()
-```
+    ```
     Hãy chú ý đến số lượng chunk trên mỗi shard trong kết quả của `sh.status()`. Nếu chúng chênh lệch quá nhiều, có thể Shard Key của bạn chưa tối ưu.
 
 ---
@@ -2329,7 +2330,7 @@ Lệnh này giống như `show processlist` trong MySQL hay `top` trên Linux, n
 
 *   **Yêu cầu:** Tìm tất cả các truy vấn từ user ứng dụng đang chạy quá 10 giây.
 *   **Thực hiện (kết nối vào `mongos`):**
-```javascript
+    ```javascript
     // Script: get_sql_running.js
     var c=1;
     db.currentOp({
@@ -2346,7 +2347,7 @@ Lệnh này giống như `show processlist` trong MySQL hay `top` trên Linux, n
       printjson(op.command);
       c++;
     })
-```
+    ```
     Bạn có thể lưu script trên vào file `get_sql_running.js` và chạy bằng `mongosh --port 27020 -u ... -f get_sql_running.js`.
 
 #### **2. "Hạ sát" các Truy vấn Gây hại (`db.killOp`)**
@@ -2356,7 +2357,7 @@ Khi bạn đã xác định được `opid` (Operation ID) của một truy vấ
 *   **CẢNH BÁO:** Đây là một hành động mạnh. Cần cân nhắc kỹ lưỡng, đặc biệt là khi kill các thao tác ghi. Việc kill một thao tác ghi có thể để lại dữ liệu ở trạng thái không nhất quán tạm thời trước khi được rollback. Luôn ưu tiên tối ưu truy vấn và index hơn là phải đi kill chúng.
 
 *   **Thực hiện đúng (Script an toàn):** Tài liệu của bạn cung cấp một script rất hay, nó gói logic này vào một hàm an toàn.
-```javascript
+    ```javascript
     // Script: killLongRunningOps.js
     function killLongRunningOps(maxSecsRunning) {
       print("Searching for ops running longer than " + maxSecsRunning + " seconds...");
@@ -2377,21 +2378,21 @@ Khi bạn đã xác định được `opid` (Operation ID) của một truy vấ
     
     // Ví dụ: Kill tất cả truy vấn đọc chạy quá 60 giây
     killLongRunningOps(60);
-```
+    ```
 
 #### **3. Tự động hóa Giám sát Tình trạng Replica Set**
 
 *   **Mục đích:** Viết các script nhỏ để kiểm tra các chỉ số sức khỏe quan trọng như "replication lag" (độ trễ sao chép) và tình trạng của các node secondary. Các script này có thể được tích hợp vào các hệ thống giám sát như Zabbix, Nagios, hoặc một cron job đơn giản.
 *   **Script kiểm tra Replication Lag:**
-```javascript
+    ```javascript
     // Script: check_replica_lag.js
     // Chạy script này trên từng PRIMARY của mỗi shard
     // Ví dụ: mongosh --port 27011 -f check_replica_lag.js
     printjson(rs.printSecondaryReplicationInfo());
-```
+    ```
     *Kết quả sẽ cho bạn biết mỗi node secondary đang "chậm chân" hơn primary bao nhiêu giây. Nếu con số này tăng đột biến, đó là dấu hiệu của sự cố mạng hoặc quá tải trên secondary.*
 *   **Script đếm số lượng node Secondary:**
-```javascript
+    ```javascript
     // Script: check_secondary_count.js
     // Chạy trên một member bất kỳ của replica set
     var secondaryCount = 0;
@@ -2402,7 +2403,7 @@ Khi bạn đã xác định được `opid` (Operation ID) của một truy vấ
       }
     }
     print("Number of active secondaries: " + secondaryCount);
-```
+    ```
     *Nếu số lượng secondary ít hơn mong đợi, hệ thống của bạn đã mất đi một phần khả năng chịu lỗi (failover).*
 
 ---
@@ -2458,22 +2459,22 @@ sequenceDiagram
 
 3.  **PHỤC HỒI TỪ BẢN FULL BACKUP:**
     *   Trên server tạm, chạy lệnh restore từ bản backup lúc 2:00 sáng.
-```bash
+        ```bash
         mongorestore --host=localhost --port=27017 /path/to/full_backup_0200AM
-```
+        ```
 
 4.  **TÌM TIMESTAMP CỦA "TỘI ÁC":**
     *   Chúng ta cần tìm timestamp chính xác tương ứng với thời điểm ngay trước 10:45:15.
     *   Lấy file backup oplog gần nhất (ví dụ bản lúc 11:00, chứa các log từ 10:45 đến 11:00).
     *   Dùng `bsondump` để chuyển file BSON của oplog sang định dạng JSON có thể đọc được.
-```bash
+        ```bash
         bsondump /backup/mongo/local/oplog.rs.bson > oplog.json
-```
+        ```
     *   Mở file `oplog.json` và tìm kiếm. Mỗi entry sẽ có một trường `"ts"` (timestamp) dạng `Timestamp(1678852000, 1)`. Con số đầu tiên là Unix timestamp. Bạn cần tìm entry ngay trước thời điểm xảy ra sự cố. Giả sử bạn tìm được timestamp giới hạn là `1729073314:3`.
 
 5.  **ÁP DỤNG OPLOG (Bước Ma thuật):**
     *   Bây giờ, trên server tạm, bạn sẽ "chiếu lại" các thay đổi từ oplog, bắt đầu từ thời điểm của bản full backup và dừng lại *ngay trước* khi lệnh xóa được thực thi.
-```bash
+        ```bash
         # Tạo user restore đặc biệt nếu cần (như trong tài liệu)
         # ...
         
@@ -2481,7 +2482,7 @@ sequenceDiagram
         mongorestore --port 27017 \
                      --oplogReplay --oplogLimit=1729073314:3 \
                      /backup/mongo/local/oplog.rs.bson
-```
+        ```
         *   `--oplogReplay`: Yêu cầu `mongorestore` áp dụng các entry trong file oplog.
         *   `--oplogLimit`: Đây chính là chiếc "cỗ máy thời gian". Nó sẽ dừng lại ở timestamp được chỉ định.
 
@@ -2537,7 +2538,7 @@ WiredTiger cache chủ yếu được dùng để giữ các dữ liệu *chưa 
 *   **Cách cấu hình:**
     1.  Mở file cấu hình của một tiến trình `mongod` (ví dụ: `/etc/mongod-shard1.conf`).
     2.  Thêm hoặc chỉnh sửa tham số `cacheSizeGB` trong mục `storage`.
-```yaml
+        ```yaml
         storage:
           dbPath: /data/shard1
           journal:
@@ -2547,7 +2548,7 @@ WiredTiger cache chủ yếu được dùng để giữ các dữ liệu *chưa 
             engineConfig:
               # --- Dòng quan trọng là đây ---
               cacheSizeGB: 8 # Ví dụ: Cấp phát 8GB RAM cho WiredTiger cache
-```
+        ```
     3.  **Ví dụ thực tế:** Trên một máy chủ có 64GB RAM.
         *   **Mặc định:** MongoDB sẽ lấy `(64 - 1) / 2 = 31.5 GB` cho WiredTiger cache.
         *   **Tùy chỉnh:** Nếu bạn biết working set của mình khoảng 40GB và đã được nén tốt, bạn có thể giảm `cacheSizeGB` xuống còn 16GB, để lại `64 - 16 = 48GB` cho OS cache, đủ sức chứa toàn bộ working set đã nén.
