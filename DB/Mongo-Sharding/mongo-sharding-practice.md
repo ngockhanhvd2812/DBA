@@ -25,6 +25,11 @@
       - [**4. Mở Firewall**](#4-mở-firewall)
     - [**Giai đoạn 3: Dựng Cụm Config Server**](#giai-đoạn-3-dựng-cụm-config-server)
       - [**1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**](#1-tạo-file-cấu-hình-trên-cả-3-máy)
+- [journal:](#journal)
+- [enabled: true](#enabled-true)
+- [fork: true  # fork and run in background](#fork-true---fork-and-run-in-background)
+- [pidFilePath: /data/mongod-config.pid  # location of pidfile](#pidfilepath-datamongod-configpid---location-of-pidfile)
+- [authorization: enabled](#authorization-enabled)
       - [**2. Khởi động Config Server**](#2-khởi-động-config-server)
       - [**3. Khởi tạo Replica Set và Tạo User Admin**](#3-khởi-tạo-replica-set-và-tạo-user-admin)
       - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại)
@@ -1073,32 +1078,33 @@ sequenceDiagram
 
 *   **File `/etc/mongod-config.conf`:**
     ```yaml
-    systemLog:
-      destination: file
-      logAppend: true
-      path: /data/config.log
-     
-    storage:
-      dbPath: /data/config
-    #  journal:
-    #    enabled: true
-     
-    processManagement:
-    #  fork: true  # fork and run in background
-      pidFilePath: /data/mongod-config.pid  # location of pidfile
-      timeZoneInfo: /usr/share/zoneinfo
-     
-    net:
-      port: 27010
-      bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
-    
-    security:
-      keyFile: /data/mongo-keyfile 
-      # authorization: enabled  # <-- TẠM THỜI COMMENT ĐỂ BOOTSTRAP
-    replication:
-       replSetName: "Rep1"
-    sharding:
-       clusterRole: configsvr
+systemLog:
+  destination: file
+  logAppend: true
+  path: /data/config.log
+ 
+storage:
+  dbPath: /data/config
+#  journal:
+#    enabled: true
+ 
+processManagement:
+#  fork: true  # fork and run in background
+#  pidFilePath: /data/mongod-config.pid  # location of pidfile
+  timeZoneInfo: /usr/share/zoneinfo
+ 
+net:
+  port: 27010
+  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+
+security:
+#  authorization: enabled
+  keyFile: /data/mongo-keyfile 
+replication:
+   replSetName: "Rep1"
+sharding:
+   clusterRole: configsvr
+
     ```
 *   **Bẫy Người Mới:** Vội vàng bật `authorization: enabled`. Điều này sẽ chặn bạn khởi tạo replica set và tạo user admin đầu tiên (vấn đề "con gà quả trứng"). Quy trình đúng là giữ `keyFile` (xác thực nội bộ) nhưng tạm tắt `authorization` (xác thực client).
 
@@ -1319,25 +1325,97 @@ graph TD
 #### **1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**
 
 *   **File `/etc/mongod-shard1.conf` (Tương tự cho shard2, shard3):**
-    ```yaml
-    systemLog:
-      destination: file
-      path: /data/shard1.log # Đổi thành shard2.log, shard3.log
-      logAppend: true
-      logRotate: reopen
-    storage:
-      dbPath: /data/shard1 # Đổi thành /data/shard2, /data/shard3
-    net:
-      port: 27011 # Đổi thành 27012, 27013
-      bindIp: 0.0.0.0
-    security:
-      keyFile: /data/mongo-keyfile
-      authorization: enabled
-    replication:
-       replSetName: "shard01" # Đổi thành "shard02", "shard03"
-    sharding:
-       clusterRole: shardsvr
-    ```
+```yaml
+systemLog:
+  destination: file
+  logAppend: true
+  logRotate: reopen
+  path: /data/shard1.log
+ 
+storage:
+  dbPath: /data/shard1
+#  journal:
+#   enabled: true
+ 
+processManagement:
+# fork: true  # fork and run in background
+#  pidFilePath: /data/mongod-shard1.pid  # location of pidfile
+  timeZoneInfo: /usr/share/zoneinfo
+ 
+net:
+  port: 27011
+  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+ 
+security:
+  authorization: enabled
+  keyFile: /data/mongo-keyfile 
+replication:
+   replSetName: "shard01" 
+sharding:
+   clusterRole: shardsvr
+```
+---
+*   **File `/etc/mongod-shard2.conf` 
+```yaml
+systemLog:
+  destination: file
+  logAppend: true
+  logRotate: reopen
+  path: /data/shard2.log
+ 
+storage:
+  dbPath: /data/shard2
+#  journal:
+#   enabled: true
+ 
+processManagement:
+# fork: true  # fork and run in background
+#  pidFilePath: /data/mongod-shard2.pid  # location of pidfile
+  timeZoneInfo: /usr/share/zoneinfo
+ 
+net:
+  port: 27012
+  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+ 
+security:
+  authorization: enabled
+  keyFile: /data/mongo-keyfile 
+replication:
+   replSetName: "shard02" 
+sharding:
+   clusterRole: shardsvr
+``` 
+---
+*   **File `/etc/mongod-shard3.conf` 
+```yaml
+systemLog:
+  destination: file
+  logAppend: true
+  logRotate: reopen
+  path: /data/shard3.log
+ 
+storage:
+  dbPath: /data/shard3
+#  journal:
+#   enabled: true
+ 
+processManagement:
+# fork: true  # fork and run in background
+#  pidFilePath: /data/mongod-shard3.pid  # location of pidfile
+  timeZoneInfo: /usr/share/zoneinfo
+ 
+net:
+  port: 27013
+  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+ 
+security:
+  authorization: enabled
+  keyFile: /data/mongo-keyfile 
+replication:
+   replSetName: "shard03" 
+sharding:
+   clusterRole: shardsvr
+``` 
 *   **Giải thích quan trọng:** Đối với shard, bạn có thể bật `authorization: enabled` ngay từ đầu vì chúng ta **KHÔNG CẦN TẠO USER LOCAL TRÊN SHARD**. Việc xác thực giữa các node đã có `keyFile` lo, còn xác thực client sẽ do `mongos` và `config server` xử lý.
 
 #### **2. Khởi động và Khởi tạo Replica Set cho từng Shard**
