@@ -1483,7 +1483,7 @@ Bạn có thể kết nối mà không cần xác thực vì MongoDB cho phép "
         exit
         ```
     Chờ khoảng 10-20 giây để các replica set ổn định và bầu cử xong PRIMARY.
-    
+
 👉 Với cấu hình này:
 
 * **Shard01** sẽ ưu tiên `mongo-1` làm Primary.
@@ -1617,7 +1617,7 @@ tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config 
 
 *   **Thực hiện (Kết nối vào Mongos):**
     ```bash
-    mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin
+    mongosh --port 27020 -u mongodba --authenticationDatabase admin
     # Sẽ prompt nhập password an toàn
     ```
     Bên trong mongosh:
