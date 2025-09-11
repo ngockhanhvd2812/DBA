@@ -1355,7 +1355,7 @@ sharding:
    clusterRole: shardsvr
 ```
 ---
-*   **File `/etc/mongod-shard2.conf` 
+*   **File `/etc/mongod-shard2.conf`**
 ```yaml
 systemLog:
   destination: file
@@ -1386,7 +1386,7 @@ sharding:
    clusterRole: shardsvr
 ``` 
 ---
-*   **File `/etc/mongod-shard3.conf` 
+*   **File `/etc/mongod-shard3.conf`**
 ```yaml
 systemLog:
   destination: file
@@ -1479,21 +1479,25 @@ flowchart TD
 #### **1. Tạo File Cấu hình Mongos (Trên 1 máy)**
 
 *   **File `/etc/mongos.conf`:**
-    ```yaml
-    systemLog:
-      destination: file
-      path: /data/mongos.log
-      logAppend: true
-    net:
-      port: 27020
-      bindIp: 0.0.0.0
-    security:
-      keyFile: /data/mongo-keyfile
-    sharding:
-      configDB: Rep1/mongo-1:27010,mongo-2:27010,mongo-3:27010
-    processManagement:
-      pidFilePath: /data/mongos.pid
-    ```
+```yaml
+systemLog:
+  destination: file
+  logAppend: true
+  path: /data/mongos.log
+ 
+processManagement:
+#  fork: true  # fork and run in background
+#  pidFilePath: /data/mongod-mongos.pid  # location of pidfile
+  timeZoneInfo: /usr/share/zoneinfo
+ 
+net:
+  port: 27020
+  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
+security:
+  keyFile: /data/mongo-keyfile 
+sharding:
+  configDB: "Rep1/mongo-1:27010,mongo-2:27010,mongo-3:27010"
+```
 
 #### **2. Khởi động Mongos**
 
