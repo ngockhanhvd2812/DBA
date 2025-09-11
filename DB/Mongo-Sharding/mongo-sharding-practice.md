@@ -30,8 +30,13 @@
       - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại)
       - [**4. Bật Xác thực và Khởi động lại**](#4-bật-xác-thực-và-khởi-động-lại-1)
     - [**Giai đoạn 4: Dựng các Cụm Shard**](#giai-đoạn-4-dựng-các-cụm-shard)
-      - [**1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**](#1-tạo-file-cấu-hình-trên-cả-3-máy-1)
-      - [**2. Khởi động và Khởi tạo Replica Set cho từng Shard**](#2-khởi-động-và-khởi-tạo-replica-set-cho-từng-shard)
+      - [**Bước 1: Chuẩn bị File Cấu hình (Tắt Security Tạm Thời)**](#bước-1-chuẩn-bị-file-cấu-hình-tắt-security-tạm-thời)
+      - [**Bước 2: Khởi động các Node và Cấu hình Replica Set**](#bước-2-khởi-động-các-node-và-cấu-hình-replica-set)
+        - [**2.1. Khởi động các tiến trình `mongod`**](#21-khởi-động-các-tiến-trình-mongod)
+        - [**2.2. Cấu hình Replica Set và Phân bổ Primary**](#22-cấu-hình-replica-set-và-phân-bổ-primary)
+      - [**Bước 3: Tạo Tài khoản Quản trị trên PRIMARY**](#bước-3-tạo-tài-khoản-quản-trị-trên-primary)
+      - [**Bước 4: Kích hoạt Bảo mật và Khởi động lại Toàn bộ Cụm**](#bước-4-kích-hoạt-bảo-mật-và-khởi-động-lại-toàn-bộ-cụm)
+      - [**Bước 5: Hoàn tất và Kiểm tra**](#bước-5-hoàn-tất-và-kiểm-tra)
     - [**Cấu hình Replica Set cho Shard1**](#cấu-hình-replica-set-cho-shard1)
     - [**Cấu hình Replica Set cho Shard2**](#cấu-hình-replica-set-cho-shard2)
     - [**Cấu hình Replica Set cho Shard3**](#cấu-hình-replica-set-cho-shard3)
@@ -1320,182 +1325,255 @@ graph TD
     C --> S3A
 ```
 
-#### **1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**
+
+Quy trình chuẩn để khởi tạo một cụm MongoDB có bật xác thực là: **Khởi động không có xác thực -> Khởi tạo Replica Set -> Tạo người dùng -> Dừng lại -> Khởi động lại với xác thực được bật**. Việc này đảm bảo bạn có thể thực hiện các lệnh quản trị ban đầu một cách dễ dàng.
+
+---
+
+#### **Bước 1: Chuẩn bị File Cấu hình (Tắt Security Tạm Thời)**
+
+Mục tiêu là khởi động các node mà không cần xác thực để thực hiện các tác vụ khởi tạo. Đảm bảo rằng dòng `authorization: enabled` đã được **vô hiệu hóa (comment out)** trong tất cả các file cấu hình.
 
 *   **File `/etc/mongod-shard1.conf` (Tương tự cho shard2, shard3):**
-```yaml
-systemLog:
-  destination: file
-  logAppend: true
-  logRotate: reopen
-  path: /data/shard1.log
- 
-storage:
-  dbPath: /data/shard1
-#  journal:
-#   enabled: true
- 
-processManagement:
-# fork: true  # fork and run in background
-#  pidFilePath: /data/mongod-shard1.pid  # location of pidfile
-  timeZoneInfo: /usr/share/zoneinfo
- 
-net:
-  port: 27011
-  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
- 
-security:
-  authorization: enabled
-  keyFile: /data/mongo-keyfile 
-replication:
-   replSetName: "shard01" 
-sharding:
-   clusterRole: shardsvr
-```
----
-*   **File `/etc/mongod-shard2.conf`**
-```yaml
-systemLog:
-  destination: file
-  logAppend: true
-  logRotate: reopen
-  path: /data/shard2.log
- 
-storage:
-  dbPath: /data/shard2
-#  journal:
-#   enabled: true
- 
-processManagement:
-# fork: true  # fork and run in background
-#  pidFilePath: /data/mongod-shard2.pid  # location of pidfile
-  timeZoneInfo: /usr/share/zoneinfo
- 
-net:
-  port: 27012
-  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
- 
-security:
-  authorization: enabled
-  keyFile: /data/mongo-keyfile 
-replication:
-   replSetName: "shard02" 
-sharding:
-   clusterRole: shardsvr
-``` 
----
-*   **File `/etc/mongod-shard3.conf`**
-```yaml
-systemLog:
-  destination: file
-  logAppend: true
-  logRotate: reopen
-  path: /data/shard3.log
- 
-storage:
-  dbPath: /data/shard3
-#  journal:
-#   enabled: true
- 
-processManagement:
-# fork: true  # fork and run in background
-#  pidFilePath: /data/mongod-shard3.pid  # location of pidfile
-  timeZoneInfo: /usr/share/zoneinfo
- 
-net:
-  port: 27013
-  bindIp: 0.0.0.0  # Enter 0.0.0.0,:: to bind to all IPv4 and IPv6 addresses or, alternatively, use the net.bindIpAll setting.
- 
-security:
-  authorization: enabled
-  keyFile: /data/mongo-keyfile 
-replication:
-   replSetName: "shard03" 
-sharding:
-   clusterRole: shardsvr
-``` 
-*   **Giải thích quan trọng:** Đối với shard, bạn có thể bật `authorization: enabled` ngay từ đầu vì chúng ta **KHÔNG CẦN TẠO USER LOCAL TRÊN SHARD**. Việc xác thực giữa các node đã có `keyFile` lo, còn xác thực client sẽ do `mongos` và `config server` xử lý.
+    ```yaml
+    systemLog:
+      destination: file
+      logAppend: true
+      logRotate: reopen
+      path: /data/shard1.log
+    
+    storage:
+      dbPath: /data/shard1
+    
+    processManagement:
+      timeZoneInfo: /usr/share/zoneinfo
+    
+    net:
+      port: 27011
+      bindIp: 0.0.0.0
+    
+    security:
+    #  authorization: enabled # <-- QUAN TRỌNG: Vô hiệu hóa tạm thời
+      keyFile: /data/mongo-keyfile 
+    
+    replication:
+       replSetName: "shard01" 
+    
+    sharding:
+       clusterRole: shardsvr
+    ```
 
-#### **2. Khởi động và Khởi tạo Replica Set cho từng Shard**
+*   **File `/etc/mongod-shard2.conf`:**
+    ```yaml
+    systemLog:
+      destination: file
+      logAppend: true
+      logRotate: reopen
+      path: /data/shard2.log
+    
+    storage:
+      dbPath: /data/shard2
+    
+    processManagement:
+      timeZoneInfo: /usr/share/zoneinfo
+    
+    net:
+      port: 27012
+      bindIp: 0.0.0.0
+    
+    security:
+    #  authorization: enabled # <-- QUAN TRỌNG: Vô hiệu hóa tạm thời
+      keyFile: /data/mongo-keyfile 
+    
+    replication:
+       replSetName: "shard02" 
+    
+    sharding:
+       clusterRole: shardsvr
+    ```
+
+*   **File `/etc/mongod-shard3.conf`:**
+    ```yaml
+    systemLog:
+      destination: file
+      logAppend: true
+      logRotate: reopen
+      path: /data/shard3.log
+    
+    storage:
+      dbPath: /data/shard3
+    
+    processManagement:
+      timeZoneInfo: /usr/share/zoneinfo
+    
+    net:
+      port: 27013
+      bindIp: 0.0.0.0
+    
+    security:
+    #  authorization: enabled # <-- QUAN TRỌNG: Vô hiệu hóa tạm thời
+      keyFile: /data/mongo-keyfile 
+    
+    replication:
+       replSetName: "shard03" 
+    
+    sharding:
+       clusterRole: shardsvr
+    ```
+
+---
+
+#### **Bước 2: Khởi động các Node và Cấu hình Replica Set**
+
+##### **2.1. Khởi động các tiến trình `mongod`**
 
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     ```bash
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
-    # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
+    # Kiểm tra: ps -ef | grep mongo phải thấy các tiến trình mongod đang chạy
     ```
 
-*   **Khởi tạo tài khoản quản trị cho từng shard**
-Khi bạn khởi tạo sharding, bạn nên tạo tài khoản quản trị cho từng shard để quản lý riêng biệt. Dưới đây là các bước chi tiết để thực hiện.
+##### **2.2. Cấu hình Replica Set và Phân bổ Primary**
 
-Bạn phải kết nối trực tiếp đến từng phiên bản mongod của từng shard để tạo tài khoản.
-
-Bạn cần kết nối tới Shard 1 bằng giao diện dòng lệnh mongosh. Vì bạn đã cấu hình Shard 1 chạy trên cổng 27011, bạn sẽ kết nối tới cổng đó:
-
-```bash
-mongosh --port 27011
-```
-
-Khi đã ở trong mongosh, bạn chuyển sang database admin và tạo tài khoản quản trị. Tên người dùng và mật khẩu có thể đặt tùy ý, nhưng nên theo một quy ước thống nhất để dễ quản lý (ví dụ: s1adm cho Shard 1).
-
-```javascript
-use admin
-db.createUser({
-  user: "s1adm",
-  pwd: passwordPrompt(),
-  roles: [ { role: "root", db: "admin" } ]
-})
-```
-
-**Giải thích các tham số:**
-* `use admin`: Chuyển sang database admin. Quyền quản trị hệ thống chỉ có thể được tạo trong database này.
-* `user`: Tên người dùng mà bạn muốn tạo.
-* `pwd`: Mật khẩu của người dùng. Sử dụng `passwordPrompt()` để nhập mật khẩu an toàn.
-* `roles`: Gán vai trò cho người dùng. Vai trò root cung cấp toàn quyền quản lý hệ thống, bao gồm cả quyền truy cập vào các shard.
-
-Sau khi tạo, bạn có thể thoát khỏi mongosh và lặp lại các bước tương tự cho Shard 2 và Shard 3.
-
-Làm tương tự cho Shard 2 (cổng 27012) và Shard 3 (cổng 27013).
-
-**Kết nối tới Shard 2:**
-```bash
-mongosh --port 27012
-```
-
-**Tạo tài khoản:**
-```javascript
-use admin
-db.createUser({
-  user: "s2adm",
-  pwd: passwordPrompt(),
-  roles: [ { role: "root", db: "admin" } ]
-})
-```
-
-**Kết nối tới Shard 3:**
-```bash
-mongosh --port 27013
-```
-
-**Tạo tài khoản:**
-```javascript
-use admin
-db.createUser({
-  user: "s3adm",
-  pwd: passwordPrompt(),
-  roles: [ { role: "root", db: "admin" } ]
-})
-```
-
-Sau khi hoàn tất, bạn đã có một tài khoản quản trị riêng cho mỗi shard và có thể sử dụng chúng để kết nối và quản lý từng shard bằng Mongo Compass hoặc các công cụ quản lý khác.
-
-*   **Cấu hình Replica Set cho các Shard**
-
-Trong mỗi **replica set**, MongoDB sẽ bầu chọn một node làm **Primary** để nhận **read/write**.
-Nếu không cấu hình gì, MongoDB sẽ chọn ngẫu nhiên bất kỳ node nào (có dữ liệu mới nhất và kết nối ổn định). Điều này có thể dẫn đến tình trạng **nhiều shard đều chọn cùng một server làm Primary**, gây **dồn tải** và không khai thác hết tài nguyên của các server còn lại.
+Trong mỗi **replica set**, MongoDB sẽ bầu chọn một node làm **Primary** để nhận **read/write**. Nếu không cấu hình gì, MongoDB sẽ chọn ngẫu nhiên. Điều này có thể dẫn đến tình trạng **nhiều shard đều chọn cùng một server làm Primary**, gây **dồn tải**.
 
 👉 Vì vậy, chúng ta thiết lập **priority** khác nhau cho các node, nhằm **chỉ định node nào có khả năng được bầu Primary cao hơn**. Bằng cách này, mỗi shard sẽ ưu tiên Primary ở một server khác nhau → hệ thống đạt **cân bằng tải**.
+
+*   **Thực hiện trên một máy bất kỳ:**
+
+    *   **Khởi tạo replica set `shard01` (ưu tiên `mongo-1` làm Primary):**
+        ```bash
+        mongosh --port 27011
+        rs.initiate(
+          {
+            _id: "shard01",
+            members: [
+              { _id : 0, host : "mongo-1:27011", priority: 3 },
+              { _id : 1, host : "mongo-2:27011", priority: 2 },
+              { _id : 2, host : "mongo-3:27011", priority: 1 }
+            ]
+          }
+        )
+        exit
+        ```
+
+    *   **Khởi tạo replica set `shard02` (ưu tiên `mongo-2` làm Primary):**
+        ```bash
+        mongosh --port 27012
+        rs.initiate(
+          {
+            _id: "shard02",
+            members: [
+              { _id : 0, host : "mongo-1:27012", priority: 1 },
+              { _id : 1, host : "mongo-2:27012", priority: 3 },
+              { _id : 2, host : "mongo-3:27012", priority: 2 }
+            ]
+          }
+        )
+        exit
+        ```
+
+    *   **Khởi tạo replica set `shard03` (ưu tiên `mongo-3` làm Primary):**
+        ```bash
+        mongosh --port 27013
+        rs.initiate(
+          {
+            _id: "shard03",
+            members: [
+              { _id : 0, host : "mongo-1:27013", priority: 2 },
+              { _id : 1, host : "mongo-2:27013", priority: 1 },
+              { _id : 2, host : "mongo-3:27013", priority: 3 }
+            ]
+          }
+        )
+        exit
+        ```    Chờ khoảng 10-20 giây để các replica set ổn định và bầu cử xong PRIMARY.
+
+---
+
+#### **Bước 3: Tạo Tài khoản Quản trị trên PRIMARY**
+
+Bây giờ các replica set đã hoạt động, chúng ta sẽ kết nối vào **node PRIMARY của mỗi shard** để tạo người dùng. Người dùng được tạo trên PRIMARY sẽ tự động được nhân bản (replicate) sang các node SECONDARY.
+
+*   **Tạo user cho `shard01` (kết nối vào Primary `mongo-1:27011`):**
+    ```bash
+    mongosh --port 27011
+    use admin
+    db.createUser({
+      user: "shard1Admin",
+      pwd: passwordPrompt(),
+      roles: [ { role: "root", db: "admin" } ]
+    })
+    exit
+    ```
+
+*   **Tạo user cho `shard02` (kết nối vào Primary `mongo-2:27012`):**
+    ```bash
+    mongosh --port 27012
+    use admin
+    db.createUser({
+      user: "shard2Admin",
+      pwd: passwordPrompt(),
+      roles: [ { role: "root", db: "admin" } ]
+    })
+    exit
+    ```
+
+*   **Tạo user cho `shard03` (kết nối vào Primary `mongo-3:27013`):**
+    ```bash
+    mongosh --port 27013
+    use admin
+    db.createUser({
+      user: "shard3Admin",
+      pwd: passwordPrompt(),
+      roles: [ { role: "root", db: "admin" } ]
+    })
+    exit
+    ```
+
+---
+
+#### **Bước 4: Kích hoạt Bảo mật và Khởi động lại Toàn bộ Cụm**
+
+Đây là bước cuối cùng và quan trọng nhất để bảo mật hệ thống của bạn.
+
+1.  **Dừng tất cả các tiến trình `mongod` (Trên CẢ 3 MÁY):**
+    ```bash
+    sudo pkill mongod
+    ```
+
+2.  **Bật lại `authorization` trong các file cấu hình:**
+    Mở lại cả 3 file `/etc/mongod-shardX.conf` và **xóa dấu `#`** ở dòng `authorization: enabled`.
+
+    Chỉnh sửa từ:
+    ```yaml
+    #  authorization: enabled
+    ```
+    Thành:
+    ```yaml
+      authorization: enabled
+    ```
+
+3.  **Khởi động lại tất cả các tiến trình `mongod` (Trên CẢ 3 MÁY):**
+    ```bash
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
+    ```
+
+---
+
+#### **Bước 5: Hoàn tất và Kiểm tra**
+
+Hệ thống của bạn bây giờ đã được cấu hình đúng cách, an toàn và sẵn sàng hoạt động. Mọi kết nối từ bên ngoài đều yêu cầu xác thực.
+
+Bạn có thể kiểm tra bằng cách kết nối tới một shard bất kỳ bằng tài khoản vừa tạo:
+```bash
+mongosh --port 27011 -u "shard1Admin" -p --authenticationDatabase "admin"
+```
+Hệ thống sẽ yêu cầu mật khẩu, và sau khi nhập đúng, bạn sẽ đăng nhập thành công.
 
 ### **Cấu hình Replica Set cho Shard1**
 
