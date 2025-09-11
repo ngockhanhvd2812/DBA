@@ -35,12 +35,17 @@ flowchart TD
 
 **What/why:** On OL8, `yum` is a DNF-based interface. Running a full update ensures you have current kernel, glibc, OpenSSL, and device drivers before layering a database—reducing post-install surprises and avoiding ABI mismatches. If a new kernel is pulled in, reboot once before proceeding. ([Oracle Documentation][1], [phoenixNAP | Global IT Services][2])
 
+In some cases, you may want to exclude certain packages from being updated to maintain system stability or avoid compatibility issues with your database software. For MongoDB installations, you may want to exclude MongoDB packages from system updates to maintain version consistency. You can use the `--exclude` option with yum to prevent specific packages from being updated.
+
 **Command:**
 
 ```bash
 sudo yum update -y   # 📦 Update all packages
 # If the kernel or critical libs were updated, reboot once:
 sudo reboot          # 🔁 Reboot if needed
+
+# To exclude MongoDB packages from update:
+sudo yum update -y --exclude=mongodb*,mongo*   # 🚫 Exclude MongoDB packages
 ```
 
 **Mini-flow:**
@@ -208,9 +213,9 @@ sudo reboot
 
 ## Copy-paste block 📋✨
 
-```bash
+```
 # 1) Update OS
-sudo yum update -y
+sudo yum update -y --exclude=mongodb*,mongo*  # Exclude MongoDB packages
 
 # 2) Turn off firewall
 sudo systemctl stop firewalld
