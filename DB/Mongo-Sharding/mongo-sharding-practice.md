@@ -1125,7 +1125,7 @@ sharding:
 #### **2. Khởi động Config Server**
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
-    -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Theo dõi log để tìm "waiting for connections"
     ```
 *   **Lưu ý:** ` &` phù hợp cho lab. Môi trường production nên tạo file unit systemd để quản lý dịch vụ chuyên nghiệp hơn.
@@ -1181,10 +1181,10 @@ sharding:
         ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
         pkill -15 -f "mongod-config.conf"
-        -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
-        `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
+        `mongosh --port 27010 sudo -u mongodba --authenticationDatabase admin`
         (Sẽ prompt nhập password an toàn)
 
 ---
@@ -1219,7 +1219,7 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
 
 3.  **Khởi động lại tiến trình `mongod` của Config Server:**
     ```bash
-    -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
     tail -f /data/config.log # Kiểm tra log để đảm bảo không có lỗi xác thực
     ```
     *   **Giải thích:** Tiến trình `mongod` giờ sẽ khởi động với `authorization` đã tắt.
@@ -1265,10 +1265,10 @@ Nếu bạn đã lỡ bỏ comment dòng `authorization: enabled` trong file c�
         ```bash
         # Gửi tín hiệu SIGTERM (15) để shutdown an toàn, tránh kill -9
         pkill -15 -f "mongod --config /etc/mongod-config.conf"
-        -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
+        sudo -u mongod /usr/bin/mongod --config /etc/mongod-config.conf &
         ```
     3.  Kiểm tra đăng nhập bằng tài khoản admin:
-        `mongosh --port 27010 -u mongodba --authenticationDatabase admin`
+        `mongosh --port 27010 sudo -u mongodba --authenticationDatabase admin`
         (Sẽ prompt nhập password an toàn)
 
 
@@ -1416,9 +1416,9 @@ sharding:
 
 *   **Thực hiện (Trên CẢ 3 MÁY):**
     ```bash
-    -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
-    -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
-    -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard1.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard2.conf &
+    sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
     ```
 ⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
@@ -1496,7 +1496,7 @@ sharding:
 #### **2. Khởi động Mongos**
 
 ```bash
--u mongod /usr/bin/mongos --config /etc/mongos.conf &
+sudo -u mongod /usr/bin/mongos --config /etc/mongos.conf &
 tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config replica set"
 ```
 
@@ -1509,7 +1509,7 @@ tail -f /data/mongos.log # Theo dõi log đến khi thấy "connected to config 
 
 *   **Thực hiện (Kết nối vào Mongos):**
     ```bash
-    mongosh --port 27020 -u mongodba --authenticationDatabase admin
+    mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin
     # Sẽ prompt nhập password an toàn
     ```
     Bên trong mongosh:
@@ -1786,7 +1786,7 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 #### **1. Tạo User và Gán Role có sẵn**
 
 1.  **Kết nối với quyền admin:** (Như đã làm ở Giai đoạn 3)
-    `mongosh --port 27020 -u mongodba --authenticationDatabase admin`
+    `mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin`
     # Sẽ prompt nhập password an toàn
 2.  **Tạo user cho ứng dụng:**
     ```javascript
@@ -1993,14 +1993,14 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
     *   **Backup toàn bộ database `testDB` (chạy từ một máy client có cài mongo tools):**
         ```bash
         mongodump --host=mongo-1 --port=27020 \
-                  -u mongodba --authenticationDatabase admin \
+                  sudo -u mongodba --authenticationDatabase admin \
                   --db=testDB --out=/backup/testDB_`date +%F`
         # Sẽ prompt nhập password an toàn
         ```
     *   **Restore database `testDB`:**
         ```bash
         mongorestore --host=mongo-1 --port=27020 \
-                     -u mongodba --authenticationDatabase admin \
+                     sudo -u mongodba --authenticationDatabase admin \
                      --db=testDB /backup/testDB_YYYY-MM-DD
         # Sẽ prompt nhập password an toàn
         ```
@@ -2033,12 +2033,12 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
 *   **Công cụ dòng lệnh:**
     *   `mongostat`: Cung cấp cái nhìn tổng quan theo thời gian thực về các hoạt động (inserts, queries, updates, deletes...), lỗi, và hàng đợi.
         ```bash
-        mongostat --host mongo-1 --port 27020 -u mongodba --authenticationDatabase admin
+        mongostat --host mongo-1 --port 27020 sudo -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
         ```
     *   `mongotop`: Hiển thị thời gian đọc/ghi trên từng collection, giúp bạn biết collection nào đang hoạt động nhiều nhất.
         ```bash
-        mongotop --host mongo-1 --port 27020 -u mongodba --authenticationDatabase admin
+        mongotop --host mongo-1 --port 27020 sudo -u mongodba --authenticationDatabase admin
         # Sẽ prompt nhập password an toàn
         ```
 *   **Database Profiler (Tìm truy vấn chậm):**
@@ -2102,7 +2102,7 @@ Nếu Sharding là giải pháp cho bài toán *dung lượng* (scale-out), thì
 
 *   **Kết nối vào Mongos để thực hiện:**
     ```bash
-    mongosh --port 27020 -u mongodba --authenticationDatabase admin
+    mongosh --port 27020 sudo -u mongodba --authenticationDatabase admin
     # Sẽ prompt nhập password an toàn
     use testDB
     ```
@@ -3084,7 +3084,7 @@ mongosh --port $PORT --quiet --eval "
 
 # Check for election issues
 echo "--- Election Logs ---"
-journalctl -u mongod-shard$(echo $PORT | tail -c 2) --since="1 hour ago" | grep -i "election\|primary\|secondary"
+journalctl sudo -u mongod-shard$(echo $PORT | tail -c 2) --since="1 hour ago" | grep -i "election\|primary\|secondary"
 
 echo "=== Diagnostic Complete ==="
 ```
