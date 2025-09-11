@@ -32,6 +32,10 @@
     - [**Giai đoạn 4: Dựng các Cụm Shard**](#giai-đoạn-4-dựng-các-cụm-shard)
       - [**1. Tạo File Cấu hình (Trên CẢ 3 MÁY)**](#1-tạo-file-cấu-hình-trên-cả-3-máy-1)
       - [**2. Khởi động và Khởi tạo Replica Set cho từng Shard**](#2-khởi-động-và-khởi-tạo-replica-set-cho-từng-shard)
+    - [**Cấu hình Replica Set cho Shard1**](#cấu-hình-replica-set-cho-shard1)
+    - [**Cấu hình Replica Set cho Shard2**](#cấu-hình-replica-set-cho-shard2)
+    - [**Cấu hình Replica Set cho Shard3**](#cấu-hình-replica-set-cho-shard3)
+  - [Như vậy, **Primary được phân bổ đều trên ba server**, đảm bảo tài nguyên được sử dụng tối ưu và hệ thống **cân bằng tải tốt hơn**.](#như-vậy-primary-được-phân-bổ-đều-trên-ba-server-đảm-bảo-tài-nguyên-được-sử-dụng-tối-ưu-và-hệ-thống-cân-bằng-tải-tốt-hơn)
     - [**Giai đoạn 5: Dựng Mongos và Hoàn thiện Cluster**](#giai-đoạn-5-dựng-mongos-và-hoàn-thiện-cluster)
       - [**1. Tạo File Cấu hình Mongos (Trên 1 máy)**](#1-tạo-file-cấu-hình-mongos-trên-1-máy)
       - [**2. Khởi động Mongos**](#2-khởi-động-mongos)
@@ -1421,29 +1425,145 @@ sharding:
     sudo -u mongod /usr/bin/mongod --config /etc/mongod-shard3.conf &
     # Kiểm tra: ps -ef | grep mongo phải thấy 4 tiến trình trên mỗi node
     ```
-⚠️ **BẪY NGƯỜI MỚI - Giai đoạn 4:**
-- **Bật `authorization` trước `rs.initiate()` và kết nối *không phải* từ localhost** → `rs.initiate()` bị chặn
-- **Nhầm tham số `mongosh -c`** → lệnh không chạy (đúng là `--eval`)
-- **Không đặt `priority` hợp lý** → PRIMARY rơi vào máy yếu/xa
 
-*   **Thực hiện (Chỉ trên 1 máy):** Khởi tạo RS cho từng shard.
+*   **Khởi tạo tài khoản quản trị cho từng shard**
+Khi bạn khởi tạo sharding, bạn nên tạo tài khoản quản trị cho từng shard để quản lý riêng biệt. Dưới đây là các bước chi tiết để thực hiện.
 
-💡 **CÁCH AN TOÀN:** Nếu đã bật `authorization` ngay từ đầu trên shard, **bắt buộc chạy từ localhost**: `mongosh --host 127.0.0.1 --port 27011 --eval 'rs.initiate(...)'` (tận dụng "localhost exception").
+Bạn phải kết nối trực tiếp đến từng phiên bản mongod của từng shard để tạo tài khoản.
 
-    ```bash
-    # Shard01 - SỬA LỖI: dùng --eval thay vì -c
-    mongosh --host mongo-1 --port 27011 --eval \
-    'rs.initiate({_id:"shard01",members:[{_id:0,host:"mongo-1:27011"},{_id:1,host:"mongo-2:27011"},{_id:2,host:"mongo-3:27011"}]})'
-    
-    # Shard02
-    mongosh --host mongo-1 --port 27012 --eval \
-    'rs.initiate({_id:"shard02",members:[{_id:0,host:"mongo-1:27012"},{_id:1,host:"mongo-2:27012"},{_id:2,host:"mongo-3:27012"}]})'
-    
-    # Shard03
-    mongosh --host mongo-1 --port 27013 --eval \
-    'rs.initiate({_id:"shard03",members:[{_id:0,host:"mongo-1:27013"},{_id:1,host:"mongo-2:27013"},{_id:2,host:"mongo-3:27013"}]})'
-    ```
+Bạn cần kết nối tới Shard 1 bằng giao diện dòng lệnh mongosh. Vì bạn đã cấu hình Shard 1 chạy trên cổng 27011, bạn sẽ kết nối tới cổng đó:
 
+```bash
+mongosh --port 27011
+```
+
+Khi đã ở trong mongosh, bạn chuyển sang database admin và tạo tài khoản quản trị. Tên người dùng và mật khẩu có thể đặt tùy ý, nhưng nên theo một quy ước thống nhất để dễ quản lý (ví dụ: s1adm cho Shard 1).
+
+```javascript
+use admin
+db.createUser({
+  user: "s1adm",
+  pwd: passwordPrompt(),
+  roles: [ { role: "root", db: "admin" } ]
+})
+```
+
+**Giải thích các tham số:**
+* `use admin`: Chuyển sang database admin. Quyền quản trị hệ thống chỉ có thể được tạo trong database này.
+* `user`: Tên người dùng mà bạn muốn tạo.
+* `pwd`: Mật khẩu của người dùng. Sử dụng `passwordPrompt()` để nhập mật khẩu an toàn.
+* `roles`: Gán vai trò cho người dùng. Vai trò root cung cấp toàn quyền quản lý hệ thống, bao gồm cả quyền truy cập vào các shard.
+
+Sau khi tạo, bạn có thể thoát khỏi mongosh và lặp lại các bước tương tự cho Shard 2 và Shard 3.
+
+Làm tương tự cho Shard 2 (cổng 27012) và Shard 3 (cổng 27013).
+
+**Kết nối tới Shard 2:**
+```bash
+mongosh --port 27012
+```
+
+**Tạo tài khoản:**
+```javascript
+use admin
+db.createUser({
+  user: "s2adm",
+  pwd: passwordPrompt(),
+  roles: [ { role: "root", db: "admin" } ]
+})
+```
+
+**Kết nối tới Shard 3:**
+```bash
+mongosh --port 27013
+```
+
+**Tạo tài khoản:**
+```javascript
+use admin
+db.createUser({
+  user: "s3adm",
+  pwd: passwordPrompt(),
+  roles: [ { role: "root", db: "admin" } ]
+})
+```
+
+Sau khi hoàn tất, bạn đã có một tài khoản quản trị riêng cho mỗi shard và có thể sử dụng chúng để kết nối và quản lý từng shard bằng Mongo Compass hoặc các công cụ quản lý khác.
+
+*   **Cấu hình Replica Set cho các Shard**
+
+Trong mỗi **replica set**, MongoDB sẽ bầu chọn một node làm **Primary** để nhận **read/write**.
+Nếu không cấu hình gì, MongoDB sẽ chọn ngẫu nhiên bất kỳ node nào (có dữ liệu mới nhất và kết nối ổn định). Điều này có thể dẫn đến tình trạng **nhiều shard đều chọn cùng một server làm Primary**, gây **dồn tải** và không khai thác hết tài nguyên của các server còn lại.
+
+👉 Vì vậy, chúng ta thiết lập **priority** khác nhau cho các node, nhằm **chỉ định node nào có khả năng được bầu Primary cao hơn**. Bằng cách này, mỗi shard sẽ ưu tiên Primary ở một server khác nhau → hệ thống đạt **cân bằng tải**.
+
+### **Cấu hình Replica Set cho Shard1**
+
+**1. Khởi tạo replica set `shard01` trên cổng 27011**
+
+```bash
+mongosh --host localhost --port 27011
+
+use admin
+
+rs.initiate(
+  {
+    _id: "shard01",
+    members: [
+      { _id : 0, host : "mongo-1:27011", priority: 3 },
+      { _id : 1, host : "mongo-2:27011", priority: 2 },
+      { _id : 2, host : "mongo-3:27011", priority: 1 }
+    ]
+  }
+)
+```
+
+### **Cấu hình Replica Set cho Shard2**
+
+**2. Khởi tạo replica set `shard02` trên cổng 27012**
+
+```bash
+mongosh --host localhost --port 27012
+
+rs.initiate(
+  {
+    _id: "shard02",
+    members: [
+      { _id : 0, host : "mongo-1:27012", priority: 1 },
+      { _id : 1, host : "mongo-2:27012", priority: 3 },
+      { _id : 2, host : "mongo-3:27012", priority: 2 }
+    ]
+  }
+)
+```
+
+
+### **Cấu hình Replica Set cho Shard3**
+
+**3. Khởi tạo replica set `shard03` trên cổng 27013**
+
+```bash
+mongosh --host localhost --port 27013
+
+rs.initiate(
+  {
+    _id: "shard03",
+    members: [
+      { _id : 0, host : "mongo-1:27013", priority: 2 },
+      { _id : 1, host : "mongo-2:27013", priority: 1 },
+      { _id : 2, host : "mongo-3:27013", priority: 3 }
+    ]
+  }
+)
+```
+
+👉 Với cấu hình này:
+
+* **Shard01** sẽ ưu tiên `mongo-1` làm Primary.
+* **Shard02** sẽ ưu tiên `mongo-2` làm Primary.
+* **Shard03** sẽ ưu tiên `mongo-3` làm Primary.
+
+Như vậy, **Primary được phân bổ đều trên ba server**, đảm bảo tài nguyên được sử dụng tối ưu và hệ thống **cân bằng tải tốt hơn**.
 ---
 
 ### **Giai đoạn 5: Dựng Mongos và Hoàn thiện Cluster**
