@@ -1,9 +1,7 @@
 # Script kiểm tra kết nối mạng (Network Connectivity Checker)
 
 ## Mô tả (Description)
-Script này được sử dụng để kiểm tra kết nối mạng đến các cổng của các dịch vụ quan trọng trong hệ thống như SIEM, Zabbix, KAS, NetBackup, MongoDB và Oracle DB.
-
-This script is used to check network connectivity to ports of critical services in the system such as SIEM, Zabbix, KAS, NetBackup, MongoDB, and Oracle DB.
+Script này được sử dụng để kiểm tra kết nối mạng đến các cổng của các dịch vụ quan trọng trong hệ thống như SIEM, Zabbix, KAS, và NetBackup.
 
 ## Cách sử dụng (Usage)
 ```bash
@@ -18,18 +16,16 @@ chmod +x check_connectivity.sh
 graph LR
     A[Bắt đầu] --> B[chmod +x check_connectivity.sh]
     B --> C[./check_connectivity.sh]
-    C --> D[Nhập IP MongoDB & Oracle]
-    D --> E[Kiểm tra kết nối]
-    E --> F[Tạo báo cáo CSV]
-    F --> G[Kết thúc]
+    C --> D[Kiểm tra kết nối]
+    D --> E[Tạo báo cáo CSV]
+    E --> F[Kết thúc]
     
     style A fill:#4a90e2,stroke:#333,stroke-width:2px
     style B fill:#7dbcea,stroke:#333,stroke-width:2px
     style C fill:#7dbcea,stroke:#333,stroke-width:2px
     style D fill:#7dbcea,stroke:#333,stroke-width:2px
     style E fill:#7dbcea,stroke:#333,stroke-width:2px
-    style F fill:#7dbcea,stroke:#333,stroke-width:2px
-    style G fill:#4a90e2,stroke:#333,stroke-width:2px
+    style F fill:#4a90e2,stroke:#333,stroke-width:2px
 ```
 
 ## Giải thích từng phần code (Code Explanation)
@@ -94,28 +90,6 @@ graph TD
     style D fill:#ccffcc,stroke:#333,stroke-width:2px
 ```
 
-### Nhập thông tin từ người dùng (User Input)
-- Yêu cầu người dùng nhập IP cho MongoDB và Oracle DB
-- Xử lý chuỗi nhập để tạo danh sách host
-
-```mermaid
-graph TD
-    A[Nhập thông tin] --> B[Nhập IP MongoDB]
-    B --> C[Kiểm tra IP MongoDB]
-    C --> D[Xử lý IP MongoDB]
-    D --> E[Nhập IP Oracle]
-    E --> F[Kiểm tra IP Oracle]
-    F --> G[Xử lý IP Oracle]
-    
-    style A fill:#ffcc00,stroke:#333,stroke-width:2px
-    style B fill:#ffdd55,stroke:#333,stroke-width:2px
-    style C fill:#ffdd55,stroke:#333,stroke-width:2px
-    style D fill:#ffdd55,stroke:#333,stroke-width:2px
-    style E fill:#ffdd55,stroke:#333,stroke-width:2px
-    style F fill:#ffdd55,stroke:#333,stroke-width:2px
-    style G fill:#ffdd55,stroke:#333,stroke-width:2px
-```
-
 ### Thực thi kiểm tra (Execution)
 - Duyệt qua từng mục tiêu và cổng để kiểm tra kết nối
 - In kết quả ra console và lưu vào file CSV
@@ -154,46 +128,42 @@ graph TD
     A[Khởi động script] --> B{Kiểm tra dependencies}
     B -->|Thiếu| C[Thông báo lỗi và thoát]
     B -->|Đủ| D[Khởi tạo danh sách mục tiêu]
-    D --> E[Yêu cầu nhập IP MongoDB]
-    E --> F[Yêu cầu nhập IP Oracle]
-    F --> G[Bắt đầu kiểm tra kết nối]
-    G --> H[Duyệt từng mục tiêu]
-    H --> I[Duyệt từng cổng]
-    I --> J[Kiểm tra kết nối telnet]
-    J --> K{Kết quả}
-    K -->|MỞ| L[Ghi kết quả MỞ]
-    K -->|ĐÓNG| M[Ghi kết quả ĐÓNG]
-    K -->|TIMEOUT| N[Ghi kết quả TIMEOUT]
-    K -->|KHÔNG THỂ KẾT NỐI| O[Ghi kết quả KHÔNG THỂ KẾT NỐI]
-    K -->|KHÔNG XÁC ĐỊNH| P[Ghi kết quả KHÔNG XÁC ĐỊNH]
-    L --> Q[Kết thúc kiểm tra cổng]
-    M --> Q
-    N --> Q
-    O --> Q
-    P --> Q
-    Q --> R{Còn mục tiêu?}
-    R -->|Có| H
-    R -->|Không| S[Lưu kết quả và kết thúc]
+    D --> E[Bắt đầu kiểm tra kết nối]
+    E --> F[Duyệt từng mục tiêu]
+    F --> G[Duyệt từng cổng]
+    G --> H[Kiểm tra kết nối telnet]
+    H --> I{Kết quả}
+    I -->|MỞ| J[Ghi kết quả MỞ]
+    I -->|ĐÓNG| K[Ghi kết quả ĐÓNG]
+    I -->|TIMEOUT| L[Ghi kết quả TIMEOUT]
+    I -->|KHÔNG THỂ KẾT NỐI| M[Ghi kết quả KHÔNG THỂ KẾT NỐI]
+    I -->|KHÔNG XÁC ĐỊNH| N[Ghi kết quả KHÔNG XÁC ĐỊNH]
+    J --> O[Kết thúc kiểm tra cổng]
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+    O --> P{Còn mục tiêu?}
+    P -->|Có| F
+    P -->|Không| Q[Lưu kết quả và kết thúc]
     
     style A fill:#ff6666,stroke:#333,stroke-width:2px,color:#fff
     style B fill:#ff9966,stroke:#333,stroke-width:2px,color:#fff
     style C fill:#ff3333,stroke:#333,stroke-width:2px,color:#fff
     style D fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
-    style E fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
-    style F fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
-    style G fill:#66cc66,stroke:#333,stroke-width:2px,color:#fff
-    style H fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
-    style I fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
-    style J fill:#66cccc,stroke:#333,stroke-width:2px,color:#fff
-    style K fill:#6699cc,stroke:#333,stroke-width:2px,color:#fff
+    style E fill:#66cc66,stroke:#333,stroke-width:2px,color:#fff
+    style F fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
+    style G fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#66cccc,stroke:#333,stroke-width:2px,color:#fff
+    style I fill:#6699cc,stroke:#333,stroke-width:2px,color:#fff
+    style J fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style K fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
     style L fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
     style M fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
     style N fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
-    style O fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
-    style P fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
-    style Q fill:#cc6699,stroke:#333,stroke-width:2px,color:#fff
-    style R fill:#cc6666,stroke:#333,stroke-width:2px,color:#fff
-    style S fill:#6666cc,stroke:#333,stroke-width:2px,color:#fff
+    style O fill:#cc6699,stroke:#333,stroke-width:2px,color:#fff
+    style P fill:#cc6666,stroke:#333,stroke-width:2px,color:#fff
+    style Q fill:#6666cc,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ## Bảng danh sách IP và cổng (IP and Port List Table)
@@ -209,6 +179,8 @@ graph TD
 | NetBackup | 10.168.12.11-13 | 111, 2049, 20048 | Hệ thống backup dữ liệu |
 
 ---
+
+## Câu lệnh thực thi
 
 ````
 #!/usr/bin/env bash
