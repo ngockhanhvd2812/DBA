@@ -271,42 +271,6 @@ declare -a TARGETS=(
 for i in $(seq 21 25); do TARGETS+=("10.165.73.$i|TCP|111,2049,20048|NetBackup"); done
 for i in $(seq 11 13); do TARGETS+=("10.168.12.$i|TCP|111,2049,20048|NetBackup"); done
 
-# --- Yêu cầu người dùng nhập IP cho các dịch vụ cụ thể ---
-echo "------------------------------------------------------------------"
-echo "Vui lòng nhập danh sách IP/hostname cho các dịch vụ bên dưới."
-echo "Các IP/hostname có thể ngăn cách bởi dấu phẩy (,) hoặc khoảng trắng."
-echo "------------------------------------------------------------------"
-
-# Nhập IP cho MongoDB
-read -p "Nhập danh sách IP máy chủ MongoDB: " mongo_ips_input
-if [[ -z "$mongo_ips_input" ]]; then
-  echo "Lỗi: Bạn phải nhập ít nhất một IP cho MongoDB." >&2
-  exit 1
-fi
-# Chuyển chuỗi thành mảng, loại bỏ dấu phẩy và khoảng trắng thừa
-read -ra MONGO_HOSTS <<< "${mongo_ips_input//,/ }"
-for host in "${MONGO_HOSTS[@]}"; do
-  # Bỏ qua các phần tử rỗng nếu người dùng nhập ", ,"
-  if [[ -n "$host" ]]; then
-    TARGETS+=("$host|TCP|27010,27011,27012,27013|Mongo Sharded Cluster")
-  fi
-done
-
-# Nhập IP cho Oracle DB
-read -p "Nhập danh sách IP máy chủ Oracle DB: " oracle_ips_input
-if [[ -z "$oracle_ips_input" ]]; then
-  echo "Lỗi: Bạn phải nhập ít nhất một IP cho Oracle DB." >&2
-  exit 1
-fi
-read -ra ORACLE_HOSTS <<< "${oracle_ips_input//,/ }"
-for host in "${ORACLE_HOSTS[@]}"; do
-  if [[ -n "$host" ]]; then
-    TARGETS+=("$host|TCP|1521|Oracle DB")
-  fi
-done
-echo "------------------------------------------------------------------"
-
-
 # --- Thực thi kiểm tra ---
 echo "Bắt đầu kiểm tra kết nối TCP..."
 echo "Timestamp (CSV),Protocol,Host,Port,Status (English),Note" > "$OUTFILE"
