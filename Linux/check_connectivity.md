@@ -3,10 +3,33 @@
 ## Mô tả (Description)
 Script này được sử dụng để kiểm tra kết nối mạng đến các cổng của các dịch vụ quan trọng trong hệ thống như SIEM, Zabbix, KAS, NetBackup, MongoDB và Oracle DB.
 
+This script is used to check network connectivity to ports of critical services in the system such as SIEM, Zabbix, KAS, NetBackup, MongoDB, and Oracle DB.
 
 ## Cách sử dụng (Usage)
 ```bash
+# Cấp quyền thực thi cho script
+chmod +x check_connectivity.sh
+
+# Chạy script
 ./check_connectivity.sh
+```
+
+```mermaid
+graph LR
+    A[Bắt đầu] --> B[chmod +x check_connectivity.sh]
+    B --> C[./check_connectivity.sh]
+    C --> D[Nhập IP MongoDB & Oracle]
+    D --> E[Kiểm tra kết nối]
+    E --> F[Tạo báo cáo CSV]
+    F --> G[Kết thúc]
+    
+    style A fill:#4a90e2,stroke:#333,stroke-width:2px
+    style B fill:#7dbcea,stroke:#333,stroke-width:2px
+    style C fill:#7dbcea,stroke:#333,stroke-width:2px
+    style D fill:#7dbcea,stroke:#333,stroke-width:2px
+    style E fill:#7dbcea,stroke:#333,stroke-width:2px
+    style F fill:#7dbcea,stroke:#333,stroke-width:2px
+    style G fill:#4a90e2,stroke:#333,stroke-width:2px
 ```
 
 ## Giải thích từng phần code (Code Explanation)
@@ -18,6 +41,20 @@ Script này được sử dụng để kiểm tra kết nối mạng đến các
 - `TIMEOUT_SEC="${TIMEOUT_SEC:-3}"`: Thiết lập timeout cho kết nối (mặc định 3 giây)
 - `OUTFILE="portcheck_$(date +%Y%m%d_%H%M%S).csv"`: Tên file CSV để lưu kết quả với timestamp
 
+```mermaid
+graph TD
+    A[Khởi tạo Script] --> B[Thiết lập Strict Mode]
+    B --> C[Thiết lập Ngôn ngữ]
+    C --> D[Thiết lập Timeout]
+    D --> E[Tạo tên file CSV]
+    
+    style A fill:#ff9999,stroke:#333,stroke-width:2px
+    style B fill:#ffcc99,stroke:#333,stroke-width:2px
+    style C fill:#ffcc99,stroke:#333,stroke-width:2px
+    style D fill:#ffcc99,stroke:#333,stroke-width:2px
+    style E fill:#ffcc99,stroke:#333,stroke-width:2px
+```
+
 ### Hàm hỗ trợ (Support Functions)
 - `need()`: Kiểm tra sự tồn tại của các lệnh cần thiết (telnet, timeout)
 - `to_vi()`: Chuyển đổi trạng thái kết nối từ tiếng Anh sang tiếng Việt
@@ -25,19 +62,92 @@ Script này được sử dụng để kiểm tra kết nối mạng đến các
 - `log_row()`: Ghi kết quả vào file CSV
 - `print_hdr()` và `print_line()`: Định dạng và in kết quả ra console
 
+```mermaid
+graph TD
+    A[Hàm hỗ trợ] --> B[Hàm need]
+    A --> C[Hàm to_vi]
+    A --> D[Hàm telnet_check]
+    A --> E[Hàm log_row]
+    A --> F[Hàm print]
+    
+    style A fill:#99ccff,stroke:#333,stroke-width:2px
+    style B fill:#cce6ff,stroke:#333,stroke-width:2px
+    style C fill:#cce6ff,stroke:#333,stroke-width:2px
+    style D fill:#cce6ff,stroke:#333,stroke-width:2px
+    style E fill:#cce6ff,stroke:#333,stroke-width:2px
+    style F fill:#cce6ff,stroke:#333,stroke-width:2px
+```
+
 ### Danh sách mục tiêu (Target List)
 - `TARGETS`: Mảng chứa danh sách các host:port cần kiểm tra với định dạng "host|protocol|ports|note"
 - Các vòng lặp `for` để thêm các IP NetBackup theo dải
+
+```mermaid
+graph TD
+    A[Thiết lập Danh sách] --> B[Khởi tạo TARGETS]
+    B --> C[Thêm IP NetBackup - Dải 1]
+    C --> D[Thêm IP NetBackup - Dải 2]
+    
+    style A fill:#99ff99,stroke:#333,stroke-width:2px
+    style B fill:#ccffcc,stroke:#333,stroke-width:2px
+    style C fill:#ccffcc,stroke:#333,stroke-width:2px
+    style D fill:#ccffcc,stroke:#333,stroke-width:2px
+```
 
 ### Nhập thông tin từ người dùng (User Input)
 - Yêu cầu người dùng nhập IP cho MongoDB và Oracle DB
 - Xử lý chuỗi nhập để tạo danh sách host
 
+```mermaid
+graph TD
+    A[Nhập thông tin] --> B[Nhập IP MongoDB]
+    B --> C[Kiểm tra IP MongoDB]
+    C --> D[Xử lý IP MongoDB]
+    D --> E[Nhập IP Oracle]
+    E --> F[Kiểm tra IP Oracle]
+    F --> G[Xử lý IP Oracle]
+    
+    style A fill:#ffcc00,stroke:#333,stroke-width:2px
+    style B fill:#ffdd55,stroke:#333,stroke-width:2px
+    style C fill:#ffdd55,stroke:#333,stroke-width:2px
+    style D fill:#ffdd55,stroke:#333,stroke-width:2px
+    style E fill:#ffdd55,stroke:#333,stroke-width:2px
+    style F fill:#ffdd55,stroke:#333,stroke-width:2px
+    style G fill:#ffdd55,stroke:#333,stroke-width:2px
+```
+
 ### Thực thi kiểm tra (Execution)
 - Duyệt qua từng mục tiêu và cổng để kiểm tra kết nối
 - In kết quả ra console và lưu vào file CSV
 
-## Sơ đồ luồng thực thi (Execution Flow Diagram)
+```mermaid
+graph TD
+    A[Thực thi kiểm tra] --> B[In thông báo bắt đầu]
+    B --> C[Khởi tạo tiêu đề CSV]
+    C --> D[In tiêu đề console]
+    D --> E[Duyệt danh sách]
+    E --> F[Duyệt cổng]
+    F --> G[Kiểm tra kết nối]
+    G --> H[Lưu kết quả]
+    H --> I[In kết quả]
+    I --> J[Chuyển sang cổng/kết nối tiếp]
+    J -->|Còn kết nối| E
+    J -->|Hoàn thành| K[In thông báo kết thúc]
+    
+    style A fill:#cc99ff,stroke:#333,stroke-width:2px
+    style B fill:#ddbbff,stroke:#333,stroke-width:2px
+    style C fill:#ddbbff,stroke:#333,stroke-width:2px
+    style D fill:#ddbbff,stroke:#333,stroke-width:2px
+    style E fill:#ddbbff,stroke:#333,stroke-width:2px
+    style F fill:#ddbbff,stroke:#333,stroke-width:2px
+    style G fill:#ddbbff,stroke:#333,stroke-width:2px
+    style H fill:#ddbbff,stroke:#333,stroke-width:2px
+    style I fill:#ddbbff,stroke:#333,stroke-width:2px
+    style J fill:#ddbbff,stroke:#333,stroke-width:2px
+    style K fill:#ddbbff,stroke:#333,stroke-width:2px
+```
+
+## Sơ đồ luồng thực thi chi tiết (Detailed Execution Flow Diagram)
 
 ```mermaid
 graph TD
@@ -64,6 +174,26 @@ graph TD
     Q --> R{Còn mục tiêu?}
     R -->|Có| H
     R -->|Không| S[Lưu kết quả và kết thúc]
+    
+    style A fill:#ff6666,stroke:#333,stroke-width:2px,color:#fff
+    style B fill:#ff9966,stroke:#333,stroke-width:2px,color:#fff
+    style C fill:#ff3333,stroke:#333,stroke-width:2px,color:#fff
+    style D fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
+    style E fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
+    style F fill:#ffcc66,stroke:#333,stroke-width:2px,color:#000
+    style G fill:#66cc66,stroke:#333,stroke-width:2px,color:#fff
+    style H fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
+    style I fill:#66cc99,stroke:#333,stroke-width:2px,color:#fff
+    style J fill:#66cccc,stroke:#333,stroke-width:2px,color:#fff
+    style K fill:#6699cc,stroke:#333,stroke-width:2px,color:#fff
+    style L fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style M fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style N fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style O fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style P fill:#9966cc,stroke:#333,stroke-width:2px,color:#fff
+    style Q fill:#cc6699,stroke:#333,stroke-width:2px,color:#fff
+    style R fill:#cc6666,stroke:#333,stroke-width:2px,color:#fff
+    style S fill:#6666cc,stroke:#333,stroke-width:2px,color:#fff
 ```
 
 ## Bảng danh sách IP và cổng (IP and Port List Table)
@@ -80,9 +210,7 @@ graph TD
 
 ---
 
-## Bản hoàn chỉnh
-
-```
+````
 #!/usr/bin/env bash
 set -euo pipefail
 
@@ -199,4 +327,4 @@ echo
 echo "Kiểm tra hoàn tất."
 echo "Kết quả đã được lưu vào file: $OUTFILE"
 
-```
+``````
