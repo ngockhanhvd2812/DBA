@@ -8,16 +8,17 @@ export LC_MESSAGES=C
 TIMEOUT_SEC="${TIMEOUT_SEC:-3}"
 OUTFILE="portcheck_$(date +%Y%m%d_%H%M%S).csv"
 
-need() { command -v "$1" >/dev/null 2>&1 || { echo "Thiếu $1. Cài: sudo dnf install -y $2"; exit 1; }; }
+# --- Hàm hỗ trợ ---
+need() { command -v "$1" >/dev/null 2>&1 || { echo "Lỗi: Thiếu lệnh '$1'. Cài đặt: sudo dnf install -y $2"; exit 1; }; }
 need telnet telnet
 need timeout coreutils
 
 to_vi() {
   case "$1" in
     OPEN) echo "MỞ" ;;
-    CLOSED) echo "ĐÓNG" ;;
-    "TIMEOUT/FILTERED") echo "TIMEOUT/FILTERED" ;;
-    UNREACHABLE) echo "KHÔNG ĐẠT" ;;
+    CLOSED) echo "ĐÓNG (Connection refused)" ;;
+    "TIMEOUT/FILTERED") echo "TIMEOUT / BỊ LỌC" ;;
+    UNREACHABLE) echo "KHÔNG THỂ KẾT NỐI (Lỗi DNS/mạng)" ;;
     *) echo "KHÔNG XÁC ĐỊNH" ;;
   esac
 }
@@ -44,12 +45,10 @@ telnet_check() {
 }
 
 log_row()   { echo "\"$1\",\"$2\",\"$3\",\"$4\",\"$5\",\"$6\"" >> "$OUTFILE"; }
-print_hdr() { printf "%-8s %-15s %-5s %-18s %s\n" "PROTO" "HOST" "PORT" "TRẠNG THÁI" "GHI CHÚ"; printf "%0.s-" {1..70}; echo; }
-print_line(){ printf "%-8s %-15s %-5s %-18s %s\n" "$1" "$2" "$3" "$4" "$5"; }
+print_hdr() { printf "%-8s %-15s %-5s %-28s %s\n" "GIAO THỨC" "MÁY CHỦ ĐÍCH" "CỔNG" "TRẠNG THÁI" "GHI CHÚ"; printf "%0.s-" {1..80}; echo; }
+print_line(){ printf "%-8s %-15s %-5s %-28s %s\n" "$1" "$2" "$3" "$4" "$5"; }
 
-# =========================
-# Danh sách mục tiêu (CHỈ TCP)
-# =========================
+# --- Danh sách mục tiêu cố định ---
 declare -a TARGETS=(
   "10.169.20.229|TCP|514,8413|SIEM"
   "10.169.20.230|TCP|514,8413|SIEM"
@@ -60,24 +59,45 @@ declare -a TARGETS=(
 for i in $(seq 21 25); do TARGETS+=("10.165.73.$i|TCP|111,2049,20048|NetBackup"); done
 for i in $(seq 11 13); do TARGETS+=("10.168.12.$i|TCP|111,2049,20048|NetBackup"); done
 
-# Thu thập danh sách host duy nhất
-declare -A HOST_SET=()
-for item in "${TARGETS[@]}"; do
-  IFS="|" read -r HOST _ PORTS _ <<< "$item"
-  HOST_SET["$HOST"]=1
+# --- Yêu cầu người dùng nhập IP cho các dịch vụ cụ thể ---
+echo "------------------------------------------------------------------"
+echo "Vui lòng nhập danh sách IP/hostname cho các dịch vụ bên dưới."
+echo "Các IP/hostname có thể ngăn cách bởi dấu phẩy (,) hoặc khoảng trắng."
+echo "------------------------------------------------------------------"
+
+# Nhập IP cho MongoDB
+read -p "Nhập danh sách IP máy chủ MongoDB: " mongo_ips_input
+if [[ -z "$mongo_ips_input" ]]; then
+  echo "Lỗi: Bạn phải nhập ít nhất một IP cho MongoDB." >&2
+  exit 1
+fi
+# Chuyển chuỗi thành mảng, loại bỏ dấu phẩy và khoảng trắng thừa
+read -ra MONGO_HOSTS <<< "${mongo_ips_input//,/ }"
+for host in "${MONGO_HOSTS[@]}"; do
+  # Bỏ qua các phần tử rỗng nếu người dùng nhập ", ,"
+  if [[ -n "$host" ]]; then
+    TARGETS+=("$host|TCP|27010,27011,27012,27013|Mongo Sharded Cluster")
+  fi
 done
 
-# Bổ sung port Mongo/Oracle cho MỌI host đích
-for HOST in "${!HOST_SET[@]}"; do
-  TARGETS+=("$HOST|TCP|27010|Mongo Sharded Cluster")
-  TARGETS+=("$HOST|TCP|27011,27012,27013|Mongo (bổ trợ)")
-  TARGETS+=("$HOST|TCP|1521|Oracle DB")
+# Nhập IP cho Oracle DB
+read -p "Nhập danh sách IP máy chủ Oracle DB: " oracle_ips_input
+if [[ -z "$oracle_ips_input" ]]; then
+  echo "Lỗi: Bạn phải nhập ít nhất một IP cho Oracle DB." >&2
+  exit 1
+fi
+read -ra ORACLE_HOSTS <<< "${oracle_ips_input//,/ }"
+for host in "${ORACLE_HOSTS[@]}"; do
+  if [[ -n "$host" ]]; then
+    TARGETS+=("$host|TCP|1521|Oracle DB")
+  fi
 done
+echo "------------------------------------------------------------------"
 
-# =========================
-# Chạy kiểm tra (local -> đích)
-# =========================
-echo "\"timestamp\",\"proto\",\"host\",\"port\",\"status\",\"note\"" > "$OUTFILE"
+
+# --- Thực thi kiểm tra ---
+echo "Bắt đầu kiểm tra kết nối TCP..."
+echo "Timestamp (CSV),Protocol,Host,Port,Status (English),Note" > "$OUTFILE"
 print_hdr
 for item in "${TARGETS[@]}"; do
   IFS="|" read -r HOST PROTO PORTS NOTE <<< "$item"
@@ -92,8 +112,7 @@ for item in "${TARGETS[@]}"; do
 done
 
 echo
-echo "Đã lưu kết quả: $OUTFILE"
-echo "Chế độ: chỉ TCP, 1 chiều (máy này -> IP đích) bằng telnet."
-
+echo "Kiểm tra hoàn tất."
+echo "Kết quả đã được lưu vào file: $OUTFILE"
 
 ```
