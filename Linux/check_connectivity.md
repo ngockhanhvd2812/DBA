@@ -1,4 +1,88 @@
-````
+# Script kiểm tra kết nối mạng (Network Connectivity Checker)
+
+## Mô tả (Description)
+Script này được sử dụng để kiểm tra kết nối mạng đến các cổng của các dịch vụ quan trọng trong hệ thống như SIEM, Zabbix, KAS, NetBackup, MongoDB và Oracle DB.
+
+
+## Cách sử dụng (Usage)
+```bash
+./check_connectivity.sh
+```
+
+## Giải thích từng phần code (Code Explanation)
+
+### Khởi tạo và cấu hình (Initialization and Configuration)
+- `#!/usr/bin/env bash`: Shebang để chạy script bằng bash
+- `set -euo pipefail`: Thiết lập strict mode cho bash để phát hiện lỗi sớm
+- `export LANG=en_US.UTF-8`: Đặt ngôn ngữ để đảm bảo định dạng đầu ra nhất quán
+- `TIMEOUT_SEC="${TIMEOUT_SEC:-3}"`: Thiết lập timeout cho kết nối (mặc định 3 giây)
+- `OUTFILE="portcheck_$(date +%Y%m%d_%H%M%S).csv"`: Tên file CSV để lưu kết quả với timestamp
+
+### Hàm hỗ trợ (Support Functions)
+- `need()`: Kiểm tra sự tồn tại của các lệnh cần thiết (telnet, timeout)
+- `to_vi()`: Chuyển đổi trạng thái kết nối từ tiếng Anh sang tiếng Việt
+- `telnet_check()`: Hàm chính để kiểm tra kết nối đến một host:port cụ thể
+- `log_row()`: Ghi kết quả vào file CSV
+- `print_hdr()` và `print_line()`: Định dạng và in kết quả ra console
+
+### Danh sách mục tiêu (Target List)
+- `TARGETS`: Mảng chứa danh sách các host:port cần kiểm tra với định dạng "host|protocol|ports|note"
+- Các vòng lặp `for` để thêm các IP NetBackup theo dải
+
+### Nhập thông tin từ người dùng (User Input)
+- Yêu cầu người dùng nhập IP cho MongoDB và Oracle DB
+- Xử lý chuỗi nhập để tạo danh sách host
+
+### Thực thi kiểm tra (Execution)
+- Duyệt qua từng mục tiêu và cổng để kiểm tra kết nối
+- In kết quả ra console và lưu vào file CSV
+
+## Sơ đồ luồng thực thi (Execution Flow Diagram)
+
+```mermaid
+graph TD
+    A[Khởi động script] --> B{Kiểm tra dependencies}
+    B -->|Thiếu| C[Thông báo lỗi và thoát]
+    B -->|Đủ| D[Khởi tạo danh sách mục tiêu]
+    D --> E[Yêu cầu nhập IP MongoDB]
+    E --> F[Yêu cầu nhập IP Oracle]
+    F --> G[Bắt đầu kiểm tra kết nối]
+    G --> H[Duyệt từng mục tiêu]
+    H --> I[Duyệt từng cổng]
+    I --> J[Kiểm tra kết nối telnet]
+    J --> K{Kết quả}
+    K -->|MỞ| L[Ghi kết quả MỞ]
+    K -->|ĐÓNG| M[Ghi kết quả ĐÓNG]
+    K -->|TIMEOUT| N[Ghi kết quả TIMEOUT]
+    K -->|KHÔNG THỂ KẾT NỐI| O[Ghi kết quả KHÔNG THỂ KẾT NỐI]
+    K -->|KHÔNG XÁC ĐỊNH| P[Ghi kết quả KHÔNG XÁC ĐỊNH]
+    L --> Q[Kết thúc kiểm tra cổng]
+    M --> Q
+    N --> Q
+    O --> Q
+    P --> Q
+    Q --> R{Còn mục tiêu?}
+    R -->|Có| H
+    R -->|Không| S[Lưu kết quả và kết thúc]
+```
+
+## Bảng danh sách IP và cổng (IP and Port List Table)
+
+| Dịch vụ | IP | Cổng | Mô tả |
+|---------|----|------|-------|
+| SIEM | 10.169.20.229 | 514, 8413 | Hệ thống quản lý thông tin bảo mật |
+| SIEM | 10.169.20.230 | 514, 8413 | Hệ thống quản lý thông tin bảo mật |
+| Zabbix | 10.159.25.10 | 10050, 10051 | Hệ thống giám sát |
+| Zabbix | 10.159.136.10 | 10050, 10051 | Hệ thống giám sát |
+| KAS | 10.169.20.226 | 13000, 14000 | Hệ thống kiểm soát truy cập |
+| NetBackup | 10.165.73.21-25 | 111, 2049, 20048 | Hệ thống backup dữ liệu |
+| NetBackup | 10.168.12.11-13 | 111, 2049, 20048 | Hệ thống backup dữ liệu |
+
+---
+
+## Bản hoàn chỉnh
+
+```
 #!/usr/bin/env bash
 set -euo pipefail
 
