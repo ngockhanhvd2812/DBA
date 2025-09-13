@@ -234,3 +234,41 @@ flowchart TD
     D -- Thành công --> E[Tích hợp hoàn tất]
     D -- Thất bại --> F[Kiểm tra lại cấu hình]
 ```
+
+---
+
+### **Kiểm tra Log Định dạng ENRICHED trong /var/log/audit/audit.log**
+
+Sau khi cấu hình auditd với định dạng `ENRICHED`, bạn có thể kiểm tra log trong file `/var/log/audit/audit.log` để xác nhận rằng log đã được ghi đúng định dạng.
+
+**Kiểm tra log audit:**
+```bash
+tail -f /var/log/audit/audit.log
+```
+
+**Định dạng log ENRICHED mong đợi:**
+Khi định dạng log được cấu hình là `ENRICHED`, các log sẽ hiển thị với tên người dùng và nhóm thay vì chỉ là ID số. Dưới đây là ví dụ về định dạng log ENRICHED:
+
+```
+type=PATH msg=audit(1661931901.474:33661): item=1 name="/bin/sh" inode=1048626 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi...
+type=PROCTITLE msg=audit(1661931901.470:33660): proctitle=2F62696E2F73686F2D62696E2F62696E2F2F62696E73...
+type=FD,DISP msg=audit(1661931901.470:33660): pid=17186 uid=0 auid=0 ses=1923 msg=op=PAM:setcred acct="root" exe="/usr/bin/cron" hostname=? addr=? terminal=cron res=success
+type=USER_END msg=audit(1661931901.470:33660): pid=17186 uid=0 auid=0 ses=1923 msg=op=PAM:session_close acct="root" exe="/usr/bin/cron" hostname=? addr=? terminal=cron res=success
+type=SYSCALL msg=audit(1661931901.474:33661): arch=c000003e syscall=59 success=yes exit=0 a0=56398bd13ab8 a1=56398bd134a0 a2=56398bd1340a a3=7fa10282170a4...
+type=PATH msg=audit(1661931901.474:33661): item=2 name="/lib64/ld-linux-x86-64.so.2" inode=393242 dev=fd:00 mode=0100755 ouid=0 ogid=0 rdev=00:00 nametype=NORMAL cap_fp=0 cap_fi...
+type=EXECVE msg=audit(1661931901.470:33660): argc=3 a0="/bin/sh" a1="-c" a2="a3=1"
+type=CWD msg=audit(1661931901.474:33661): cwd="/root"
+type=EXECVE msg=audit(1661931901.470:33660): argc=4 a0="/bin/sh" a1="-c" a2="/usr/lib/systat/debian-sat a2="1" a3="1"
+type=CREAD_ACQ msg=audit(1661931901.470:33657): pid=17186 uid=0 auid=4294967295 msg=op=PAM:setcred acct="root"
+type=USER_START msg=audit(1661931901.470:33660): pid=17186 uid=0 auid=4294967295 msg=op=PAM:session_open acct="root" exe="/usr/bin/cron" hostname=? addr=? terminal=cron res=success
+type=USER_ACCT msg=audit(1661931901.470:33660): pid=17186 uid=0 auid=4294967295 msg=op=accounting acct="root"
+type=CWD msg=audit(1661931901.470:33660): cwd="/root"
+type=LOGIN msg=audit(1661931901.470:33660): pid=17186 uid=0 old_uid=4294967295 auid=0 tty=(none) old_auid=4294967295 ses=1923 res=1 UID="root" OLD-AUID="unset" AUID="root"
+```
+
+**Lưu ý quan trọng:**
+- Các log có tiền tố `audispd:` cho thấy chúng đã được xử lý bởi audispd dispatcher
+- Các trường như `acct="root"`, `UID="root"` thay vì chỉ hiển thị ID số chứng tỏ định dạng `ENRICHED` đang hoạt động
+- Định dạng này giúp dễ dàng hơn cho việc phân tích log trên SIEM vì tên người dùng rõ ràng hơn ID số
+
+Nếu bạn thấy log hiển thị như trên, chúc mừng! Việc cấu hình auditd với định dạng ENRICHED đã thành công.
