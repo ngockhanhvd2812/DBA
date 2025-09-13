@@ -17,6 +17,13 @@ flowchart TD
     F --> G[Khởi động lại]:::teal
     G --> H[Xác minh:<br/>systemctl status firewalld,<br/>sestatus]:::gray
     H --> I[Máy chủ sẵn sàng cài đặt DB]:::success
+    
+    subgraph WARNINGS["⚠️ CẢNH BÁO QUAN TRỌNG"]
+        W1[CẢNH BÁO: Loại trừ MongoDB<br/>khỏi yum update<br/>--exclude=mongodb*,mongo*]:::warning
+    end
+    
+    B -.->|Luôn loại trừ<br/>MongoDB| W1
+    W1 --> B
 
     classDef start fill:#1f2937,color:#fff,stroke:#0ea5e9,stroke-width:2px;
     classDef blue fill:#3b82f6,color:#fff,stroke:#1e40af;
@@ -27,6 +34,7 @@ flowchart TD
     classDef teal fill:#14b8a6,color:#072,stroke:#115e59;
     classDef gray fill:#9ca3af,color:#111,stroke:#374151;
     classDef success fill:#84cc16,color:#102a12,stroke:#365314;
+    classDef warning fill:#ef4444,color:#fff,stroke:#7f1d1d,stroke-width:2px,stroke-dasharray: 5 5;
 ```
 
 ---
@@ -38,6 +46,21 @@ flowchart TD
 Trong một số trường hợp, bạn có thể muốn loại trừ một số gói khỏi việc cập nhật để duy trì tính ổn định của hệ thống hoặc tránh các vấn đề tương thích với phần mềm cơ sở dữ liệu của bạn. Đối với các cài đặt MongoDB, bạn nên loại trừ các gói MongoDB khỏi việc cập nhật hệ thống để duy trì tính nhất quán về phiên bản. Bạn có thể sử dụng tùy chọn `--exclude` với yum để ngăn chặn các gói cụ thể khỏi việc cập nhật.
 
 ⚠️ **CẢNH BÁO QUAN TRỌNG**: Việc loại trừ các gói MongoDB khỏi lệnh `yum update` là **BẮT BUỘC** và **CỰC KỲ QUAN TRỌNG**. Nếu không thực hiện đúng bước này, có thể gây ra **hậu quả nghiêm trọng** đến hệ thống MongoDB đang chạy, bao gồm nhưng không giới hạn ở: mất dữ liệu, hỏng cấu hình, không tương thích phiên bản, và thậm chí làm cho toàn bộ cụm MongoDB không hoạt động. Hãy chắc chắn rằng bạn luôn sử dụng tùy chọn `--exclude=mongodb*,mongo*` khi chạy lệnh `yum update` trên hệ thống đã cài đặt MongoDB.
+
+**Sơ đồ minh họa cảnh báo quan trọng:**
+
+```mermaid
+flowchart TD
+    A[Bắt đầu cập nhật hệ thống] --> B[yum update -y]
+    B --> C{Có cài MongoDB?}
+    C -->|Có| D[CẢNH BÁO: Phải loại trừ MongoDB]
+    D --> E[Sử dụng: yum update -y --exclude=mongodb*,mongo*]
+    C -->|Không| E
+    E --> F[Tiếp tục quy trình]
+    
+    style D fill:#ef4444,color:#fff,stroke:#7f1d1d,stroke-width:2px
+    style E fill:#3b82f6,color:#fff,stroke:#1e40af,stroke-width:2px
+```
 
 **Lệnh:**
 
@@ -54,7 +77,8 @@ sudo yum update -y --exclude=mongodb*,mongo*   # 🚫 Loại trừ các gói Mon
 
 ```mermaid
 flowchart LR
-    U[Chạy yum update -y]:::blue --> K{Kernel được cập nhật?}:::amber
+    U[Chạy yum update -y]:::blue --> W[CẢNH BÁO:<br/>Loại trừ MongoDB<br/>--exclude=mongodb*,mongo*]:::warning
+    W --> K{Kernel được cập nhật?}:::amber
     K -->|Có| R[Khởi động lại ngay]:::purple
     K -->|Không| N[Tiếp tục]:::green
 
@@ -62,6 +86,7 @@ flowchart LR
     classDef amber fill:#fbbf24,stroke:#92400e,color:#111;
     classDef purple fill:#a78bfa,stroke:#4c1d95,color:#fff;
     classDef green fill:#4ade80,stroke:#065f46,color:#063;
+    classDef warning fill:#ef4444,color:#fff,stroke:#7f1d1d,stroke-width:2px;
 ```
 
 ---
