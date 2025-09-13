@@ -12,6 +12,13 @@ Xác định chính xác địa chỉ IP của máy chủ SIEM Event Collector (
 *   **Port**: `514`
 *   **Giao thức**: `TCP` (khuyến nghị vì độ tin cậy).
 
+```mermaid
+flowchart LR
+    A[Chuẩn bị] --> B[Xác định IP SIEM]
+    B --> C[Mở Port 514/TCP]
+    C --> D[Kiểm tra kết nối]
+```
+
 ---
 
 ### **Phần 2: Cài đặt và Cấu hình Dịch vụ Auditd**
@@ -35,6 +42,15 @@ Xác định chính xác địa chỉ IP của máy chủ SIEM Event Collector (
     ```
     *   **Tại sao cần kiểm tra?** Lệnh này là công cụ gỡ rối quan trọng nhất của bạn. Nó cho bạn biết dịch vụ có đang chạy (`active (running)`) hay không và hiển thị các lỗi gần đây nhất. Hãy tập thói quen sử dụng nó sau mỗi lần khởi động lại dịch vụ.
 
+```mermaid
+flowchart TD
+    A[Cài đặt gói] --> B[Kích hoạt dịch vụ]
+    B --> C[Khởi động dịch vụ]
+    C --> D[Kiểm tra trạng thái]
+    D -- Thành công --> E[Dịch vụ chạy ổn định]
+    D -- Lỗi --> F[Xử lý lỗi]
+```
+
 **Bước 2.2: Cấu hình Quy tắc Audit (`audit.rules`)**
 
 1.  **Tải file quy tắc:** Tải file `audit_rules.rules` từ link Google Drive đã cung cấp.
@@ -53,12 +69,28 @@ Xác định chính xác địa chỉ IP của máy chủ SIEM Event Collector (
     ```
     **Lỗi cần tránh:** Tuyệt đối không dùng `>` vì nó sẽ xóa sạch file cấu hình gốc. Luôn dùng `>>`.
 
+```mermaid
+flowchart TD
+    A[Tải file quy tắc] --> B[Kiểm tra quy tắc xung đột]
+    B -- Có xung đột --> C[Comment quy tắc xung đột]
+    B -- Không xung đột --> D[Thêm quy tắc mới]
+    C --> D
+    D --> E[Xác minh thêm thành công]
+```
+
 **Bước 2.3: Cấu hình Định dạng Log (`auditd.conf`)**
 Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả người và máy (SIEM).
 
 1.  **Chỉnh sửa file:** `sudo vi /etc/audit/auditd.conf`
 2.  **Đảm bảo cấu hình:** `log_format = ENRICHED`
     *   **Kiến thức:** `RAW` (mặc định) chỉ hiển thị ID số (`uid=1000`). `ENRICHED` sẽ dịch các ID này sang tên tương ứng (`UID="vnpt"`), giúp việc phân tích log trên SIEM trở nên dễ dàng hơn rất nhiều.
+
+```mermaid
+flowchart LR
+    A[Cấu hình auditd.conf] --> B[Đặt log_format = ENRICHED]
+    B --> C[Lưu cấu hình]
+    C --> D[Khởi động lại auditd]
+```
 
 ---
 
@@ -90,6 +122,14 @@ Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả ngư�
     *   Trên OL8, `rsyslog` mặc định **tắt** khả năng nghe trên socket này (`SysSock.Use="off"`), khiến `builtin_syslog` không thể gửi log. Đây là nguyên nhân gốc rễ gây ra lỗi "log không đến được rsyslog" mà chúng ta đã gặp.
     *   **Giải pháp:** Cấu hình `path = /sbin/audisp-syslog` sử dụng một chương trình thực thi riêng biệt, có khả năng giao tiếp thành công với `rsyslog` ngay cả khi `SysSock.Use="off"`.
 
+```mermaid
+flowchart TD
+    A[Xác định file syslog.conf] --> B[Mở file cấu hình]
+    B --> C[Thiết lập cấu hình đúng]
+    C --> D[Lưu và đóng file]
+    D --> E[Khởi động lại dịch vụ]
+```
+
 ---
 
 ### **Phần 4: Cấu hình Rsyslog và Kiểm tra Nội bộ (Bước không thể bỏ qua)**
@@ -120,6 +160,16 @@ Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả ngư�
     ```
     **Kết quả mong đợi:** Bạn sẽ thấy các dòng log audit có tiền tố `audispd:` và định dạng `ENRICHED`. Nếu thành công, bạn có thể tự tin chuyển sang bước tiếp theo.
 
+```mermaid
+flowchart TD
+    A[Mở rsyslog.conf] --> B[Thêm dòng kiểm tra]
+    B --> C[Khởi động lại dịch vụ]
+    C --> D[Tạo sự kiện kiểm tra]
+    D --> E[Kiểm tra log]
+    E -- Có log --> F[Luồng log hoạt động]
+    E -- Không có log --> G[Kiểm tra lại cấu hình]
+```
+
 ---
 
 ### **Phần 5: Cấu hình Cuối cùng và Gửi log tới SIEM**
@@ -147,6 +197,14 @@ Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả ngư�
     *   **Lỗi cần tránh:** Phải thay thế `<...>` bằng IP thực tế. Nếu để nguyên, `rsyslog` sẽ báo lỗi cú pháp khi khởi động.
     *   **Giải thích:** `@@` chỉ định gửi log qua **TCP** (đáng tin cậy).
 
+```mermaid
+flowchart TD
+    A[Mở rsyslog.conf] --> B[Xóa dòng kiểm tra]
+    B --> C[Thêm cấu hình SIEM]
+    C --> D[Lưu cấu hình]
+    D --> E[Khởi động lại rsyslog]
+```
+
 **Bước 5.2: Khởi động lại Dịch vụ và Kiểm tra Tổng thể**
 
 1.  **Khởi động lại `rsyslog`:**
@@ -167,3 +225,12 @@ Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả ngư�
     ```
 
 4.  **Xác nhận trên SIEM:** Đăng nhập vào giao diện SIEM và tìm kiếm log từ địa chỉ IP của máy chủ của bạn (`10.163.23.72`). Nếu log xuất hiện, bạn đã tích hợp thành công.
+
+```mermaid
+flowchart TD
+    A[Khởi động lại rsyslog] --> B[Kiểm tra trạng thái]
+    B --> C[Tạo sự kiện kiểm tra]
+    C --> D[Xác nhận trên SIEM]
+    D -- Thành công --> E[Tích hợp hoàn tất]
+    D -- Thất bại --> F[Kiểm tra lại cấu hình]
+```
