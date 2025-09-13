@@ -27,18 +27,18 @@ flowchart LR
 
 1.  **Cài đặt các gói cần thiết:** OL8 sử dụng `yum` hoặc `dnf`.
     ```bash
-    sudo yum install audit audispd-plugins -y
+    yum install audit audispd-plugins -y
     ```
 2.  **Kích hoạt và khởi động dịch vụ:**
     ```bash
-    sudo systemctl enable auditd
-    sudo systemctl start auditd
+    chkconfig auditd on
+    service auditd start
     ```
-    *   **Kiến thức:** Lệnh `enable` đảm bảo dịch vụ sẽ tự động khởi động cùng hệ thống. Lệnh `start` khởi động dịch vụ ngay lập tức.
+    *   **Kiến thức:** Lệnh `chkconfig on` đảm bảo dịch vụ sẽ tự động khởi động cùng hệ thống. Lệnh `service start` khởi động dịch vụ ngay lập tức.
 
 3.  **Kiểm tra trạng thái dịch vụ (Bước kiểm tra đầu tiên):**
     ```bash
-    sudo systemctl status auditd
+    service auditd status
     ```
     *   **Tại sao cần kiểm tra?** Lệnh này là công cụ gỡ rối quan trọng nhất của bạn. Nó cho bạn biết dịch vụ có đang chạy (`active (running)`) hay không và hiển thị các lỗi gần đây nhất. Hãy tập thói quen sử dụng nó sau mỗi lần khởi động lại dịch vụ.
 
@@ -60,12 +60,12 @@ flowchart TD
     grep -E '^\s*(-a exit,always -F arch=b64 -S execve)' /etc/audit/rules.d/audit.rules
     ```
     *   **Tại sao cần kiểm tra?** Một số hệ thống có sẵn các quy tắc mặc định. Việc thêm một bộ quy tắc mới có thể gây trùng lặp, dẫn đến lỗi `Rule exists` khi khởi động `auditd`.
-    *   **Hành động:** Nếu lệnh trên có output, hãy mở file (`sudo vi /etc/audit/rules.d/audit.rules`) và thêm dấu `#` vào đầu dòng chứa quy tắc đó.
+    *   **Hành động:** Nếu lệnh trên có output, hãy mở file (`vi /etc/audit/rules.d/audit.rules`) và thêm dấu `#` vào đầu dòng chứa quy tắc đó.
 
 3.  **Thêm bộ quy tắc mới:** Bổ sung nội dung của file đã tải vào **cuối** file `/etc/audit/rules.d/audit.rules`.
     ```bash
     # Ví dụ:
-    sudo cat /path/to/downloaded/audit_rules.rules >> /etc/audit/rules.d/audit.rules
+    cat /path/to/downloaded/audit_rules.rules >> /etc/audit/rules.d/audit.rules
     ```
     **Lỗi cần tránh:** Tuyệt đối không dùng `>` vì nó sẽ xóa sạch file cấu hình gốc. Luôn dùng `>>`.
 
@@ -81,7 +81,7 @@ flowchart TD
 **Bước 2.3: Cấu hình Định dạng Log (`auditd.conf`)**
 Chúng ta sẽ sử dụng `ENRICHED` để log dễ đọc hơn cho cả người và máy (SIEM).
 
-1.  **Chỉnh sửa file:** `sudo vi /etc/audit/auditd.conf`
+1.  **Chỉnh sửa file:** `vi /etc/audit/auditd.conf`
 2.  **Đảm bảo cấu hình:** `log_format = ENRICHED`
     *   **Kiến thức:** `RAW` (mặc định) chỉ hiển thị ID số (`uid=1000`). `ENRICHED` sẽ dịch các ID này sang tên tương ứng (`UID="vnpt"`), giúp việc phân tích log trên SIEM trở nên dễ dàng hơn rất nhiều.
 
@@ -100,13 +100,13 @@ flowchart LR
 
 1.  **Xác định vị trí file cấu hình plugin:**
     ```bash
-    sudo find /etc -type f -name "syslog.conf"
+    find /etc -type f -name "syslog.conf"
     ```
     Trên OL8, kết quả thường là `/etc/audit/plugins.d/syslog.conf`.
 
 2.  **Chỉnh sửa file `/etc/audit/plugins.d/syslog.conf`:**
     ```bash
-    sudo vi /etc/audit/plugins.d/syslog.conf
+    vi /etc/audit/plugins.d/syslog.conf
     ```
 3.  **Đảm bảo nội dung file chính xác như sau:**
     ```
@@ -138,7 +138,7 @@ flowchart TD
 
 **Bước 4.1: Phương pháp Kiểm tra Nội bộ**
 
-1.  **Mở file `/etc/rsyslog.conf`:** `sudo vi /etc/rsyslog.conf`
+1.  **Mở file `/etc/rsyslog.conf`:** `vi /etc/rsyslog.conf`
 
 2.  **Thêm dòng kiểm tra tạm thời:** Thêm dòng sau vào phần `#### RULES ####`.
     ```
@@ -149,14 +149,14 @@ flowchart TD
 
 3.  **Khởi động lại các dịch vụ và tạo sự kiện:**
     ```bash
-    sudo systemctl restart auditd
-    sudo systemctl restart rsyslog
-    sudo ls /root
+    service auditd restart
+    service rsyslog restart
+    ls /root
     ```
 
 4.  **Kiểm tra file log:**
     ```bash
-    sudo tail -f /var/log/auditd_local6_test.log
+    tail -f /var/log/auditd_local6_test.log
     ```
     **Kết quả mong đợi:** Bạn sẽ thấy các dòng log audit có tiền tố `audispd:` và định dạng `ENRICHED`. Nếu thành công, bạn có thể tự tin chuyển sang bước tiếp theo.
 
@@ -176,7 +176,7 @@ flowchart TD
 
 **Bước 5.1: Hoàn thiện Cấu hình Rsyslog**
 
-1.  **Chỉnh sửa file `/etc/rsyslog.conf`:** `sudo vi /etc/rsyslog.conf`
+1.  **Chỉnh sửa file `/etc/rsyslog.conf`:** `vi /etc/rsyslog.conf`
 
 2.  **Dọn dẹp cấu hình:**
     *   **Xóa hoặc comment** dòng kiểm tra tạm thời: `# local6.* /var/log/auditd_local6_test.log`
@@ -209,17 +209,17 @@ flowchart TD
 
 1.  **Khởi động lại `rsyslog`:**
     ```bash
-    sudo systemctl restart rsyslog
+    service rsyslog restart
     ```
 2.  **Kiểm tra trạng thái dịch vụ và log của nó để đảm bảo không còn lỗi:**
     ```bash
-    sudo systemctl status rsyslog
-    sudo journalctl -xeu rsyslog # Kiểm tra log chi tiết để đảm bảo không còn lỗi
+    service rsyslog status
+    tail -n 20 /var/log/messages # Kiểm tra log chi tiết để đảm bảo không còn lỗi
     ```
 
 3.  **Tạo sự kiện kiểm tra cuối cùng:**
     ```bash
-    sudo ls /root
+    ls /root
     touch /tmp/final_siem_test
     rm /tmp/final_siem_test
     ```
