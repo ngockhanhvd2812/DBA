@@ -529,6 +529,39 @@ flowchart TD
 * **Minh hoạ:**
 
 ```mermaid
+graph TD
+    subgraph "Hệ thống"
+        M1["mongo-1 (192.168.0.38)"]
+        M2["mongo-2 (192.168.0.241)"]
+        M3["mongo-3 (192.168.0.215)"]
+    end
+
+    subgraph "File /etc/hosts trên M1"
+        H1["192.168.0.38 mongo-1<br>192.168.0.241 mongo-2<br>192.168.0.215 mongo-3"]
+    end
+
+    subgraph "File /etc/hosts trên M2"
+        H2["192.168.0.38 mongo-1<br>192.168.0.241 mongo-2<br>192.168.0.215 mongo-3"]
+    end
+
+    subgraph "File /etc/hosts trên M3"
+        H3["192.168.0.38 mongo-1<br>192.168.0.241 mongo-2<br>192.168.0.215 mongo-3"]
+    end
+
+    M1 -- "Đọc file hosts" --> H1
+    M2 -- "Đọc file hosts" --> H2
+    M3 -- "Đọc file hosts" --> H3
+
+    M1 -.->|ping mongo-2| M2
+    M2 -.->|ping mongo-3| M3
+    M3 -.->|ping mongo-1| M1
+
+    style H1 fill:#c8e6c9,stroke:#388e3c
+    style H2 fill:#c8e6c9,stroke:#388e3c
+    style H3 fill:#c8e6c9,stroke:#388e3c
+```
+
+```mermaid
 flowchart TD
     A[Bắt đầu: Cấu hình /etc/hosts và Hostname] --> B{Mục đích:<br/>Dùng Hostname dễ nhớ thay vì IP<br/>Giúp cấu hình rõ ràng, quản lý dễ dàng<br/>và giao tiếp nhất quán cho MongoDB Cluster};
     
@@ -607,6 +640,25 @@ flowchart TD
 
 💡 **MẸO:** Sau khi tạo service, luôn reboot và kiểm tra `cat /sys/kernel/mm/transparent_hugepage/enabled` phải có `[never]`.
 *   **Thực hiện đúng:**
+
+    Sơ đồ dưới đây minh họa cách `systemd` đảm bảo service `disable-transparent-huge-pages` luôn chạy trước `mongod`, tạo ra một môi trường khởi động an toàn và tối ưu.
+
+    ```mermaid
+    flowchart TD
+        A[System Boot] --> B[systemd starts services]
+        B --> C["disable-transparent-huge-pages.service<br/>(runs because of 'Before=mongod.service')"]
+        C --> D["mongod.service<br/>(starts after THP is disabled)"]
+        D --> E[MongoDB runs in an optimized environment]
+
+        subgraph "Verification"
+            F["cat /sys/kernel/mm/transparent_hugepage/enabled"] --> G["Output contains '[never]'"]
+        end
+
+        style C fill:#e8f5e8,stroke:#388e3c
+        style D fill:#e3f2fd,stroke:#1976d2
+        style E fill:#c8e6c9
+    ```
+
     1.  Tạo file service: `vi /etc/systemd/system/disable-transparent-huge-pages.service`
 
     2.  Dán nội dung chính xác sau:
@@ -750,6 +802,31 @@ flowchart TD
 
 
 *   **Thực hiện đúng:**
+
+    Quy trình này được minh họa như sau, tách biệt rõ ràng việc tinh chỉnh Kernel và giới hạn User:
+
+    ```mermaid
+    flowchart TD
+        subgraph "Kernel Tuning (sysctl)"
+            A["Admin edits<br/>/etc/sysctl.d/99-mongodb.conf"] --> B["Runs 'sysctl --system' OR reboots"]
+            B --> C["Kernel applies settings<br/>(vm.swappiness, vm.max_map_count, etc.)"]
+        end
+
+        subgraph "User Limits (ulimit)"
+            D["Admin creates<br/>/etc/security/limits.d/99-mongodb.conf"] --> E["Restarts mongod service<br/>'systemctl restart mongod'"]
+            E --> F["'mongod' process inherits new limits<br/>(nofile=64000, nproc=64000)"]
+        end
+
+        C --> G((MongoDB runs with optimal OS resources))
+        F --> G
+
+        style A fill:#fff3e0
+        style D fill:#f3e5f5
+        style C fill:#e8f5e8
+        style F fill:#e8f5e8
+        style G fill:#c8e6c9
+    ```
+
     1.  Tạo một file cấu hình mới cho MongoDB:
     Chúng ta sẽ tạo một file có tên `99-mongodb.conf` trong thư mục `/etc/sysctl.d/` `(vi /etc/sysctl.d/99-mongodb.conf)`. Số `99` đảm bảo file này được đọc sau cùng (theo thứ tự bảng chữ cái) để các tinh chỉnh của MongoDB sẽ ghi đè lên bất kỳ cài đặt nào khác nếu có xung đột. 
 
@@ -941,6 +1018,37 @@ flowchart TD
 - **Keyfile khác nhau giữa các máy** → nội bộ từ chối bắt tay
 - **Quên `chmod 400`** → MongoDB từ chối khởi động vì keyfile không an toàn
 - **Tạo thư mục bằng `root` rồi quên `chown mongod:mongod`** → "Permission denied"
+
+Sơ đồ dưới đây minh họa quy trình tạo, sao chép và bảo mật keyfile trên tất cả các node.
+
+```mermaid
+sequenceDiagram
+    participant M1 as mongo-1 (Admin)
+    participant M2 as mongo-2 (Server)
+    participant M3 as mongo-3 (Server)
+
+    M1->>M1: openssl rand ... > /data/mongo-keyfile
+    M1->>M1: chown mongod:mongod /data/mongo-keyfile
+    M1->>M1: chmod 400 /data/mongo-keyfile
+
+    Note over M1: Keyfile created and secured on mongo-1
+
+    M1->>M2: scp /data/mongo-keyfile user@mongo-2:/tmp/
+    M2->>M2: sudo mv /tmp/mongo-keyfile /data/
+    M2->>M2: sudo chown mongod:mongod /data/mongo-keyfile
+    M2->>M2: sudo chmod 400 /data/mongo-keyfile
+
+    Note over M2: Keyfile secured on mongo-2
+
+    M1->>M3: scp /data/mongo-keyfile user@mongo-3:/tmp/
+    M3->>M3: sudo mv /tmp/mongo-keyfile /data/
+    M3->>M3: sudo chown mongod:mongod /data/mongo-keyfile
+    M3->>M3: sudo chmod 400 /data/mongo-keyfile
+
+    Note over M3: Keyfile secured on mongo-3
+
+    Note over M1, M3: All nodes now have an identical, secured keyfile.
+```
 
 *   **Thực hiện đúng (Làm trên `mongo-1`, sau đó copy đi):**
     1.  Tạo thư mục và file key:
@@ -1428,6 +1536,29 @@ sharding:
 
 #### **Bước 3: Khởi tạo Replica Set (Sử dụng Localhost Exception)**
 
+Sơ đồ dưới đây giải thích cơ chế "ngoại lệ localhost" và cách chúng ta tận dụng nó để thiết lập bảo mật cho các Shard.
+
+```mermaid
+graph TD
+    subgraph "Localhost Exception Explained"
+        A["mongod starts with 'authorization: enabled'"] --> B{"Database có user nào chưa?"}
+        B -- "Chưa có user nào" --> C["✅ Localhost Exception: BẬT<br/>Cho phép kết nối từ localhost<br/>KHÔNG cần xác thực"]
+        B -- "Đã có ít nhất 1 user" --> D["❌ Localhost Exception: TẮT<br/>Mọi kết nối (kể cả localhost)<br/>ĐỀU PHẢI xác thực"]
+    end
+
+    subgraph "Quy trình dựng Shard"
+        E["1. Start các node shard<br/>(chưa có user)"] --> F["2. Kết nối từ localhost<br/>(mongosh --port 27011)"]
+        F -- "Nhờ Localhost Exception" --> G["3. Chạy 'rs.initiate()' thành công"]
+        G --> H["4. Tạo user admin đầu tiên<br/>trên PRIMARY"]
+        H --> I["5. Exception tự động TẮT"]
+        I --> J["✅ Shard được bảo mật"]
+    end
+
+    style C fill:#e8f5e8,stroke:#388e3c
+    style D fill:#ffebee,stroke:#d32f2f
+    style J fill:#c8e6c9
+```
+
 Bạn có thể kết nối mà không cần xác thực vì MongoDB cho phép "localhost exception" khi chưa có người dùng nào được tạo. Lệnh `rs.initiate` sẽ thành công vì giao tiếp nội bộ giữa các node đã được bảo vệ bằng `keyFile`.
 
 *   **Thực hiện trên một máy bất kỳ (ví dụ `mongo-1`):**
@@ -1739,6 +1870,22 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
 
 #### **1. Bài toán 1: Lọc, Sắp xếp và Định hình Dữ liệu**
 
+```mermaid
+graph TD
+    A[Collection: persons] --> B[Stage 1: $match<br/>{vocation: "ENGINEER"}]
+    B --> C[Stage 2: $sort<br/>{dateofbirth: -1}]
+    C --> D[Stage 3: $limit<br/>3]
+    D --> E[Stage 4: $project<br/>{_id:0, firstname:1, ...}]
+    E --> F[Output: 3 kỹ sư trẻ nhất]
+
+    style A fill:#e3f2fd
+    style F fill:#e8f5e8
+    style B fill:#f3e5f5
+    style C fill:#e0f2f1
+    style D fill:#fff3e0
+    style E fill:#fce4ec
+```
+
 *   **Chuẩn bị dữ liệu:**
     ```javascript
     use testDB // Sử dụng lại database từ Giai đoạn 4
@@ -1818,6 +1965,29 @@ Sau khi đã có một cluster hoàn chỉnh, bước tiếp theo là khai thác
     ```
 *   **Yêu cầu:** Lấy dữ liệu đơn hàng trong năm 2020, nhưng thay vì hiển thị `product_id`, hãy tra cứu và hiển thị `product_name` và `product_category`.
 *   **Lời giải:**
+
+    Sơ đồ dưới đây minh họa cách `$lookup` hoạt động như một phép "join" giữa hai collection.
+
+    ```mermaid
+    graph TD
+        subgraph "Collections"
+            Orders["orders<br/>(localField: product_id)"]
+            Products["products<br/>(foreignField: id)"]
+        end
+
+        subgraph "Aggregation Pipeline"
+            Input[Input: Documents từ 'orders'] --> Lookup{"$lookup Stage"}
+            Lookup --> Output["Output: Documents từ 'orders'<br/>+ mảng 'product_details' mới"]
+        end
+
+        Products -- "Tìm kiếm các document<br/>có 'id' khớp với 'product_id'" --> Lookup
+        Input -- "Lấy 'product_id' từ mỗi document" --> Lookup
+
+        style Orders fill:#e3f2fd
+        style Products fill:#f3e5f5
+        style Lookup fill:#fff3e0
+    ```
+
     ```javascript
     db.orders.aggregate([
       // Giai đoạn 1: Lọc đơn hàng trong năm 2020
@@ -1923,6 +2093,34 @@ Một cluster không được bảo mật là một thảm họa. MongoDB cung c
 
 *   **Yêu cầu:** Tạo một role `inventoryManager` chỉ được phép `find`, `update`, `insert` trên collection `inventory` và chỉ `find` trên collection `orders` trong database `products`.
 *   **Thực hiện:**
+
+    Quy trình tạo và gán role tùy chỉnh được minh họa như sau:
+
+    ```mermaid
+    flowchart TD
+        A["Admin tạo role 'inventoryManager'"] --> B{"Định nghĩa Privileges"}
+        B --> P1["Resource: products.inventory<br/>Actions: find, update, insert"]
+        B --> P2["Resource: products.orders<br/>Actions: find"]
+        
+        A --> C["Admin tạo user 'manager01'"]
+        C --> D["Gán role 'inventoryManager' cho user"]
+
+        subgraph "Kiểm tra quyền"
+            U["User 'manager01' đăng nhập"]
+            U --> T1{"Thử: db.inventory.insert()"} --> R1["✅ Thành công"]
+            U --> T2{"Thử: db.orders.find()"} --> R2["✅ Thành công"]
+            U --> T3{"Thử: db.orders.remove()"} --> R3["❌ Thất bại (Unauthorized)"]
+        end
+
+        style A fill:#e3f2fd
+        style C fill:#e3f2fd
+        style P1 fill:#e8f5e8
+        style P2 fill:#e8f5e8
+        style R1 fill:#c8e6c9
+        style R2 fill:#c8e6c9
+        style R3 fill:#ffcdd2
+    ```
+
     ```javascript
     use products
     db.createRole({
@@ -2027,6 +2225,36 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 
 *   **Mục đích:** Tạo một member ẩn, không được ứng dụng nhìn thấy và không thể trở thành `PRIMARY`. Nó chuyên dùng cho các tác vụ như backup, phân tích dữ liệu mà không ảnh hưởng đến tải của các node chính.
 *   **Thực hiện đúng:**
+
+    Kiến trúc với Hidden Node:
+
+    ```mermaid
+    graph TD
+        subgraph "Replica Set with Hidden Node"
+            P[Primary]
+            S1[Secondary]
+            H[Hidden Secondary<br/>(priority: 0, hidden: true)]
+            B[Backup Tool / BI]
+        end
+
+        subgraph "Application"
+            App[Client App]
+        end
+
+        App -- "Read/Write" --> P
+        App -- "Read (optional)" --> S1
+        App -.->|Không thấy| H
+
+        P -- "Replication" --> S1
+        P -- "Replication" --> H
+
+        B -- "Chỉ đọc từ node này" --> H
+
+        style H fill:#f3e5f5,stroke:#7b1fa2
+        style B fill:#fff3e0
+    end
+    ```
+
     ```javascript
     cfg = rs.conf()
     // Giả sử muốn ẩn node mongo-3
@@ -2136,6 +2364,27 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
         ```
 
 #### **3. Giám sát Hiệu năng**
+
+Sơ đồ dưới đây tóm tắt các công cụ giám sát dòng lệnh và mục đích sử dụng của chúng.
+
+```mermaid
+graph TD
+    subgraph "Real-time Monitoring Tools"
+        A[mongostat] --> B["- insert, query, update, delete rates<br/>- faults, locked %<br/>- network traffic, connections"]
+        C[mongotop] --> D["- Time spent on read/write<br/>- Per collection basis<br/>- Identifies hot collections"]
+    end
+
+    subgraph "Deep Dive & Troubleshooting"
+        E[Database Profiler] --> F["- Captures slow operations (>N ms)<br/>- Detailed execution stats<br/>- Helps find queries needing indexes"]
+        G[db.currentOp()] --> H["- Shows all active operations<br/>- Identifies long-running queries<br/>- Can be used to kill operations"]
+    end
+
+    style A fill:#e3f2fd
+    style C fill:#e3f2fd
+    style E fill:#fff3e0
+    style G fill:#fff3e0
+end
+```
 
 *   **Mục đích:** Theo dõi sức khỏe hệ thống, phát hiện các "điểm nóng" và truy vấn chậm.
 *   **Công cụ dòng lệnh:**
@@ -2358,6 +2607,30 @@ Chúng ta đã dựng cluster sharding, nhưng việc phân chia dữ liệu di�
 
 💡 **MẸO:** Kiểm tra `maxChunkSizeBytes` hoặc tài liệu version đang chạy thay vì giả định.
 
+Sơ đồ dưới đây minh họa vấn đề "hot shard" kinh điển khi sử dụng Ranged Sharding trên một khóa tăng đơn điệu.
+
+```mermaid
+graph TD
+    subgraph "Ranged Sharding on Monotonic Key (e.g., Timestamp)"
+        direction LR
+        S1[Shard 1<br/>Chunks for Jan-Mar]
+        S2[Shard 2<br/>Chunks for Apr-Jun]
+        S3[Shard 3<br/>Chunks for Jul-Sep]
+        S4["🔥 Hot Shard 4<br/>Chunks for Oct-Dec"]
+    end
+
+    subgraph "Write Operations"
+        W1["New write (Oct 1)"] --> S4
+        W2["New write (Oct 2)"] --> S4
+        W3["New write (Nov 5)"] --> S4
+    end
+
+    Note over S4: "Tất cả các lượt ghi mới<br/>đều dồn vào đây!"
+
+    style S4 fill:#ffcdd2,stroke:#c62828
+end
+```
+
 *   **Chọn `_id` mặc định với Ranged Sharding:** Đây là lỗi kinh điển. `_id` của MongoDB có chứa timestamp và luôn tăng. Kết quả là tạo ra một "hot shard" hứng chịu toàn bộ lưu lượng ghi.
 *   **Chọn một key có số lượng giá trị thấp (Low Cardinality):** Ví dụ, sharding collection người dùng theo trường `country` trong khi 90% người dùng đến từ "Việt Nam". Điều này sẽ tạo ra một chunk khổng lồ không thể chia tách (jumbo chunk) và không thể cân bằng.
 *   **Quên rằng Shard Key là bất biến:** Không thể thay đổi Shard Key của một collection sau khi đã sharding. Nếu chọn sai, cách duy nhất để sửa là tạo một collection mới, sharding lại với key đúng, và di chuyển toàn bộ dữ liệu sang.
@@ -2522,6 +2795,21 @@ Khi bạn đã xác định được `opid` (Operation ID) của một truy vấ
 - **`mongorestore --oplogReplay` chỉ áp dụng cho MỘT replica set**
 - **Với sharded cluster, cần đồng bộ TỪNG SHARD hoặc dùng giải pháp chuyên dụng**
 - **ĐỪNG dump oplog từ `mongos` rồi kỳ vọng replay cho cả cụm**
+
+```mermaid
+graph TD
+    subgraph "⚠️ PITR in Sharded Cluster is Complex!"
+        A["mongorestore --oplogReplay"] -- "Chỉ hoạt động trên" --> B["MỘT Replica Set (một shard)"]
+        B -.-> C["Không thể áp dụng<br/>cho toàn bộ cluster<br/>cùng một lúc"]
+        C --> D{"Yêu cầu<br/>- Backup đồng bộ từ tất cả các shard<br/>- Phối hợp timestamp chính xác<br/>- Hoặc dùng công cụ chuyên dụng"}
+    end
+
+    style A fill:#fff3e0
+    style B fill:#e8f5e8
+    style C fill:#ffcdd2,stroke:#c62828
+    style D fill:#e3f2fd
+end
+```
 
 💡 **PITR SHARDED CLUSTER đúng cách:**
 - Full backup đồng bộ + oplog từng shard
@@ -2928,6 +3216,24 @@ echo "Rolling maintenance completed for all servers"
 
 #### **2. Disaster Recovery Procedures**
 
+Quy trình phục hồi sau thảm họa cho toàn bộ cluster:
+
+```mermaid
+flowchart TD
+    A[Disaster Occurs!] --> B["Stop all MongoDB processes<br/>(mongos, mongod)"]
+    B --> C["Restore Config Server Data<br/>(from backup)"]
+    C --> D["Start Config Servers<br/>Wait for election"]
+    D --> E["Restore EACH Shard's Data<br/>(from backup)"]
+    E --> F["Start Shard Servers<br/>Wait for elections"]
+    F --> G["Start Mongos Routers"]
+    G --> H["Verify Cluster Health<br/>(sh.status())"]
+    H --> I[Recovery Complete]
+
+    style A fill:#ffebee,stroke:#d32f2f
+    style I fill:#e8f5e8,stroke:#388e3c
+end
+```
+
 **Complete Cluster Recovery từ Backup:**
 
 ```bash
@@ -3033,6 +3339,36 @@ printjson(metrics);
 
 #### **2. Capacity Planning Guidelines**
 
+Sơ đồ quy trình lập kế hoạch dung lượng cho các tài nguyên chính:
+
+```mermaid
+graph TD
+    subgraph "CPU Planning"
+        A["Monitor CPU Usage<br/>(top, iostat)"] --> B{"Sustained > 80%?"}
+        B -- Yes --> C["Scale Out<br/>(Add more shards/nodes)"]
+        B -- No --> D["OK"]
+    end
+
+    subgraph "Memory Planning"
+        E["Analyze Working Set Size"] --> F["Calculate Optimal<br/>WiredTiger Cache Size"]
+        F --> G{"RAM < Working Set?"}
+        G -- Yes --> H["Decrease Cache Size<br/>(Prioritize OS Cache)"]
+        G -- No --> I["Increase Cache Size<br/>(Prioritize WiredTiger Cache)"]
+    end
+
+    subgraph "Storage Planning"
+        J["Monitor Disk Usage<br/>(df -h, db.stats())"] --> K["Analyze Growth Rate"]
+        K --> L{"Usage > 85%?"}
+        L -- Yes --> M["Add more storage<br/>(Add disks, add shards)"]
+        L -- No --> N["OK"]
+    end
+
+    style C fill:#fff3e0
+    style H fill:#fff3e0
+    style M fill:#fff3e0
+end
+```
+
 **CPU Capacity Planning:**
 - Monitor CPU utilization during peak hours
 - Target 70% average utilization untuk normal operations
@@ -3099,6 +3435,24 @@ printjson(growth);
 
 #### **1. Balancer Issues**
 
+Sơ đồ chẩn đoán các vấn đề liên quan đến Balancer:
+
+```mermaid
+flowchart TD
+    A[Balancer không hoạt động?] --> B{"1. Balancer có được bật không?<br/>sh.getBalancerState()"}
+    B -- "Không (false)" --> C["Bật balancer<br/>sh.startBalancer()"]
+    B -- "Có (true)" --> D{"2. Balancer có đang chạy không?<br/>sh.isBalancerRunning()"}
+    D -- "Không" --> E{"3. Kiểm tra lock<br/>db.locks.find({_id: 'balancer'})"}
+    E -- "Có lock" --> F["Xóa lock<br/>db.locks.remove({_id: 'balancer'})"]
+    E -- "Không có lock" --> G["Kiểm tra log của mongos/config server<br/>để tìm lỗi chi tiết"]
+    D -- "Có" --> H["Balancer đang chạy, hãy kiên nhẫn<br/>hoặc kiểm tra log để xem tiến trình"]
+
+    style C fill:#e8f5e8
+    style F fill:#e8f5e8
+    style H fill:#e3f2fd
+end
+```
+
 ```javascript
 // Comprehensive balancer diagnostic
 function diagnoseBalancer() {
@@ -3153,6 +3507,27 @@ diagnoseBalancer();
 ```
 
 #### **2. Replica Set Election Issues**
+
+Sơ đồ chẩn đoán các vấn đề liên quan đến bầu cử trong Replica Set:
+
+```mermaid
+flowchart TD
+    A[Replica set không bầu được PRIMARY?] --> B{"1. Đa số node có hoạt động không?<br/>(>50% members UP)"}
+    B -- "Không" --> C["Khởi động lại các node bị down.<br/>Cần đa số để bầu cử."]
+    B -- "Có" --> D{"2. Kết nối mạng giữa các node có tốt không?<br/>(ping, telnet port)"}
+    D -- "Không" --> E["Kiểm tra firewall, network config.<br/>Các node phải thấy nhau."]
+    D -- "Có" --> F{"3. Oplog có bị quá cũ không?<br/>(rs.printReplicationInfo())"}
+    F -- "Có (lag > oplog window)" --> G["Node bị lag quá sẽ không được bầu.<br/>Cần resync node đó."]
+    F -- "Không" -- > H{"4. Cấu hình priority/votes có vấn đề?<br/>(rs.conf())"}
+    H -- "Có" --> I["Kiểm tra lại cấu hình,<br/>đảm bảo có đủ node có thể vote."]
+    H -- "Không" --> J["Kiểm tra log của các node<br/>để tìm lỗi chi tiết (e.g., keyfile mismatch)."]
+
+    style C fill:#ffebee
+    style E fill:#ffebee
+    style G fill:#fff3e0
+    style I fill:#fff3e0
+end
+```
 
 ```bash
 #!/bin/bash
