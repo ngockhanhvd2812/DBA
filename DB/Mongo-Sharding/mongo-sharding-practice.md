@@ -301,6 +301,64 @@ flowchart TD
 
 #### **Multi-Layer Security Architecture**
 
+```mermaid
+flowchart TD
+    subgraph "Multi-Layer Security Model"
+        CLIENT[Client Application] --> NETWORK[Network Security Layer]
+        NETWORK --> AUTH[Authentication Layer]
+        AUTH --> AUTHZ[Authorization Layer]
+        AUTHZ --> AUDIT[Auditing Layer]
+        AUDIT --> DATA[Protected Data]
+    end
+    
+    subgraph "Network Security"
+        FIREWALL[Firewall Configuration<br/>Port-based Access Control]
+        SSL[SSL/TLS Encryption<br/>Client Connections]
+        INTERNAL[Internal Encryption<br/>Cluster Communication]
+    end
+    
+    subgraph "Authentication Methods"
+        SCRAM[SCRAM-SHA-256<br/>Username/Password]
+        X509[x.509 Certificates<br/>PKI Authentication]
+        KEYFILE[KeyFile Authentication<br/>Internal Cluster]
+    end
+    
+    subgraph "Authorization Levels"
+        BUILTIN[Built-in Roles<br/>read, readWrite, dbAdmin]
+        CUSTOM[Custom Roles<br/>Fine-grained Privileges]
+        RESOURCE[Resource Permissions<br/>Database/Collection Level]
+    end
+    
+    subgraph "Auditing & Monitoring"
+        TRAIL[Audit Trail<br/>Security Events]
+        LOGGING[Event Logging<br/>Access Patterns]
+        COMPLIANCE[Compliance Reporting<br/>Regulatory Requirements]
+    end
+    
+    NETWORK --> FIREWALL
+    NETWORK --> SSL
+    NETWORK --> INTERNAL
+    
+    AUTH --> SCRAM
+    AUTH --> X509
+    AUTH --> KEYFILE
+    
+    AUTHZ --> BUILTIN
+    AUTHZ --> CUSTOM
+    AUTHZ --> RESOURCE
+    
+    AUDIT --> TRAIL
+    AUDIT --> LOGGING
+    AUDIT --> COMPLIANCE
+    
+    style CLIENT fill:#e3f2fd
+    style DATA fill:#e8f5e8
+    style FIREWALL fill:#fff3e0
+    style SCRAM fill:#f3e5f5
+    style BUILTIN fill:#e0f2f1
+    style TRAIL fill:#fce4ec
+```
+
 MongoDB sharded cluster sử dụng mô hình bảo mật đa tầng:
 
 **1. Network Security**
@@ -1133,6 +1191,49 @@ sequenceDiagram
 
 #### **3. Tạo Thư mục Dữ liệu và Log**
 
+```mermaid
+flowchart TD
+    subgraph "Directory Structure Creation"
+        START[Start: Create MongoDB Directories] --> MKDIR[Create Directory Structure]
+        MKDIR --> CHOWN[Set Proper Ownership]
+        CHOWN --> VERIFY[Verify Permissions]
+        VERIFY --> COMPLETE[Directories Ready]
+    end
+    
+    subgraph "Directory Structure"
+        DATA["/data/"]
+        DATA --> CONFIG["/data/config/<br/>(Config Server Data)"]
+        DATA --> SHARD1["/data/shard1/<br/>(Shard 1 Data)"]
+        DATA --> SHARD2["/data/shard2/<br/>(Shard 2 Data)"]
+        DATA --> SHARD3["/data/shard3/<br/>(Shard 3 Data)"]
+    end
+    
+    subgraph "Commands Execution"
+        CMD1["mkdir -p /data/config /data/shard1 /data/shard2 /data/shard3"]
+        CMD2["chown -R mongod:mongod /data"]
+        CMD3["ls -la /data/"]
+    end
+    
+    subgraph "⚠️ Common Pitfalls"
+        PITFALL1["Create as root user<br/>❌ Permission denied"]
+        PITFALL2["Forget chown command<br/>❌ Access denied"]
+        PITFALL3["Wrong directory structure<br/>❌ MongoDB startup fails"]
+    end
+    
+    MKDIR --> CMD1
+    CHOWN --> CMD2
+    VERIFY --> CMD3
+    
+    style DATA fill:#e3f2fd
+    style CONFIG fill:#fff3e0
+    style SHARD1 fill:#e8f5e8
+    style SHARD2 fill:#e8f5e8
+    style SHARD3 fill:#e8f5e8
+    style PITFALL1 fill:#ffebee
+    style PITFALL2 fill:#ffebee
+    style PITFALL3 fill:#ffebee
+```
+
 *   **Bẫy người mới:** Tạo thư mục bằng `root` và quên `chown`, dẫn đến lỗi "Permission denied".
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
     ```bash
@@ -1141,6 +1242,46 @@ sequenceDiagram
     ```
 
 #### **4. Mở Firewall**
+
+```mermaid
+flowchart TD
+    subgraph "Firewall Configuration Process"
+        START[Start: Configure Firewall] --> ADD[Add Port Rules]
+        ADD --> PERM[Make Rules Permanent]
+        PERM --> RELOAD[Reload Firewall]
+        RELOAD --> VERIFY[Verify Configuration]
+        VERIFY --> COMPLETE[Firewall Ready]
+    end
+    
+    subgraph "Port Requirements"
+        PORTS["MongoDB Ports:<br/>27010 - Config Server<br/>27011 - Shard 1<br/>27012 - Shard 2<br/>27013 - Shard 3<br/>27020 - Mongos"]
+    end
+    
+    subgraph "Commands"
+        CMD1["firewall-cmd --add-port=27010-27020/tcp --permanent"]
+        CMD2["firewall-cmd --reload"]
+        CMD3["firewall-cmd --list-all"]
+    end
+    
+    subgraph "⚠️ Common Pitfalls"
+        PITFALL1["Add --permanent but forget --reload<br/>❌ Rules not active"]
+        PITFALL2["Wrong port range<br/>❌ Connection refused"]
+        PITFALL3["Forget to check firewall status<br/>❌ Silent failures"]
+    end
+    
+    ADD --> CMD1
+    PERM --> CMD1
+    RELOAD --> CMD2
+    VERIFY --> CMD3
+    
+    style PORTS fill:#e3f2fd
+    style CMD1 fill:#fff3e0
+    style CMD2 fill:#fff3e0
+    style CMD3 fill:#fff3e0
+    style PITFALL1 fill:#ffebee
+    style PITFALL2 fill:#ffebee
+    style PITFALL3 fill:#ffebee
+```
 
 *   **Bẫy người mới:** Thêm rule `--permanent` nhưng quên `--reload`.
 *   **Thực hiện đúng (Trên CẢ 3 MÁY):**
@@ -2202,6 +2343,56 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 
 #### **1. Điều chỉnh Primary (Election)**
 
+```mermaid
+flowchart TD
+    subgraph "Replica Set Election Process"
+        START[Start: Configure Primary Priority] --> CONNECT[Connect to Replica Set]
+        CONNECT --> GETCONF[Get Current Configuration]
+        GETCONF --> SETPRIORITY[Set Node Priorities]
+        SETPRIORITY --> RECONFIG[Reconfigure Replica Set]
+        RECONFIG --> VERIFY[Verify New Primary]
+        VERIFY --> COMPLETE[Primary Election Complete]
+    end
+    
+    subgraph "Priority Configuration"
+        NODE1["mongo-1:27011<br/>Priority: 3<br/>(Strongest Server)"]
+        NODE2["mongo-2:27011<br/>Priority: 2<br/>(Medium Server)"]
+        NODE3["mongo-3:27011<br/>Priority: 1<br/>(Weakest Server)"]
+    end
+    
+    subgraph "Election Scenarios"
+        SCENARIO1["Normal Operation<br/>mongo-1 is PRIMARY"]
+        SCENARIO2["mongo-1 Fails<br/>mongo-2 becomes PRIMARY"]
+        SCENARIO3["mongo-1 & mongo-2 Fail<br/>mongo-3 becomes PRIMARY"]
+    end
+    
+    subgraph "Commands"
+        CMD1["cfg = rs.conf()"]
+        CMD2["cfg.members[0].priority = 3"]
+        CMD3["rs.reconfig(cfg)"]
+        CMD4["rs.status()"]
+    end
+    
+    subgraph "⚠️ Common Pitfalls"
+        PITFALL1["All nodes same priority<br/>❌ Weak node may become PRIMARY"]
+        PITFALL2["Priority too high<br/>❌ May cause split-brain"]
+        PITFALL3["Forget to verify<br/>❌ Configuration not applied"]
+    end
+    
+    SETPRIORITY --> CMD1
+    SETPRIORITY --> CMD2
+    RECONFIG --> CMD3
+    VERIFY --> CMD4
+    
+    style NODE1 fill:#e8f5e8
+    style NODE2 fill:#fff3e0
+    style NODE3 fill:#ffebee
+    style SCENARIO1 fill:#e3f2fd
+    style PITFALL1 fill:#ffebee
+    style PITFALL2 fill:#ffebee
+    style PITFALL3 fill:#ffebee
+```
+
 *   **Mục đích:** Đảm bảo node máy chủ mạnh nhất, có độ trễ mạng thấp nhất sẽ được ưu tiên làm `PRIMARY` để tối ưu hiệu năng ghi.
 *   **Bẫy người mới:** Để tất cả các node có priority bằng nhau, dẫn đến việc một node yếu có thể được bầu làm `PRIMARY`, ảnh hưởng đến toàn bộ replica set.
 *   **Thực hiện đúng:** Kết nối vào replica set (ví dụ shard01) và điều chỉnh `priority`.
@@ -2342,6 +2533,82 @@ Dữ liệu là tài sản quý giá nhất. Một chiến lược sao lưu và 
         ```
 
 #### **2. Phục hồi tại một thời điểm (Point-in-Time Recovery)**
+
+```mermaid
+sequenceDiagram
+    participant Admin as Administrator
+    participant DB as Database
+    participant Backup as Backup System
+    participant Oplog as Oplog
+    
+    Note over Admin, Oplog: Normal Operation
+    Admin->>DB: Regular Operations
+    DB->>Oplog: Write to Oplog
+    Backup->>Oplog: Backup Oplog (Hourly)
+    
+    Note over Admin, Oplog: Disaster Scenario
+    Admin->>DB: Accidental DELETE/UPDATE
+    Note right of DB: Data Corruption at 10:30 AM
+    
+    Admin->>Backup: Identify Last Good Backup
+    Backup-->>Admin: Full Backup (9:00 AM)
+    
+    Admin->>Oplog: Find Timestamp Before Error
+    Oplog-->>Admin: Timestamp: 1729073314:3
+    
+    Admin->>DB: Restore Full Backup
+    Admin->>DB: Replay Oplog to Timestamp
+    DB-->>Admin: Data Restored to 10:29 AM
+    
+    Note over Admin, Oplog: Recovery Complete
+```
+
+```mermaid
+flowchart TD
+    subgraph "PITR Process Flow"
+        START[Disaster Detected] --> IDENTIFY[Identify Error Time]
+        IDENTIFY --> FIND[Find Last Good Backup]
+        FIND --> RESTORE[Restore Full Backup]
+        RESTORE --> REPLAY[Replay Oplog to Timestamp]
+        REPLAY --> VERIFY[Verify Data Integrity]
+        VERIFY --> COMPLETE[Recovery Complete]
+    end
+    
+    subgraph "Backup Strategy"
+        DAILY[Daily Full Backup<br/>9:00 AM]
+        HOURLY[Hourly Oplog Backup<br/>Every Hour]
+        CONTINUOUS[Continuous Oplog<br/>Real-time]
+    end
+    
+    subgraph "Recovery Scenarios"
+        SCENARIO1[Error at 10:30 AM<br/>Restore to 10:29 AM]
+        SCENARIO2[Error at 2:00 PM<br/>Restore to 1:59 PM]
+        SCENARIO3[Error at 8:00 AM<br/>Restore to 7:59 AM]
+    end
+    
+    subgraph "Commands"
+        CMD1["mongodump --oplog"]
+        CMD2["mongorestore --oplogReplay"]
+        CMD3["--oplogLimit=timestamp"]
+    end
+    
+    subgraph "⚠️ Common Pitfalls"
+        PITFALL1["No Oplog Backup<br/>❌ Can't do PITR"]
+        PITFALL2["Wrong Timestamp<br/>❌ Data still corrupted"]
+        PITFALL3["Incomplete Oplog<br/>❌ Partial recovery"]
+    end
+    
+    FIND --> DAILY
+    REPLAY --> HOURLY
+    REPLAY --> CONTINUOUS
+    
+    style SCENARIO1 fill:#e3f2fd
+    style SCENARIO2 fill:#fff3e0
+    style SCENARIO3 fill:#e8f5e8
+    style PITFALL1 fill:#ffebee
+    style PITFALL2 fill:#ffebee
+    style PITFALL3 fill:#ffebee
+```
 
 *   **Mục đích:** Cứu dữ liệu khi có người lỡ tay `DELETE` hoặc `UPDATE` sai. Kỹ thuật này cho phép khôi phục lại trạng thái của database *ngay trước* khi sự cố xảy ra.
 *   **Bẫy người mới:** Chỉ có backup hàng đêm. Nếu sai sót xảy ra lúc 9 giờ sáng, bạn sẽ mất toàn bộ dữ liệu từ đêm hôm trước.
