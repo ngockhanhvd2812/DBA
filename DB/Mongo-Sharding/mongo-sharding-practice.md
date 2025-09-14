@@ -111,24 +111,24 @@
 
 ```mermaid
 flowchart TD
-    subgraph "Conceptual Architecture"
-        APP[Client Applications] --> ROUTER[Query Router<br/>Mongos]
-        ROUTER --> METADATA[Metadata Storage<br/>Config Servers]
-        ROUTER --> SHARDS[Data Storage<br/>Shards]
+    subgraph "Kiến Trúc Khái Niệm"
+        APP[Ứng Dụng Client] --> ROUTER[Router Truy Vấn<br/>Mongos]
+        ROUTER --> METADATA[Lưu Trữ Metadata<br/>Server Cấu Hình]
+        ROUTER --> SHARDS[Lưu Trữ Dữ Liệu<br/>Shards]
         
-        subgraph "High-Level Components"
-            METADATA --> CS[Config Server<br/>Replica Set]
+        subgraph "Thành Phần Cấp Cao"
+            METADATA --> CS[Server Cấu Hình<br/>Replica Set]
             SHARDS --> S1[Shard 1<br/>Replica Set]
             SHARDS --> S2[Shard 2<br/>Replica Set]
             SHARDS --> S3[Shard N<br/>Replica Set]
         end
     end
     
-    subgraph "Data Flow"
-        WRITE[Write Operation] --> ROUTER
-        READ[Read Operation] --> ROUTER
-        ROUTER --> |"Route based on<br/>Shard Key"| TARGET[Target Shard]
-        TARGET --> RESULT[Operation Result]
+    subgraph "Luồng Dữ Liệu"
+        WRITE[Thao Tác Ghi] --> ROUTER
+        READ[Thao Tác Đọc] --> ROUTER
+        ROUTER --> |"Định Tuyến Dựa Trên<br/>Shard Key"| TARGET[Shard Đích]
+        TARGET --> RESULT[Kết Quả Thao Tác]
         RESULT --> APP
     end
     
@@ -152,11 +152,47 @@ flowchart TD
 - Phân tích Shard Key để xác định shard đích
 - Có thể triển khai nhiều instance để cân bằng tải
 
+```mermaid
+graph TD
+    subgraph "Thành Phần Mongos"
+        A[Tiến Trình Mongos] --> B[Router Truy Vấn]
+        A --> C[Pool Kết Nối]
+        A --> D[Cache Metadata]
+        B --> E[Định Tuyến Shard]
+        C --> F[Kết Nối Client]
+        D --> G[Đồng Bộ Server Cấu Hình]
+    end
+    
+    style A fill:#fff3e0
+    style B fill:#e3f2fd
+    style C fill:#f3e5f5
+    style D fill:#e8f5e8
+```
+
 **2. Config Servers**
 - Lưu trữ metadata của toàn bộ cluster
 - Quản lý thông tin về chunks, shards, và shard keys
 - Luôn triển khai dưới dạng Replica Set (tối thiểu 3 nodes)
 - Cực kỳ quan trọng - nếu mất Config Server, toàn bộ cluster sẽ không hoạt động
+
+```mermaid
+graph TD
+    subgraph "Replica Set Server Cấu Hình"
+        A[Server Cấu Hình 1<br/>Primary] <-- "Sao Chép" --> B[Server Cấu Hình 2<br/>Secondary]
+        B <-- "Sao Chép" --> C[Server Cấu Hình 3<br/>Secondary]
+        C <-- "Sao Chép" --> A
+    end
+    
+    subgraph "Lưu Trữ Metadata"
+        A --> D[Metadata Cluster]
+        A --> E[Metadata Shard]
+        A --> F[Metadata Chunk]
+    end
+    
+    style A fill:#e8f5e8,stroke:#388e3c
+    style B fill:#f1f8e9,stroke:#689f38
+    style C fill:#f1f8e9,stroke:#689f38
+```
 
 **3. Shards**
 - Các máy chủ thực sự lưu trữ dữ liệu
@@ -164,24 +200,43 @@ flowchart TD
 - Dữ liệu được phân phối dựa trên Shard Key
 - Có thể thêm/bớt shard theo nhu cầu
 
+```mermaid
+graph TD
+    subgraph "Cấu Trúc Replica Set Shard"
+        P[Node Primary<br/>Đọc/Ghi] <-- "Sao Chép Oplog" --> S1[Node Secondary<br/>Chỉ Đọc]
+        S1 <-- "Sao Chép" --> S2[Node Secondary<br/>Chỉ Đọc]
+        S2 <-- "Sao Chép" --> P
+    end
+    
+    subgraph "Phân Bố Dữ Liệu Shard"
+        P --> D1[Chunk Dữ Liệu 1]
+        P --> D2[Chunk Dữ Liệu 2]
+        P --> D3[Chunk Dữ Liệu N]
+    end
+    
+    style P fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style S1 fill:#f1f8e9,stroke:#689f38
+    style S2 fill:#f1f8e9,stroke:#689f38
+```
+
 ### **Chương 2: Nguyên Lý Phân Tán Dữ liệu (Data Distribution)**
 
 ```mermaid
 flowchart TD
-    subgraph "Sharding Process"
-        DOC["New Document<br/>{_id: 'abc', userId: 12345, data: '...'}"] --> SK["Extract Shard Key<br/>userId: 12345"]
-        SK --> HASH["Calculate Hash/Range<br/>hash(12345) = 0x7A2B..."]
-        HASH --> CHUNK["Determine Target Chunk<br/>Chunk_A: [0x7000... - 0x8000...]"]
-        CHUNK --> SHARD["Route to Shard<br/>Shard02"]
-        SHARD --> STORE["Store Document"]
+    subgraph "Quy Trình Sharding"
+        DOC["Tài Liệu Mới<br/>{_id: 'abc', userId: 12345, data: '...'}"] --> SK["Trích Xuất Shard Key<br/>userId: 12345"]
+        SK --> HASH["Tính Toán Hash/Range<br/>hash(12345) = 0x7A2B..."]
+        HASH --> CHUNK["Xác Định Chunk Đích<br/>Chunk_A: [0x7000... - 0x8000...]"]
+        CHUNK --> SHARD["Định Tuyến Đến Shard<br/>Shard02"]
+        SHARD --> STORE["Lưu Trữ Tài Liệu"]
     end
     
-    subgraph "Chunk Management"
-        SIZE["Monitor Chunk Size"] --> SPLIT{"Size > 64MB?"}
-        SPLIT -->|Yes| DIVIDE["Split Chunk"]
-        SPLIT -->|No| CONTINUE["Continue Monitoring"]
-        DIVIDE --> BALANCE["Trigger Balancer"]
-        BALANCE --> MIGRATE["Migrate Chunks"]
+    subgraph "Quản Lý Chunk"
+        SIZE["Giám Sát Kích Thước Chunk"] --> SPLIT{"Kích Thước > 64MB?"}
+        SPLIT -->|Có| DIVIDE["Chia Nhỏ Chunk"]
+        SPLIT -->|Không| CONTINUE["Tiếp Tục Giám Sát"]
+        DIVIDE --> BALANCE["Kích Hoạt Trình Cân Bằng"]
+        BALANCE --> MIGRATE["Di Chuyển Chunks"]
     end
     
     style DOC fill:#e3f2fd
@@ -193,6 +248,35 @@ flowchart TD
 
 Shard Key là một hoặc nhiều trường trong document được sử dụng để quyết định document đó sẽ được lưu trữ trên shard nào. Đây là quyết định quan trọng nhất khi thiết kế sharded cluster.
 
+```mermaid
+graph TD
+    subgraph "Quy Trình Chọn Shard Key"
+        A[Bộ Sưu Tập Tài Liệu] --> B[Phân Tích Mẫu Truy Vấn]
+        B --> C[Xác Định Truy Vấn Thường Xuyên]
+        C --> D[Đánh Giá Các Trường Ứng Cử]
+        D --> E[Kiểm Tra Tính Phân Giải]
+        E --> F[Phân Bố Ghi]
+        F --> G[Hiệu Suất Đọc]
+        G --> H[Chọn Shard Key]
+    end
+    
+    subgraph "Tiêu Chí Đánh Giá Shard Key"
+        I[Tính Phân Giải Cao] --> J[Phân Bố Tốt]
+        K[Cập Nhật Ít Khi] --> L[Chunk Ổn Định]
+        M[Nhắm Mục Tiêu Truy Vấn] --> N[Định Tuyến Hiệu Quả]
+    end
+    
+    H --> I
+    H --> K
+    H --> M
+    
+    style A fill:#e3f2fd
+    style H fill:#e8f5e8
+    style I fill:#f3e5f5
+    style K fill:#fff3e0
+    style M fill:#e0f2f1
+```
+
 **Các Chiến Lược Shard Key:**
 
 1. **Hashed Sharding**
@@ -201,16 +285,92 @@ Shard Key là một hoặc nhiều trường trong document được sử dụng
    - Không hiệu quả cho range queries
    - Thích hợp cho write-heavy workloads
 
+```mermaid
+graph TD
+    subgraph "Quy Trình Sharding Băm"
+        A[Giá Trị Shard Key] --> B[Hàm Băm]
+        B --> C[Kết Quả Băm]
+        C --> D[Ánh Xạ Phạm Vi Chunk]
+        D --> E[Shard Đích]
+    end
+    
+    subgraph "Ví Dụ Phân Bố Băm"
+        S1[Shard 1<br/>Phạm Vi Băm 0-FFF]
+        S2[Shard 2<br/>Phạm Vi Băm 1000-1FFF]
+        S3[Shard 3<br/>Phạm Vi Băm 2000-2FFF]
+        S4[Shard N<br/>Phạm Vi Băm ...]
+    end
+    
+    style A fill:#e3f2fd
+    style E fill:#e8f5e8
+    style S1 fill:#f3e5f5
+    style S2 fill:#f3e5f5
+    style S3 fill:#f3e5f5
+    style S4 fill:#f3e5f5
+```
+
 2. **Ranged Sharding**
    - Phân chia dựa trên giá trị thực của shard key
    - Hiệu quả cho range queries
    - Có nguy cơ tạo hotspot nếu chọn key không phù hợp
    - Thích hợp khi có query patterns rõ ràng
 
+```mermaid
+graph TD
+    subgraph "Quy Trình Sharding Phạm Vi"
+        A[Giá Trị Shard Key] --> B[So Sánh Phạm Vi]
+        B --> C[Ánh Xạ Phạm Vi Chunk]
+        C --> D[Shard Đích]
+    end
+    
+    subgraph "Ví Dụ Phân Bố Phạm Vi"
+        S1[Shard 1<br/>Giá Trị 1-1000]
+        S2[Shard 2<br/>Giá Trị 1001-2000]
+        S3[Shard 3<br/>Giá Trị 2001-3000]
+        S4[Shard N<br/>Giá Trị ...]
+    end
+    
+    style A fill:#e3f2fd
+    style D fill:#e8f5e8
+    style S1 fill:#fff3e0
+    style S2 fill:#fff3e0
+    style S3 fill:#fff3e0
+    style S4 fill:#fff3e0
+```
+
 **Chunk và Balancing:**
 - Dữ liệu được tổ chức thành các chunk (mặc định 64MB)
 - Balancer tự động di chuyển chunk giữa các shard
 - Quá trình migration diễn ra trong suốt, không ảnh hưởng availability
+
+```mermaid
+flowchart TD
+    subgraph "Quy Trình Cân Bằng Chunk"
+        A[Chèn Dữ Liệu] --> B[Tạo Chunk]
+        B --> C[Giám Sát Kích Thước Chunk]
+        C --> D{"Kích Thước > 64MB?"}
+        D -->|Có| E[Chia Nhỏ Chunk]
+        D -->|Không| F[Tiếp Tục Giám Sát]
+        E --> G[Kích Hoạt Trình Cân Bằng]
+        G --> H[Di Chuyển Chunk]
+        H --> I[Shard Đích]
+    end
+    
+    subgraph "Luồng Làm Việc Trình Cân Bằng"
+        J[Trình Cân Bằng Khởi Động] --> K[Kiểm Tra Phân Bố]
+        K --> L{"Phát Hiện Mất Cân Bằng?"}
+        L -->|Có| M[Chọn Chunks]
+        L -->|Không| N[Chờ Khoảng Thời Gian]
+        M --> O[Di Chuyển Chunks]
+        O --> P[Cập Nhật Metadata]
+        P --> Q[Di Chuyển Hoàn Tất]
+    end
+    
+    style A fill:#e3f2fd
+    style I fill:#e8f5e8
+    style J fill:#fff3e0
+    style Q fill:#c8e6c9
+```
 
 ### **Chương 3: Cơ Chế Replica Set và High Availability**
 
@@ -222,28 +382,43 @@ sequenceDiagram
     participant S2 as Secondary 2
     participant A as Arbiter
     
-    Note over P,S2: Normal Operation
-    C->>P: Write Operation
-    P->>S1: Replicate via Oplog
-    P->>S2: Replicate via Oplog
-    P->>C: Acknowledge Write
+    Note over P,S2: Hoạt Động Bình Thường
+    C->>P: Thao Tác Ghi
+    P->>S1: Sao Chép qua Oplog
+    P->>S2: Sao Chép qua Oplog
+    P->>C: Xác Nhận Ghi
     
-    Note over P,S2: Primary Failure Scenario
-    P->>X: Primary Fails
-    S1->>S2: Election Request
-    S1->>A: Request Vote
-    S2->>S1: Vote Granted
-    A->>S1: Vote Granted
-    S1->>S1: Becomes New Primary
+    Note over P,S2: Tình Huống Primary Hỏng
+    P->>X: Primary Hỏng
+    S1->>S2: Yêu Cầu Bầu Cử
+    S1->>A: Yêu Cầu Bình Chọn
+    S2->>S1: Đồng Ý Bình Chọn
+    A->>S1: Đồng Ý Bình Chọn
+    S1->>S1: Trở Thành Primary Mới
     
-    Note over S1,S2: Service Resumed
-    C->>S1: Write Operation (to new primary)
-    S1->>S2: Continue Replication
+    Note over S1,S2: Dịch Vụ Tiếp Tục
+    C->>S1: Thao Tác Ghi (đến primary mới)
+    S1->>S2: Tiếp Tục Sao Chép
 ```
 
 #### **Replica Set Fundamentals**
 
 Mỗi shard trong MongoDB cluster đều được triển khai dưới dạng Replica Set để đảm bảo high availability và data durability.
+
+```mermaid
+graph TD
+    subgraph "Cấu Trúc Replica Set"
+        P[Node Primary<br/>Đọc/Ghi] <-- "Sao Chép Oplog" --> S1[Node Secondary<br/>Chỉ Đọc]
+        S1 <-- "Sao Chép" --> S2[Node Secondary<br/>Chỉ Đọc]
+        S2 <-- "Sao Chép" --> P
+        P --> A[Node Arbiter<br/>Chỉ Bình Chọn]
+    end
+    
+    style P fill:#e8f5e8,stroke:#388e3c,stroke-width:3px
+    style S1 fill:#f1f8e9,stroke:#689f38
+    style S2 fill:#f1f8e9,stroke:#689f38
+    style A fill:#fff3e0,stroke:#f57c00
+```
 
 **Các Loại Node trong Replica Set:**
 
@@ -264,34 +439,77 @@ Mỗi shard trong MongoDB cluster đều được triển khai dưới dạng Re
    - Giúp phá tie trong election với số node chẵn
    - Tiết kiệm tài nguyên trong small deployments
 
+```mermaid
+graph TD
+    subgraph "Replica Set với Arbiter"
+        P[Primary<br/>Lưu Trữ Dữ Liệu]
+        S[Secondary<br/>Lưu Trữ Dữ Liệu]
+        A[Arbiter<br/>Chỉ Bình Chọn]
+    end
+    
+    P <-- "Sao Chép Dữ Liệu" --> S
+    P <-- "Heartbeat" --> A
+    S <-- "Heartbeat" --> A
+    A <-- "Điều Phối Bình Chọn" --> P
+    A <-- "Điều Phối Bình Chọn" --> S
+    
+    style P fill:#e8f5e8,stroke:#388e3c
+    style S fill:#f1f8e9,stroke:#689f38
+    style A fill:#fff3e0,stroke:#f57c00
+```
+
 **Election Process:**
 - Heartbeat mechanism giữa các nodes
 - Automatic failover khi Primary không response
 - Majority voting để bầu Primary mới
 - Write concern và read concern để control consistency
 
+```mermaid
+flowchart TD
+    subgraph "Các Bước Quy Trình Bầu Cử"
+        A[Phát Hiện Node Hỏng] --> B[Hết Thời Gian Heartbeat]
+        B --> C[Khởi Động Bầu Cử]
+        C --> D[Quy Trình Bình Chọn]
+        D --> E{"Đa Số Bình Chọn?"}
+        E -->|Có| F[Primary Mới Được Bầu]
+        E -->|Không| G[Thử Bầu Cử Lại]
+        F --> H[Khôi Phục Dịch Vụ]
+    end
+    
+    subgraph "Tiêu Chí Bình Chọn"
+        I[Ưu Tiên Node]
+        J[Sức Khỏe Node]
+        K[Trạng Thái Đồng Bộ Oplog]
+        L[Kết Nối Mạng]
+    end
+    
+    style A fill:#e3f2fd
+    style F fill:#e8f5e8
+    style H fill:#c8e6c9
+```
+
 ### **Chương 4: Security Authentication và Authorization Flow**
 
 ```mermaid
 flowchart TD
-    subgraph "Client Authentication Flow"
-        CLIENT[Client Application] --> MONGOS[Mongos Router]
-        MONGOS --> |"1. Validate Credentials"| AUTHDB[(Authentication Database)]
-        AUTHDB --> |"2. Return User Info + Roles"| MONGOS
-        MONGOS --> |"3. Authorize Request"| OPERATION[Perform Operation]
+    subgraph "Quy Trình Xác Thực Client"
+        CLIENT[Ứng Dụng Client] --> MONGOS[Router Mongos]
+        MONGOS --> |"1. Xác Minh Thông Tin"| AUTHDB[(Cơ Sở Dữ Liệu Xác Thực)]
+        AUTHDB --> |"2. Trả Về Thông Tin Người Dùng + Vai Trò"| MONGOS
+        MONGOS --> |"3. Ủy Quyền Yêu Cầu"| OPERATION[Thực Hiện Thao Tác]
     end
     
-    subgraph "Internal Cluster Authentication"
-        MONGOS2[Mongos] --> |"KeyFile/x.509"| CONFIG[Config Server]
+    subgraph "Xác Thực Cluster Nội Bộ"
+        MONGOS2[Mongos] --> |"KeyFile/x.509"| CONFIG[Server Cấu Hình]
         CONFIG --> |"KeyFile/x.509"| SHARD1[Shard 1]
-        SHARD1 --> |"Replica Set Auth"| SHARD1_SEC[Shard 1 Secondary]
+        SHARD1 --> |"Xác Thực Replica Set"| SHARD1_SEC[Shard 1 Secondary]
     end
     
-    subgraph "Authorization (RBAC)"
-        USER[User] --> ROLES[Assigned Roles]
-        ROLES --> PRIVILEGES[Role Privileges]
-        PRIVILEGES --> RESOURCES[Database/Collection]
-        RESOURCES --> ACTIONS[Allowed Actions]
+    subgraph "Ủy Quyền (RBAC)"
+        USER[Người Dùng] --> ROLES[Vai Trò Được Gán]
+        ROLES --> PRIVILEGES[Quyền Hạn Vai Trò]
+        PRIVILEGES --> RESOURCES[Cơ Sở Dữ Liệu/Collection]
+        RESOURCES --> ACTIONS[Hành Động Được Phép]
     end
     
     style CLIENT fill:#e3f2fd
@@ -303,36 +521,36 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph "Multi-Layer Security Model"
-        CLIENT[Client Application] --> NETWORK[Network Security Layer]
-        NETWORK --> AUTH[Authentication Layer]
-        AUTH --> AUTHZ[Authorization Layer]
-        AUTHZ --> AUDIT[Auditing Layer]
-        AUDIT --> DATA[Protected Data]
+    subgraph "Mô Hình Bảo Mật Đa Tầng"
+        CLIENT[Ứng Dụng Client] --> NETWORK[Tầng Bảo Mật Mạng]
+        NETWORK --> AUTH[Tầng Xác Thực]
+        AUTH --> AUTHZ[Tầng Ủy Quyền]
+        AUTHZ --> AUDIT[Tầng Kiểm Toán]
+        AUDIT --> DATA[Dữ Liệu Được Bảo Vệ]
     end
     
-    subgraph "Network Security"
-        FIREWALL[Firewall Configuration<br/>Port-based Access Control]
-        SSL[SSL/TLS Encryption<br/>Client Connections]
-        INTERNAL[Internal Encryption<br/>Cluster Communication]
+    subgraph "Bảo Mật Mạng"
+        FIREWALL[Cấu Hình Tường Lửa<br/>Kiểm Soát Truy Cập Cổng]
+        SSL[Mã Hóa SSL/TLS<br/>Kết Nối Client]
+        INTERNAL[Mã Hóa Nội Bộ<br/>Giao Tiếp Cluster]
     end
     
-    subgraph "Authentication Methods"
-        SCRAM[SCRAM-SHA-256<br/>Username/Password]
-        X509[x.509 Certificates<br/>PKI Authentication]
-        KEYFILE[KeyFile Authentication<br/>Internal Cluster]
+    subgraph "Phương Pháp Xác Thực"
+        SCRAM[SCRAM-SHA-256<br/>Tên Người Dùng/Mật Khẩu]
+        X509[Chứng Chỉ x.509<br/>Xác Thực PKI]
+        KEYFILE[Xác Thực KeyFile<br/>Cluster Nội Bộ]
     end
     
-    subgraph "Authorization Levels"
-        BUILTIN[Built-in Roles<br/>read, readWrite, dbAdmin]
-        CUSTOM[Custom Roles<br/>Fine-grained Privileges]
-        RESOURCE[Resource Permissions<br/>Database/Collection Level]
+    subgraph "Cấp Độ Ủy Quyền"
+        BUILTIN[Vai Trò Tích Hợp<br/>read, readWrite, dbAdmin]
+        CUSTOM[Vai Trò Tùy Chỉnh<br/>Quyền Hạn Chi Tiết]
+        RESOURCE[Quyền Truy Cập Tài Nguyên<br/>Cơ Sở Dữ Liệu/Collection]
     end
     
-    subgraph "Auditing & Monitoring"
-        TRAIL[Audit Trail<br/>Security Events]
-        LOGGING[Event Logging<br/>Access Patterns]
-        COMPLIANCE[Compliance Reporting<br/>Regulatory Requirements]
+    subgraph "Kiểm Toán & Giám Sát"
+        TRAIL[Nhật Ký Kiểm Toán<br/>Sự Kiện Bảo Mật]
+        LOGGING[Ghi Nhật Ký<br/>Mẫu Truy Cập]
+        COMPLIANCE[Báo Cáo Tuân Thủ<br/>Yêu Cầu Pháp Lý]
     end
     
     NETWORK --> FIREWALL
@@ -385,23 +603,23 @@ MongoDB sharded cluster sử dụng mô hình bảo mật đa tầng:
 
 ```mermaid
 flowchart TD
-    subgraph "Backup Strategy"
-        PROD[Production Data] --> FULL["Full Backup<br/>Daily via mongodump"]
-        PROD --> OPLOG["Incremental Oplog<br/>Every 15 minutes"]
-        PROD --> SNAPSHOT["Storage Snapshots<br/>LVM/Cloud snapshots"]
+    subgraph "Chiến Lược Sao Lưu"
+        PROD[Dữ Liệu Production] --> FULL["Sao Lưu Toàn Bộ<br/>Hàng ngày qua mongodump"]
+        PROD --> OPLOG["Sao Lưu Tăng Dần Oplog<br/>Mỗi 15 phút"]
+        PROD --> SNAPSHOT["Snapshot Lưu Trữ<br/>Snapshot LVM/Cloud"]
     end
     
-    subgraph "Recovery Scenarios"
-        DISASTER["Complete Disaster"] --> FULL_RESTORE["Full Restore<br/>+ Latest Oplog Replay"]
-        CORRUPTION["Data Corruption"] --> PITR["Point-in-Time Recovery<br/>Oplog replay to timestamp"]
-        ACCIDENT["Accidental Deletion"] --> SELECTIVE["Selective Restore<br/>Specific collections"]
+    subgraph "Kịch Bản Phục Hồi"
+        DISASTER["Thảm Họa Hoàn Toàn"] --> FULL_RESTORE["Phục Hồi Toàn Bộ<br/>+ Phát lại Oplog Mới Nhất"]
+        CORRUPTION["Dữ Liệu Bị Hỏng"] --> PITR["Phục Hồi Theo Thời Gian<br/>Phát lại oplog đến thời điểm"]
+        ACCIDENT["Xóa Nhầm"] --> SELECTIVE["Phục Hồi Chọn Lọc<br/>Collection cụ thể"]
     end
     
-    subgraph "Recovery Validation"
-        RESTORE[Restored Data] --> VERIFY["Data Integrity Check"]
-        VERIFY --> INDEX["Rebuild Indexes"]
-        INDEX --> TEST["Application Testing"]
-        TEST --> PRODUCTION["Return to Production"]
+    subgraph "Xác Minh Phục Hồi"
+        RESTORE[Dữ Liệu Đã Phục Hồi] --> VERIFY["Kiểm Tra Tính Toàn Vẹn"]
+        VERIFY --> INDEX["Xây Dựng Lại Index"]
+        INDEX --> TEST["Kiểm Thử Ứng Dụng"]
+        TEST --> PRODUCTION["Trở Lại Production"]
     end
     
     style PROD fill:#e3f2fd
@@ -442,37 +660,37 @@ flowchart TD
 
 ```mermaid
 graph TB
-    subgraph "Client Applications"
-        APP1[App 1]
-        APP2[App 2]
+    subgraph "Ứng Dụng Client"
+        APP1[Ứng Dụng 1]
+        APP2[Ứng Dụng 2]
     end
     
-    subgraph "Query Router"
-        MONGOS[Mongos<br/>Port 27020]
+    subgraph "Router Truy Vấn"
+        MONGOS[Mongos<br/>Cổng 27020]
     end
     
-    subgraph "Config Server Replica Set"
-        CFG1[Config 1<br/>Port 27010]
-        CFG2[Config 2<br/>Port 27010]
-        CFG3[Config 3<br/>Port 27010]
+    subgraph "Replica Set Server Cấu Hình"
+        CFG1[Cấu Hình 1<br/>Cổng 27010]
+        CFG2[Cấu Hình 2<br/>Cổng 27010]
+        CFG3[Cấu Hình 3<br/>Cổng 27010]
     end
     
-    subgraph "Shard 1 Replica Set"
-        S1P[Shard1 Primary<br/>Port 27011]
-        S1S1[Shard1 Secondary<br/>Port 27011]
-        S1S2[Shard1 Secondary<br/>Port 27011]
+    subgraph "Replica Set Shard 1"
+        S1P[Shard1 Primary<br/>Cổng 27011]
+        S1S1[Shard1 Secondary<br/>Cổng 27011]
+        S1S2[Shard1 Secondary<br/>Cổng 27011]
     end
     
-    subgraph "Shard 2 Replica Set"
-        S2P[Shard2 Primary<br/>Port 27012]
-        S2S1[Shard2 Secondary<br/>Port 27012]
-        S2S2[Shard2 Secondary<br/>Port 27012]
+    subgraph "Replica Set Shard 2"
+        S2P[Shard2 Primary<br/>Cổng 27012]
+        S2S1[Shard2 Secondary<br/>Cổng 27012]
+        S2S2[Shard2 Secondary<br/>Cổng 27012]
     end
     
-    subgraph "Shard 3 Replica Set"
-        S3P[Shard3 Primary<br/>Port 27013]
-        S3S1[Shard3 Secondary<br/>Port 27013]
-        S3S2[Shard3 Secondary<br/>Port 27013]
+    subgraph "Replica Set Shard 3"
+        S3P[Shard3 Primary<br/>Cổng 27013]
+        S3S1[Shard3 Secondary<br/>Cổng 27013]
+        S3S2[Shard3 Secondary<br/>Cổng 27013]
     end
     
     APP1 --> MONGOS
@@ -500,14 +718,12 @@ graph TB
     S3S1 --- S3S2
     S3S2 --- S3P
 
-        %% Định nghĩa style cho các thành phần
     classDef clientApp fill:#E3F2FD,stroke:#1976D2,stroke-width:2px,color:#000
     classDef router fill:#FFF3E0,stroke:#F57C00,stroke-width:3px,color:#000
     classDef configServer fill:#F3E5F5,stroke:#7B1FA2,stroke-width:2px,color:#000
     classDef shardPrimary fill:#E8F5E8,stroke:#388E3C,stroke-width:3px,color:#000
     classDef shardSecondary fill:#F1F8E9,stroke:#689F38,stroke-width:2px,color:#000
     
-    %% Áp dụng style
     class APP1,APP2 clientApp
     class MONGOS router
     class CFG1,CFG2,CFG3 configServer
@@ -1009,41 +1225,41 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    subgraph "Network Topology & Port Configuration"
+    subgraph "Cấu Hình Mạng & Cổng Kết Nối"
         subgraph "mongo-1 (192.168.0.38)"
-            M1C[Config Server<br/>Port 27010]
-            M1S1[Shard1 RS<br/>Port 27011]
-            M1S2[Shard2 RS<br/>Port 27012] 
-            M1S3[Shard3 RS<br/>Port 27013]
-            M1MOS[Mongos Router<br/>Port 27020]
+            M1C[Máy Chủ Cấu Hình<br/>Cổng 27010]
+            M1S1[Shard1 RS<br/>Cổng 27011]
+            M1S2[Shard2 RS<br/>Cổng 27012] 
+            M1S3[Shard3 RS<br/>Cổng 27013]
+            M1MOS[Router Mongos<br/>Cổng 27020]
         end
         
         subgraph "mongo-2 (192.168.0.241)"
-            M2C[Config Server<br/>Port 27010]
-            M2S1[Shard1 RS<br/>Port 27011]
-            M2S2[Shard2 RS<br/>Port 27012]
-            M2S3[Shard3 RS<br/>Port 27013]
+            M2C[Máy Chủ Cấu Hình<br/>Cổng 27010]
+            M2S1[Shard1 RS<br/>Cổng 27011]
+            M2S2[Shard2 RS<br/>Cổng 27012]
+            M2S3[Shard3 RS<br/>Cổng 27013]
         end
         
         subgraph "mongo-3 (192.168.0.215)"
-            M3C[Config Server<br/>Port 27010]
-            M3S1[Shard1 RS<br/>Port 27011]
-            M3S2[Shard2 RS<br/>Port 27012]
-            M3S3[Shard3 RS<br/>Port 27013]
+            M3C[Máy Chủ Cấu Hình<br/>Cổng 27010]
+            M3S1[Shard1 RS<br/>Cổng 27011]
+            M3S2[Shard2 RS<br/>Cổng 27012]
+            M3S3[Shard3 RS<br/>Cổng 27013]
         end
     end
     
-    subgraph "Security & Resource Setup"
-        A[Install MongoDB] --> B[Create KeyFile]
-        B --> C["Generate with openssl<br/>Base64 756 chars"]
-        C --> D["Set permissions 400<br/>Owner: mongod:mongod"]
-        D --> E["Copy to all nodes<br/>Identical keyfile"]
-        E --> F["Create data directories<br/>/data/config, /data/shard1-3"]
-        F --> G["Configure firewall<br/>Ports 27010-27020"]
-        G --> H["Resources Ready"]
+    subgraph "Thiết Lập Bảo Mật & Tài Nguyên"
+        A[Cài Đặt MongoDB] --> B[Tạo KeyFile]
+        B --> C["Tạo bằng openssl<br/>Base64 756 ký tự"]
+        C --> D["Đặt quyền 400<br/>Chủ Sở Hữu: mongod:mongod"]
+        D --> E["Sao Chép Đến Các Node<br/>Keyfile Giống Nhau"]
+        E --> F["Tạo Thư Mục Dữ Liệu<br/>/data/config, /data/shard1-3"]
+        F --> G["Cấu Hình Tường Lửa<br/>Cổng 27010-27020"]
+        G --> H["Tài Nguyên Sẵn Sàng"]
     end
     
-    subgraph "Inter-node Communication"
+    subgraph "Giao Tiếp Giữa Các Node"
         M1C -.->|"Replica Set"| M2C
         M2C -.->|"Replica Set"| M3C
         M3C -.->|"Replica Set"| M1C
@@ -2345,38 +2561,38 @@ Dựng replica set chỉ là bước đầu. Vận hành nó trong thực tế �
 
 ```mermaid
 flowchart TD
-    subgraph "Replica Set Election Process"
-        START[Start: Configure Primary Priority] --> CONNECT[Connect to Replica Set]
-        CONNECT --> GETCONF[Get Current Configuration]
-        GETCONF --> SETPRIORITY[Set Node Priorities]
-        SETPRIORITY --> RECONFIG[Reconfigure Replica Set]
-        RECONFIG --> VERIFY[Verify New Primary]
-        VERIFY --> COMPLETE[Primary Election Complete]
+    subgraph "Quy Trình Bầu Cử Replica Set"
+        START[Bắt Đầu: Cấu Hình Ưu Tiên Primary] --> CONNECT[Kết Nối Đến Replica Set]
+        CONNECT --> GETCONF[Lấy Cấu Hình Hiện Tại]
+        GETCONF --> SETPRIORITY[Đặt Ưu Tiên Node]
+        SETPRIORITY --> RECONFIG[Cấu Hình Lại Replica Set]
+        RECONFIG --> VERIFY[Xác Minh Primary Mới]
+        VERIFY --> COMPLETE[Bầu Cử Primary Hoàn Tất]
     end
     
-    subgraph "Priority Configuration"
-        NODE1["mongo-1:27011<br/>Priority: 3<br/>(Strongest Server)"]
-        NODE2["mongo-2:27011<br/>Priority: 2<br/>(Medium Server)"]
-        NODE3["mongo-3:27011<br/>Priority: 1<br/>(Weakest Server)"]
+    subgraph "Cấu Hình Ưu Tiên"
+        NODE1["mongo-1:27011<br/>Ưu Tiên: 3<br/>(Máy Chủ Mạnh Nhất)"]
+        NODE2["mongo-2:27011<br/>Ưu Tiên: 2<br/>(Máy Chủ Trung Bình)"]
+        NODE3["mongo-3:27011<br/>Ưu Tiên: 1<br/>(Máy Chủ Yếu Nhất)"]
     end
     
-    subgraph "Election Scenarios"
-        SCENARIO1["Normal Operation<br/>mongo-1 is PRIMARY"]
-        SCENARIO2["mongo-1 Fails<br/>mongo-2 becomes PRIMARY"]
-        SCENARIO3["mongo-1 & mongo-2 Fail<br/>mongo-3 becomes PRIMARY"]
+    subgraph "Kịch Bản Bầu Cử"
+        SCENARIO1["Hoạt Động Bình Thường<br/>mongo-1 là PRIMARY"]
+        SCENARIO2["mongo-1 Hỏng<br/>mongo-2 trở thành PRIMARY"]
+        SCENARIO3["mongo-1 & mongo-2 Hỏng<br/>mongo-3 trở thành PRIMARY"]
     end
     
-    subgraph "Commands"
+    subgraph "Lệnh"
         CMD1["cfg = rs.conf()"]
         CMD2["cfg.members[0].priority = 3"]
         CMD3["rs.reconfig(cfg)"]
         CMD4["rs.status()"]
     end
     
-    subgraph "⚠️ Common Pitfalls"
-        PITFALL1["All nodes same priority<br/>❌ Weak node may become PRIMARY"]
-        PITFALL2["Priority too high<br/>❌ May cause split-brain"]
-        PITFALL3["Forget to verify<br/>❌ Configuration not applied"]
+    subgraph "⚠️ Bẫy Phổ Biến"
+        PITFALL1["Tất cả node cùng ưu tiên<br/>❌ Node yếu có thể trở thành PRIMARY"]
+        PITFALL2["Ưu tiên quá cao<br/>❌ Có thể gây split-brain"]
+        PITFALL3["Quên xác minh<br/>❌ Cấu hình không được áp dụng"]
     end
     
     SETPRIORITY --> CMD1
@@ -2798,34 +3014,34 @@ Làm sao để biết một truy vấn có đang sử dụng index hay không? H
 
 ```mermaid
 flowchart TD
-    subgraph "Data Distribution Process"
-        A[New Document] --> B{"Shard Key Analysis"}
-        B --> C["Calculate Target Chunk"]
-        C --> D["Route to Appropriate Shard"]
-        D --> E["Document Stored"]
+    subgraph "Quy Trình Phân Bố Dữ Liệu"
+        A[Tài Liệu Mới] --> B{"Phân Tích Khóa Phân Mảnh"}
+        B --> C["Tính Toán Chunk Đích"]
+        C --> D["Định Tuyến Đến Shard Phù Hợp"]
+        D --> E["Tài Liệu Được Lưu Trữ"]
     end
     
-    subgraph "Chunk Management"
-        F["Chunk Size Monitor"] --> G{"Chunk > 64MB?"}
-        G -->|Yes| H["Split Chunk"]
-        G -->|No| I["Continue Monitoring"]
-        H --> J["Create New Chunk"]
-        J --> K["Update Config Server"]
+    subgraph "Quản Lý Chunk"
+        F["Giám Sát Kích Thước Chunk"] --> G{"Chunk > 64MB?"}
+        G -->|Có| H["Chia Nhỏ Chunk"]
+        G -->|Không| I["Tiếp Tục Giám Sát"]
+        H --> J["Tạo Chunk Mới"]
+        J --> K["Cập Nhật Máy Chủ Cấu Hình"]
     end
     
-    subgraph "Balancer Process"
-        L["Balancer Service"] --> M{"Check Shard Distribution"}
-        M --> N{"Imbalanced?"}
-        N -->|Yes| O["Select Chunks to Move"]
-        N -->|No| P["Wait Next Cycle"]
-        O --> Q["Migrate Chunks"]
-        Q --> R["Update Metadata"]
-        R --> S["Balance Restored"]
+    subgraph "Quy Trình Cân Bằng"
+        L["Dịch Vụ Cân Bằng"] --> M{"Kiểm Tra Phân Bố Shard"}
+        M --> N{"Mất Cân Bằng?"}
+        N -->|Có| O["Chọn Chunks Để Di Chuyển"]
+        N -->|Không| P["Chờ Chu Kỳ Tiếp Theo"]
+        O --> Q["Di Chuyển Chunks"]
+        Q --> R["Cập Nhật Siêu Dữ Liệu"]
+        R --> S["Cân Bằng Được Khôi Phục"]
     end
     
-    subgraph "Shard Key Strategies"
-        T["Hashed Sharding"] --> U["Even Distribution<br/>Random Access"]
-        V["Ranged Sharding"] --> W["Targeted Queries<br/>Risk of Hotspots"]
+    subgraph "Chiến Lược Khóa Phân Mảnh"
+        T["Phân Mảnh Băm"] --> U["Phân Bố Đều<br/>Truy Cập Ngẫu Nhiên"]
+        V["Phân Mảnh Theo Dải"] --> W["Truy Vấn Có Mục Tiêu<br/>Rủi Ro Điểm Nóng"]
     end
     
     E --> F
@@ -2922,7 +3138,7 @@ end
 
 ```mermaid
 flowchart TD
-    A["👨‍💼 Admin<br/>🔧 Quản trị viên hệ thống"] -->|"⚡ Chạy script giám sát"| B{"📊 db.currentOp()<br/>🔍 Kiểm tra tác vụ hiện tại"}
+    A["👨‍💼 Quản Trị Viên<br/>🔧 Người quản lý hệ thống"] -->|"⚡ Chạy script giám sát"| B{"📊 db.currentOp()<br/>🔍 Kiểm tra tác vụ hiện tại"}
     
     B --> C{"🧐 Phân tích tác vụ<br/>⏱️ Đánh giá thời gian thực thi"}
     
@@ -2934,10 +3150,10 @@ flowchart TD
     
     F -->|"✅ Thành công"| G["🎉 Hạ sát thành công<br/>📊 Cập nhật metrics"]
     
-    F -->|"❌ Thất bại"| H["⚠️ Không thể hạ sát<br/>🚨 Cảnh báo Admin"]
+    F -->|"❌ Thất bại"| H["⚠️ Không thể hạ sát<br/>🚨 Cảnh báo Quản Trị Viên"]
     
     G --> I["📝 Ghi log thành công<br/>📈 Cập nhật dashboard"]
-    H --> J["🔔 Gửi alert<br/>📞 Thông báo khẩn cấp"]
+    H --> J["🔔 Gửi cảnh báo<br/>📞 Thông báo khẩn cấp"]
     
     D --> K["🔄 Tiếp tục giám sát"]
     I --> K
@@ -2963,7 +3179,6 @@ flowchart TD
     style H fill:#ffcdd2,stroke:#c62828,stroke-width:3px
     style I fill:#e1f5fe,stroke:#0277bd,stroke-width:2px
     style J fill:#fce4ec,stroke:#ad1457,stroke-width:3px
-
 ```
 
 `mongostat` và `mongotop` cho ta cái nhìn tổng quan, nhưng khi một sự cố hiệu năng xảy ra, ta cần các công cụ "phẫu thuật" để xem chính xác *việc gì* đang diễn ra bên trong và can thiệp nếu cần.
@@ -3253,30 +3468,30 @@ Chúc mừng bạn một lần nữa vì đã hoàn thành một chặng đườ
 
 ```mermaid
 flowchart TD
-    A["🎯 Production Deployment"] --> B["🔒 Security Hardening"]
-    B --> C["📊 Monitoring Setup"]
-    C --> D["🔄 Backup Strategy"]
-    D --> E["⚖️ Performance Tuning"]
-    E --> F["🚨 Alerting Configuration"]
-    F --> G["📋 Documentation"]
-    G --> H["✅ Production Ready"]
+    A["🎯 Triển Khai Production"] --> B["🔒 Tăng Cường Bảo Mật"]
+    B --> C["📊 Thiết Lập Giám Sát"]
+    C --> D["🔄 Chiến Lược Sao Lưu"]
+    D --> E["⚖️ Tinh Chỉnh Hiệu Suất"]
+    E --> F["🚨 Cấu Hình Cảnh Báo"]
+    F --> G["📋 Tài Liệu"]
+    G --> H["✅ Sẵn Sàng Production"]
     
-    subgraph "Security Checklist"
-        S1["Replace KeyFile with x.509"]
-        S2["Enable SSL/TLS"]
-        S3["Configure Firewall Rules"]
-        S4["Implement Network Segmentation"]
-        S5["Setup Audit Logging"]
-        S6["Regular Security Updates"]
+    subgraph "Danh Sách Kiểm Tra Bảo Mật"
+        S1["Thay Thế KeyFile bằng x.509"]
+        S2["Bật SSL/TLS"]
+        S3["Cấu Hình Quy Tắc Tường Lửa"]
+        S4["Triển Khai Phân Đoạn Mạng"]
+        S5["Thiết Lập Ghi Nhật Ký Kiểm Toán"]
+        S6["Cập Nhật Bảo Mật Định Kỳ"]
     end
     
-    subgraph "Monitoring Checklist"
-        M1["Deploy MongoDB Ops Manager"]
-        M2["Configure Prometheus/Grafana"]
-        M3["Setup Log Aggregation"]
-        M4["Configure Health Checks"]
-        M5["Implement Custom Metrics"]
-        M6["Setup Alert Fatigue Prevention"]
+    subgraph "Danh Sách Kiểm Tra Giám Sát"
+        M1["Triển Khai MongoDB Ops Manager"]
+        M2["Cấu Hình Prometheus/Grafana"]
+        M3["Thiết Lập Tổng Hợp Log"]
+        M4["Cấu Hình Kiểm Tra Sức Khỏe"]
+        M5["Triển Khai Các Chỉ Số Tùy Chỉnh"]
+        M6["Thiết Lập Phòng Chống Cảnh Báo Quá Tải"]
     end
     
     B --> S1
@@ -3408,28 +3623,28 @@ volumes:
 
 ```mermaid
 sequenceDiagram
-    participant Admin
-    participant Primary
-    participant Secondary1
-    participant Secondary2
-    participant LoadBalancer
+    participant QuảnTrịViên
+    participant Chính
+    participant Phụ1
+    participant Phụ2
+    participant BộCânBằngTải
     
-    Note over Admin,LoadBalancer: Rolling Maintenance Strategy
+    Note over QuảnTrịViên,BộCânBằngTải: Chiến Lược Bảo Trì Liên Tục
     
-    Admin->>LoadBalancer: Remove Secondary1 from rotation
-    Admin->>Secondary1: Stop mongod service
-    Admin->>Secondary1: Perform maintenance (OS update, etc)
-    Admin->>Secondary1: Start mongod service
-    Admin->>Secondary1: Verify replica set status
-    Admin->>LoadBalancer: Add Secondary1 back to rotation
+    QuảnTrịViên->>BộCânBằngTải: Loại bỏ Phụ1 khỏi vòng quay
+    QuảnTrịViên->>Phụ1: Dừng dịch vụ mongod
+    QuảnTrịViên->>Phụ1: Thực hiện bảo trì (cập nhật OS, v.v)
+    QuảnTrịViên->>Phụ1: Khởi động dịch vụ mongod
+    QuảnTrịViên->>Phụ1: Xác minh trạng thái replica set
+    QuảnTrịViên->>BộCânBằngTải: Thêm Phụ1 trở lại vòng quay
     
-    Note over Admin,LoadBalancer: Repeat for Secondary2
+    Note over QuảnTrịViên,BộCânBằngTải: Lặp lại cho Phụ2
     
-    Admin->>Primary: Trigger step-down
-    Primary->>Secondary1: Election process
-    Secondary1->>Secondary1: Becomes new Primary
-    Admin->>Primary: Perform maintenance on old Primary
-    Admin->>Primary: Restart as Secondary
+    QuảnTrịViên->>Chính: Kích hoạt chuyển đổi
+    Chính->>Phụ1: Quy trình bầu chọn
+    Phụ1->>Phụ1: Trở thành Chính mới
+    QuảnTrịViên->>Chính: Thực hiện bảo trì trên Chính cũ
+    QuảnTrịViên->>Chính: Khởi động lại với vai trò Phụ
 ```
 
 **Script để thực hiện Rolling Maintenance:**
@@ -3487,14 +3702,14 @@ Quy trình phục hồi sau thảm họa cho toàn bộ cluster:
 
 ```mermaid
 flowchart TD
-    A[Disaster Occurs!] --> B["Stop all MongoDB processes<br/>(mongos, mongod)"]
-    B --> C["Restore Config Server Data<br/>(from backup)"]
-    C --> D["Start Config Servers<br/>Wait for election"]
-    D --> E["Restore EACH Shard's Data<br/>(from backup)"]
-    E --> F["Start Shard Servers<br/>Wait for elections"]
-    F --> G["Start Mongos Routers"]
-    G --> H["Verify Cluster Health<br/>(sh.status())"]
-    H --> I[Recovery Complete]
+    A[Thảm Họa Xảy Ra!] --> B["Dừng tất cả các tiến trình MongoDB<br/>(mongos, mongod)"]
+    B --> C["Khôi phục Dữ liệu Máy Chủ Cấu Hình<br/>(từ bản sao lưu)"]
+    C --> D["Khởi động Máy Chủ Cấu Hình<br/>Chờ bầu chọn"]
+    D --> E["Khôi phục Dữ liệu TỪNG Shard<br/>(từ bản sao lưu)"]
+    E --> F["Khởi động Máy Chủ Shard<br/>Chờ bầu chọn"]
+    F --> G["Khởi động Bộ Định Tuyến Mongos"]
+    G --> H["Xác minh Sức khỏe Cluster<br/>(sh.status())"]
+    H --> I[Hoàn Tất Phục Hồi]
 
     style A fill:#ffebee,stroke:#d32f2f
     style I fill:#e8f5e8,stroke:#388e3c
@@ -3610,24 +3825,24 @@ Sơ đồ quy trình lập kế hoạch dung lượng cho các tài nguyên chí
 
 ```mermaid
 graph TD
-    subgraph "CPU Planning"
-        A["Monitor CPU Usage<br/>(top, iostat)"] --> B{"Sustained > 80%?"}
-        B -- Yes --> C["Scale Out<br/>(Add more shards/nodes)"]
-        B -- No --> D["OK"]
+    subgraph "Lập Kế Hoạch CPU"
+        A["Giám sát Sử Dụng CPU<br/>(top, iostat)"] --> B{"Duy Trì > 80%?"}
+        B -- Có --> C["Mở Rộng Ra<br/>(Thêm shard/node)"]
+        B -- Không --> D["OK"]
     end
 
-    subgraph "Memory Planning"
-        E["Analyze Working Set Size"] --> F["Calculate Optimal<br/>WiredTiger Cache Size"]
+    subgraph "Lập Kế Hoạch Bộ Nhớ"
+        E["Phân Tích Kích Thước Working Set"] --> F["Tính Toán Kích Thước<br/>Bộ Nhớ Cache WiredTiger Tối Ưu"]
         F --> G{"RAM < Working Set?"}
-        G -- Yes --> H["Decrease Cache Size<br/>(Prioritize OS Cache)"]
-        G -- No --> I["Increase Cache Size<br/>(Prioritize WiredTiger Cache)"]
+        G -- Có --> H["Giảm Kích Thước Cache<br/>(Ưu Tiên Cache OS)"]
+        G -- Không --> I["Tăng Kích Thước Cache<br/>(Ưu Tiên Cache WiredTiger)"]
     end
 
-    subgraph "Storage Planning"
-        J["Monitor Disk Usage<br/>(df -h, db.stats())"] --> K["Analyze Growth Rate"]
-        K --> L{"Usage > 85%?"}
-        L -- Yes --> M["Add more storage<br/>(Add disks, add shards)"]
-        L -- No --> N["OK"]
+    subgraph "Lập Kế Hoạch Lưu Trữ"
+        J["Giám Sát Sử Dụng Đĩa<br/>(df -h, db.stats())"] --> K["Phân Tích Tốc Độ Tăng Trưởng"]
+        K --> L{"Sử Dụng > 85%?"}
+        L -- Có --> M["Thêm Dung Lượng Lưu Trữ<br/>(Thêm đĩa, thêm shard)"]
+        L -- Không --> N["OK"]
     end
 
     style C fill:#fff3e0
@@ -3706,13 +3921,13 @@ Sơ đồ chẩn đoán các vấn đề liên quan đến Balancer:
 
 ```mermaid
 flowchart TD
-    A[Balancer không hoạt động?] --> B{"1. Balancer có được bật không?<br/>sh.getBalancerState()"}
-    B -- "Không (false)" --> C["Bật balancer<br/>sh.startBalancer()"]
-    B -- "Có (true)" --> D{"2. Balancer có đang chạy không?<br/>sh.isBalancerRunning()"}
-    D -- "Không" --> E{"3. Kiểm tra lock<br/>db.locks.find({_id: 'balancer'})"}
-    E -- "Có lock" --> F["Xóa lock<br/>db.locks.remove({_id: 'balancer'})"]
-    E -- "Không có lock" --> G["Kiểm tra log của mongos/config server<br/>để tìm lỗi chi tiết"]
-    D -- "Có" --> H["Balancer đang chạy, hãy kiên nhẫn<br/>hoặc kiểm tra log để xem tiến trình"]
+    A[Trình Cân Bằng không hoạt động?] --> B{"1. Trình Cân Bằng có được bật không?<br/>sh.getBalancerState()"}
+    B -- "Không (false)" --> C["Bật trình cân bằng<br/>sh.startBalancer()"]
+    B -- "Có (true)" --> D{"2. Trình Cân Bằng có đang chạy không?<br/>sh.isBalancerRunning()"}
+    D -- "Không" --> E{"3. Kiểm tra khóa<br/>db.locks.find({_id: 'balancer'})"}
+    E -- "Có khóa" --> F["Xóa khóa<br/>db.locks.remove({_id: 'balancer'})"]
+    E -- "Không có khóa" --> G["Kiểm tra log của mongos/máy chủ cấu hình<br/>để tìm lỗi chi tiết"]
+    D -- "Có" --> H["Trình Cân Bằng đang chạy, hãy kiên nhẫn<br/>hoặc kiểm tra log để xem tiến trình"]
 
     style C fill:#e8f5e8
     style F fill:#e8f5e8
@@ -3779,15 +3994,15 @@ Sơ đồ chẩn đoán các vấn đề liên quan đến bầu cử trong Repl
 
 ```mermaid
 flowchart TD
-    A[Replica set không bầu được PRIMARY?] --> B{"1. Đa số node có hoạt động không?<br/>(>50% members UP)"}
+    A[Replica set không bầu được PRIMARY?] --> B{"1. Đa số node có hoạt động không?<br/>(>50% members HOẠT ĐỘNG)"}
     B -- "Không" --> C["Khởi động lại các node bị down.<br/>Cần đa số để bầu cử."]
     B -- "Có" --> D{"2. Kết nối mạng giữa các node có tốt không?<br/>(ping, telnet port)"}
-    D -- "Không" --> E["Kiểm tra firewall, network config.<br/>Các node phải thấy nhau."]
+    D -- "Không" --> E["Kiểm tra firewall, cấu hình mạng.<br/>Các node phải thấy nhau."]
     D -- "Có" --> F{"3. Oplog có bị quá cũ không?<br/>(rs.printReplicationInfo())"}
-    F -- "Có (lag > oplog window)" --> G["Node bị lag quá sẽ không được bầu.<br/>Cần resync node đó."]
+    F -- "Có (lag > cửa sổ oplog)" --> G["Node bị lag quá sẽ không được bầu.<br/>Cần đồng bộ lại node đó."]
     F -- "Không" -- > H{"4. Cấu hình priority/votes có vấn đề?<br/>(rs.conf())"}
-    H -- "Có" --> I["Kiểm tra lại cấu hình,<br/>đảm bảo có đủ node có thể vote."]
-    H -- "Không" --> J["Kiểm tra log của các node<br/>để tìm lỗi chi tiết (e.g., keyfile mismatch)."]
+    H -- "Có" --> I["Kiểm tra lại cấu hình,<br/>đảm bảo có đủ node có thể bầu chọn."]
+    H -- "Không" --> J["Kiểm tra log của các node<br/>để tìm lỗi chi tiết (ví dụ: keyfile không khớp)."]
 
     style C fill:#ffebee
     style E fill:#ffebee
