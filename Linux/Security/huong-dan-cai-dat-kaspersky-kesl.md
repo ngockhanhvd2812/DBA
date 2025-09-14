@@ -124,7 +124,7 @@ sequenceDiagram
 
 1.  **Chuyển hướng đến IP mới:**
     ```bash
-    /opt/kaspersky/klnagent64/bin/klmover -address <10.169.20.226> 
+    /opt/kaspersky/klnagent64/bin/klmover -address 10.169.20.226 
     ```
 2.  **Kiểm tra trạng thái kết nối:**
     ```bash
