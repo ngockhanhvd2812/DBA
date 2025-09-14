@@ -22,7 +22,7 @@ Hướng dẫn này sẽ chỉ cho bạn cách cài đặt và cấu hình hai t
 **Lý thuyết:** Giao tiếp giữa KLNAgent và KSC diễn ra qua các cổng mạng cụ thể. Nếu tường lửa (firewall) chặn các cổng này, KLNAgent sẽ không thể kết nối, đồng bộ, nhận chính sách hay gửi trạng thái về KSC.
 
 **Hành động:**
-Bạn cần cấu hình tường lửa (trên máy chủ Linux hoặc trên thiết bị mạng) để cho phép kết nối **đi ra (OUTGOING)** từ máy chủ Linux của bạn đến địa chỉ IP máy chủ KSC mới là `IP của Kaspersky Security Center (KSC) Administration Server ` qua các cổng sau:
+Bạn cần cấu hình tường lửa (trên máy chủ Linux hoặc trên thiết bị mạng) để cho phép kết nối **đi ra (OUTGOING)** từ máy chủ Linux của bạn đến địa chỉ IP máy chủ KSC mới là `10.169.20.226 ` qua các cổng sau:
 
 *   **Cổng `13000`:** Dùng cho kết nối được mã hóa SSL (an toàn). Đây là cổng ưu tiên.
 *   **Cổng `14000`:** Dùng cho kết nối không mã hóa.
@@ -86,7 +86,7 @@ graph TD
     /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl
     ```
 3.  **Trả lời các câu hỏi cấu hình:**
-    *   `Please enter Administration Server DNS-name or static IP-address`: Nhập IP của Kaspersky Security Center (KSC) Administration Server mà Network Agent sẽ cố gắng kết nối **ban đầu**
+    *   `Please enter Administration Server DNS-name or static IP-address`: Nhập 10.169.20.226 mà Network Agent sẽ cố gắng kết nối **ban đầu**
     *   `Please enter Administration Server port number [14000]:`: Nhấn `Enter` (chấp nhận mặc định).
     *   `Please enter Administration Server ssl port number [13000]:`: Nhấn `Enter` (chấp nhận mặc định).
     *   `Please enter 'Y' to confirm that you want to use SSL encryption... [Y]:`: Nhấn `Enter` (chấp nhận mặc định).
@@ -102,7 +102,7 @@ sequenceDiagram
     Terminal-->>User: Cài đặt hoàn tất
     User->>Terminal: /opt/kaspersky/klnagent64/lib/bin/setup/postinstall.pl
     Terminal-->>User: Vui lòng nhập địa chỉ KSC:
-    User->>Terminal: Nhập IP của Kaspersky Security Center (KSC) Administration Server 
+    User->>Terminal: Nhập 10.169.20.226 
     Terminal-->>User: Vui lòng nhập cổng [14000]:
     User->>Terminal: (Nhấn Enter)
     Terminal-->>User: Vui lòng nhập cổng SSL [13000]:
@@ -124,13 +124,13 @@ sequenceDiagram
 
 1.  **Chuyển hướng đến IP mới:**
     ```bash
-    /opt/kaspersky/klnagent64/bin/klmover -address <IP của Kaspersky Security Center (KSC) Administration Server> 
+    /opt/kaspersky/klnagent64/bin/klmover -address <10.169.20.226> 
     ```
 2.  **Kiểm tra trạng thái kết nối:**
     ```bash
     /opt/kaspersky/klnagent64/bin/klnagchk
     ```
-    *   Trong kết quả hiển thị, hãy tìm dòng `Server address` và đảm bảo nó hiển thị đúng địa chỉ IP mới: `IP của Kaspersky Security Center (KSC) Administration Server `.
+    *   Trong kết quả hiển thị, hãy tìm dòng `Server address` và đảm bảo nó hiển thị đúng địa chỉ IP mới: `10.169.20.226 `.
 
 
 ---
@@ -159,7 +159,7 @@ sequenceDiagram
     *   `I confirm that I have fully read... Kaspersky Security Network Statement [y/n]:`: Gõ `n` và nhấn `Enter`.
         *   **Giải thích về KSN:** Kaspersky Security Network (KSN) là một dịch vụ đám mây giúp phát hiện các mối đe dọa mới nhanh hơn. Tuy nhiên, nhiều tổ chức chọn **'n' (không tham gia)** vì lý do chính sách bảo mật, không cho phép dữ liệu (dù đã được ẩn danh) gửi ra ngoài mạng nội bộ.
     *   `Specify user to grant the 'admin' role to (leave empty to skip):`: Nhấn `Enter`.
-    *   `Specify the update source... [KLServers]:`: Nhập `Nhập IP của Kaspersky Security Center (KSC) Administration Server ` và nhấn `Enter`.
+    *   `Specify the update source... [KLServers]:`: Nhập `10.169.20.226 ` và nhấn `Enter`.
     *   `...enter 'no' [n]:`: Gõ `n` và nhấn `Enter`.
     *   `Do you want to download the latest databases now? [y]:`: Gõ `y` và nhấn `Enter`.
     *   `Do you want to set other update settings? [y]`: Gõ `n` và nhấn `Enter`.
@@ -439,7 +439,7 @@ graph TD
     ```bash
     /opt/kaspersky/klnagent64/bin/klnagchk
     ```
-    *   Đảm bảo rằng nó báo cáo kết nối thành công đến `IP của Kaspersky Security Center (KSC) Administration Server `.
+    *   Đảm bảo rằng nó báo cáo kết nối thành công đến `10.169.20.226 `.
 
 2.  **Đăng nhập vào Kaspersky Security Center (KSC):**
     *   Tìm máy chủ Linux của bạn trong danh sách các thiết bị được quản lý.
