@@ -15,7 +15,7 @@ flowchart TD
     D --> E
     E --> F[Đặt SELINUX=disabled<br/>/etc/selinux/config]:::orange
     F --> G[Khởi động lại]:::teal
-    G --> H[Xác minh:<br/>systemctl status firewalld,<br/>sestatus]:::gray
+    G --> H[Xác minh:<br/>systemctl status firewalld,<br/>sestatus,<br/>rpm -q kernel-uek,<br/>uname -r]:::gray
     H --> I[Máy chủ sẵn sàng cài đặt DB]:::success
     
     subgraph WARNINGS["⚠️ CẢNH BÁO QUAN TRỌNG"]
@@ -75,43 +75,71 @@ Trong một số trường hợp, bạn có thể muốn loại trừ một số
    dnf check-update | grep -i mongo
    ```
 
-**Sơ đồ minh họa 3 bước quan trọng:**
 
-```mermaid
-flowchart TD
-    A[Bắt đầu] --> B[Sao lưu dnf.conf]
-    B --> C[Chỉnh sửa dnf.conf<br/>Thêm excludepkgs=mongodb-org*]
-    C --> D[Kiểm tra<br/>dnf check-update | grep -i mongo]
-    D --> E{Còn gói mongo?}
-    E -->|Có| F[Xử lý loại bỏ]
-    E -->|Không| G[An toàn để yum update]
-    F --> G
+```
+# 1) Cập nhật OS
+sudo yum update -y --exclude=mongodb*,mongo*  # Loại trừ các gói MongoDB
+
+# 2) Tắt tường lửa
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+# tùy chọn nhưng được khuyến nghị để tránh khởi động vô tình:
+sudo systemctl mask firewalld
+
+# 3) Vô hiệu hóa SELinux (vĩnh viễn)
+sudo vi /etc/selinux/config   # đặt: SELINUX=disabled
+sudo reboot
+
+# 4) Xác minh sau khi khởi động lại
+systemctl status firewalld
+sestatus
+# Kiểm tra kernel version
+rpm -q kernel-uek
+uname -r
 ```
 
 **Sơ đồ minh họa cảnh báo quan trọng:**
 
-```mermaid
-flowchart TD
-    A[Bắt đầu cập nhật hệ thống] --> B[yum update -y]
-    B --> C{Có cài MongoDB?}
-    C -->|Có| D[CẢNH BÁO: Phải loại trừ MongoDB]
-    D --> E[Sử dụng: yum update -y --exclude=mongodb*,mongo*]
-    C -->|Không| E
-    E --> F[Tiếp tục quy trình]
-    
-    style D fill:#ef4444,color:#fff,stroke:#7f1d1d,stroke-width:2px
-    style E fill:#3b82f6,color:#fff,stroke:#1e40af,stroke-width:2px
+```
+# Bắt đầu cập nhật hệ thống
+sudo yum update -y
+# Nếu cài MongoDB, loại trừ MongoDB
+sudo yum update -y --exclude=mongodb*,mongo*
+
+# Tắt tường lửa
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+# tùy chọn nhưng được khuyến nghị để tránh khởi động vô tình:
+sudo systemctl mask firewalld
+
+# Vô hiệu hóa SELinux (vĩnh viễn)
+sudo vi /etc/selinux/config   # đặt: SELINUX=disabled
+sudo reboot
+
+# Xác minh sau khi khởi động lại
+systemctl status firewalld
+sestatus
 ```
 
 **Lệnh:**
 
-```bash
-sudo yum update -y   # 📦 Cập nhật tất cả các gói
-# Nếu kernel hoặc thư viện quan trọng được cập nhật, khởi động lại một lần:
-sudo reboot          # 🔁 Khởi động lại nếu cần
+```
+# 1) Cập nhật OS
+sudo yum update -y --exclude=mongodb*,mongo*  # Loại trừ các gói MongoDB
 
-# Để loại trừ các gói MongoDB khỏi cập nhật:
-sudo yum update -y --exclude=mongodb*,mongo*   # 🚫 Loại trừ các gói MongoDB
+# 2) Tắt tường lửa
+sudo systemctl stop firewalld
+sudo systemctl disable firewalld
+# tùy chọn nhưng được khuyến nghị để tránh khởi động vô tình:
+sudo systemctl mask firewalld
+
+# 3) Vô hiệu hóa SELinux (vĩnh viễn)
+sudo vi /etc/selinux/config   # đặt: SELINUX=disabled
+sudo reboot
+
+# 4) Xác minh sau khi khởi động lại
+systemctl status firewalld
+sestatus
 ```
 
 **Mini-flow:**
