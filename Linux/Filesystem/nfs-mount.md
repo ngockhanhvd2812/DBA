@@ -121,19 +121,21 @@ sudo mount -t nfs -o vers=4.1,hard,_netdev 192.168.10.100:/vol/backup01 /backup
 ```mermaid
 graph TD
     subgraph "💻 Client"
-        style Client fill:#e0f7fa,stroke:#00796b
-        A["Thư mục cục bộ </br> /backup"]
+        A["Thư mục cục bộ <br> /backup"]
     end
+
     subgraph "🖥️ Server"
-        style Server fill:#e8f5e9,stroke:#388e3c
-        B["Thư mục được chia sẻ </br> /vol/backup01"]
+        B["Thư mục được chia sẻ <br> /vol/backup01"]
         C["Ổ cứng 20TB"]
         B --> C
     end
+
     A -- "🔗 Kết nối NFS qua Mạng 🔗" --> B
+
     style A fill:#bbdefb
     style B fill:#c8e6c9
-    linkStyle 2 stroke:#ff9800,stroke-width:4px,stroke-dasharray: 5 5
+    linkStyle 0 stroke:#ff9800,stroke-width:4px,stroke-dasharray: 5 5
+
 ```
 👉 Từ giờ phút này, mọi thao tác trong `/backup` đều thực sự diễn ra trên ổ cứng 20TB của Server.
 
