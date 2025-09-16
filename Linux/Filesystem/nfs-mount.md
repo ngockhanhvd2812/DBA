@@ -232,12 +232,13 @@ graph TD
     end
     subgraph "Có 'x-systemd.automount' (Khuyến nghị)"
         F[Boot Server] --> G[Khởi động mạng]
-        G --> H[Hệ điều hành sẵn sàng <br> (NFS chưa mount)]
+        G --> H["Hệ điều hành sẵn sàng <br> (NFS chưa mount)"]
         H --> I{Ứng dụng truy cập /backup}
         I -- Lần đầu --> J[systemd tự động mount NFS]
         J --> K[Ứng dụng truy cập dữ liệu]
     end
     style D fill:#f8d7da
+
 ```
 
 **3. Kiểm tra cú pháp:**
