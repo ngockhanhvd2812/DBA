@@ -93,6 +93,39 @@ graph TD
     style D fill:#e1f5fe
 ```
 
+### Cơ chế hoạt động của RMAN
+```mermaid
+sequenceDiagram
+    participant DBA
+    participant RMAN
+    participant OracleDB
+    participant Storage
+    
+    DBA->>RMAN: Khởi tạo backup
+    RMAN->>OracleDB: Đọc metadata từ Control File
+    OracleDB->>RMAN: Trả về thông tin cần backup
+    RMAN->>OracleDB: Đọc data files
+    OracleDB->>RMAN: Trả dữ liệu
+    RMAN->>Storage: Tạo backup pieces
+    Storage->>RMAN: Xác nhận lưu trữ
+    RMAN->>DBA: Cập nhật trạng thái
+```
+
+### Quy trình backup cơ bản
+```mermaid
+flowchart TD
+    A[Bắt đầu backup] --> B[Kết nối database]
+    B --> C[Xác định objects cần backup]
+    C --> D[Đọc dữ liệu từ datafiles]
+    D --> E[Tạo backup pieces]
+    E --> F[Lưu trữ backup]
+    F --> G[Cập nhật metadata]
+    G --> H[Kết thúc backup]
+    
+    style A fill:#bbdefb
+    style H fill:#c8e6c9
+```
+
 ---
 
 # 2) Truy vấn SQL xác nhận trạng thái backup
@@ -163,6 +196,28 @@ flowchart TD
     style K fill:#c8e6c9
 ```
 
+### Chi tiết về các trạng thái backup
+```mermaid
+graph TD
+    A[Backup Job Status] --> B[COMPLETED]
+    A --> C[COMPLETED WITH WARNINGS]
+    A --> D[FAILED]
+    A --> E[RUNNING]
+    A --> F[WAITING]
+    
+    B --> G[Thành công hoàn toàn]
+    C --> H[Thành công nhưng có vấn đề nhỏ]
+    D --> I[Thất bại hoàn toàn]
+    E --> J[Đang thực thi]
+    F --> K[Chờ tài nguyên]
+    
+    style B fill:#c8e6c9
+    style C fill:#fff9c4
+    style D fill:#ffcdd2
+    style E fill:#bbdefb
+    style F fill:#e1f5fe
+```
+
 ## 2.2. Nhật ký chi tiết thao tác RMAN
 
 ```sql
@@ -213,6 +268,21 @@ graph TD
     style C fill:#f8bbd0
     style D fill:#e1f5fe
     style E fill:#fff3e0
+```
+
+### Các bước trong quá trình backup
+```mermaid
+flowchart TD
+    A[Khởi tạo backup job] --> B[Phân tích objects cần backup]
+    B --> C[Đọc dữ liệu từ database]
+    C --> D[Tạo backup pieces]
+    D --> E[Lưu trữ backup]
+    E --> F[Cập nhật metadata]
+    F --> G[Đóng backup job]
+    G --> H[Báo cáo kết quả]
+    
+    style A fill:#bbdefb
+    style H fill:#c8e6c9
 ```
 
 ## 2.3. Các backup piece/set vừa tạo (tình trạng vật lý)
@@ -278,6 +348,27 @@ graph TD
     style D fill:#fff9c4
 ```
 
+### Quy trình quản lý backup pieces
+```mermaid
+flowchart TD
+    A[Tạo backup piece] --> B[Lưu trữ]
+    B --> C{Còn hợp lệ?}
+    C -->|Có| D[Available]
+    C -->|Không| E{Đã xóa?}
+    E -->|Có| F[Deleted]
+    E -->|Không| G[Expired]
+    D --> H[Sử dụng cho restore]
+    F --> I[Không thể sử dụng]
+    G --> I
+    
+    style A fill:#bbdefb
+    style D fill:#c8e6c9
+    style F fill:#ffcdd2
+    style G fill:#fff9c4
+    style H fill:#c8e6c9
+    style I fill:#ffcdd2
+```
+
 ## 2.4. Bao phủ ARCHIVELOG (điểm thường gây fail)
 
 ```sql
@@ -321,6 +412,30 @@ sequenceDiagram
     RMAN->>Storage: Lưu trữ backup
     Storage->>RMAN: Xác nhận
     RMAN->>AL: Đánh dấu đã backup
+```
+
+### Vòng đời của Archive Logs
+```mermaid
+flowchart TD
+    A[Online Redo Log] --> B[Archive Log Created]
+    B --> C{Đã backup?}
+    C -->|Có| D[Marked as backed up]
+    C -->|Không| E[Pending backup]
+    D --> F[Retention policy applied]
+    E --> G[Backup process]
+    G --> D
+    F --> H{Expired?}
+    H -->|Có| I[Deleted]
+    H -->|Không| D
+    
+    style A fill:#bbdefb
+    style B fill:#e1f5fe
+    style C fill:#f8bbd0
+    style D fill:#c8e6c9
+    style E fill:#fff9c4
+    style F fill:#e1f5fe
+    style H fill:#f8bbd0
+    style I fill:#ffcdd2
 ```
 
 ## 2.5. Kiểm tra nơi lưu ARCHIVELOG (shared hay local)
@@ -390,6 +505,32 @@ graph TD
     style I fill:#c8e6c9
 ```
 
+### So sánh các phương pháp lưu trữ Archive Logs
+```mermaid
+graph TD
+    A[Archive Log Storage] --> B[Local File System]
+    A --> C[ASM Disk Group]
+    A --> D[FRA]
+    A --> E[NFS]
+    
+    B --> F[Đơn giản, rẻ]
+    B --> G[Không phù hợp cho RAC]
+    
+    C --> H[Chia sẻ tốt cho RAC]
+    C --> I[Yêu cầu ASM setup]
+    
+    D --> J[Quản lý tự động]
+    D --> K[Giới hạn dung lượng]
+    
+    E --> L[Chia sẻ qua mạng]
+    E --> M[Phụ thuộc mạng]
+    
+    style B fill:#ffcdd2
+    style C fill:#c8e6c9
+    style D fill:#bbdefb
+    style E fill:#fff9c4
+```
+
 ---
 
 # 3) Kiểm tra nhanh bằng RMAN (không cần nhớ SQL)
@@ -443,6 +584,26 @@ flowchart TD
     style A fill:#bbdefb
     style G fill:#c8e6c9
     style I fill:#fff9c4
+```
+
+### Các lệnh LIST trong RMAN
+```mermaid
+graph TD
+    A[LIST Commands] --> B[LIST BACKUP]
+    A --> C[LIST COPY]
+    A --> D[LIST ARCHIVELOG]
+    A --> E[LIST INCARNATION]
+    
+    B --> F[Thông tin backup sets]
+    C --> G[Thông tin image copies]
+    D --> H[Thông tin archive logs]
+    E --> I[Thông tin database incarnations]
+    
+    style A fill:#bbdefb
+    style B fill:#c8e6c9
+    style C fill:#f8bbd0
+    style D fill:#e1f5fe
+    style E fill:#fff3e0
 ```
 
 ---
@@ -557,6 +718,30 @@ flowchart TD
     style N fill:#bbdefb
 ```
 
+### Các bước khắc phục NetBackup status 6
+```mermaid
+flowchart TD
+    A[Phát hiện lỗi] --> B[Phân tích log]
+    B --> C[Xác định nguyên nhân chính]
+    C --> D{Lỗi Archive Log?}
+    D -->|Có| E[Kiểm tra vị trí lưu trữ]
+    E --> F[Đảm bảo shared storage]
+    F --> G[Cập nhật cấu hình]
+    D -->|Không| H{Lỗi permission?}
+    H -->|Có| I[Kiểm tra quyền hệ thống]
+    I --> J[Cấp quyền cần thiết]
+    H -->|Không| K{Lỗi cấu hình?}
+    K -->|Có| L[Điều chỉnh FILESPERSET]
+    L --> M[Cập nhật cấu hình RMAN]
+    K -->|Không| N[Liên hệ support]
+    
+    style A fill:#ffcdd2
+    style G fill:#c8e6c9
+    style J fill:#c8e6c9
+    style M fill:#c8e6c9
+    style N fill:#bbdefb
+```
+
 ---
 
 # 5) Lý thuyết ngắn gọn cho người mới
@@ -608,6 +793,21 @@ graph TD
     style I fill:#c8e6c9
 ```
 
+### Các bước kiểm tra backup cơ bản
+```mermaid
+flowchart TD
+    A[Bắt đầu kiểm tra] --> B[Kiểm tra job status]
+    B --> C[Kiểm tra backup pieces]
+    C --> D[Kiểm tra archive logs]
+    D --> E{Có vấn đề?}
+    E -->|Có| F[Xử lý ngay]
+    E -->|Không| G[Báo cáo OK]
+    
+    style A fill:#bbdefb
+    style F fill:#ffcdd2
+    style G fill:#c8e6c9
+```
+
 ---
 
 # 6) Sơ đồ mermaid – luồng backup Oracle → NetBackup (dedupe)
@@ -651,6 +851,25 @@ flowchart TD
     style J fill:#c8e6c9
 ```
 
+### Quy trình backup với SBT Tape
+```mermaid
+sequenceDiagram
+    participant RMAN
+    participant SBT
+    participant MediaServer
+    participant Storage
+    
+    RMAN->>SBT: Allocate channel
+    SBT->>MediaServer: Request resources
+    MediaServer->>Storage: Prepare storage
+    RMAN->>SBT: Send backup data
+    SBT->>MediaServer: Transfer data
+    MediaServer->>Storage: Write data
+    Storage->>MediaServer: Confirm write
+    MediaServer->>SBT: Return status
+    SBT->>RMAN: Update status
+```
+
 ---
 
 ## Mẹo kiểm tra "nhanh – gọn – chuẩn"
@@ -685,6 +904,26 @@ flowchart TD
     style A fill:#bbdefb
     style F fill:#ffcdd2
     style G fill:#c8e6c9
+```
+
+### Các bước kiểm tra nhanh backup
+```mermaid
+flowchart TD
+    A[Mở SQL/RMAN] --> B[Chạy query job status]
+    B --> C[Chạy query backup pieces]
+    C --> D[Chạy query archive logs]
+    D --> E{Có lỗi?}
+    E -->|Có| F[Xem chi tiết log]
+    E -->|Không| G[Báo cáo thành công]
+    F --> H[Xử lý lỗi]
+    H --> I[Cập nhật kết quả]
+    G --> I
+    
+    style A fill:#bbdefb
+    style G fill:#c8e6c9
+    style F fill:#fff9c4
+    style H fill:#ffcdd2
+    style I fill:#bbdefb
 ```
 
 ---
@@ -773,6 +1012,21 @@ graph TD
     style E fill:#fff3e0
 ```
 
+### Sơ đồ quan hệ giữa các thành phần backup
+```mermaid
+graph TD
+    A[Backup Job] --> B[Backup Sets]
+    A --> C[Archive Logs]
+    B --> D[Backup Pieces]
+    C --> E[Backup Redo Logs]
+    
+    style A fill:#bbdefb
+    style B fill:#c8e6c9
+    style C fill:#f8bbd0
+    style D fill:#e1f5fe
+    style E fill:#fff3e0
+```
+
 ## Các lỗi thường gặp và cách khắc phục
 ### Lỗi backup phổ biến
 ```mermaid
@@ -822,6 +1076,26 @@ flowchart TD
     style E fill:#c8e6c9
     style L fill:#c8e6c9
     style J fill:#bbdefb
+```
+
+### Các bước xử lý lỗi backup
+```mermaid
+flowchart TD
+    A[Phát hiện lỗi] --> B[Ghi nhận lỗi]
+    B --> C[Phân loại lỗi]
+    C --> D[Tra cứu tài liệu]
+    D --> E[Thực hiện khắc phục]
+    E --> F[Kiểm tra lại]
+    F --> G{Vẫn lỗi?}
+    G -->|Có| H[Lặp lại bước E]
+    G -->|Không| I[Báo cáo thành công]
+    I --> J[Cập nhật tài liệu]
+    
+    style A fill:#ffcdd2
+    style E fill:#bbdefb
+    style F fill:#e1f5fe
+    style I fill:#c8e6c9
+    style J fill:#c8e6c9
 ```
 
 ---
@@ -915,6 +1189,29 @@ flowchart TD
 6. **Kiểm tra storage** - Đảm bảo đủ dung lượng cho backup
 7. **Xác minh retention policy** - Đảm bảo backup cũ được xóa đúng lịch
 8. **Ghi log kết quả** - Tạo documentation cho các lần kiểm tra
+
+### Quy trình kiểm tra backup hàng ngày
+```mermaid
+flowchart TD
+    A[Bắt đầu kiểm tra] --> B[Kết nối hệ thống]
+    B --> C[Kiểm tra trạng thái job]
+    C --> D[Kiểm tra backup pieces]
+    D --> E[Kiểm tra archive logs]
+    E --> F[Kiểm tra bằng RMAN]
+    F --> G{Có vấn đề?}
+    G -->|Có| H[Xử lý ngay lập tức]
+    G -->|Không| I[Ghi log kết quả]
+    H --> J[Thông báo cho team]
+    J --> K[Theo dõi xử lý]
+    K --> L[Cập nhật kết quả]
+    I --> M[Kết thúc]
+    L --> M
+    
+    style A fill:#bbdefb
+    style H fill:#ffcdd2
+    style I fill:#c8e6c9
+    style M fill:#c8e6c9
+```
 
 ---
 
