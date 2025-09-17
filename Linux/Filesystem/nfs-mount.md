@@ -244,7 +244,8 @@ graph TD
 ```
 
 **3. Kiểm tra cú pháp:**
-Sau khi lưu file `fstab`, chạy lệnh sau để hệ thống đọc lại và mount những gì cần thiết mà không cần reboot:```bash
+Sau khi lưu file `fstab`, chạy lệnh sau để hệ thống đọc lại và mount những gì cần thiết mà không cần reboot:
+```bash
 sudo mount -a
 ```
 Nếu lệnh chạy êm ru không báo lỗi, bạn đã cấu hình thành công!
