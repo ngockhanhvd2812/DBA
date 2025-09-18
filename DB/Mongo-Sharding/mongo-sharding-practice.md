@@ -3,10 +3,17 @@
     - [**Phần I: Lý Thuyết Nền Tảng MongoDB Sharding**](#phần-i-lý-thuyết-nền-tảng-mongodb-sharding)
     - [**Phần II: Thực Hành Triển Khai**](#phần-ii-thực-hành-triển-khai)
   - [**Phần I: Lý Thuyết Nền Tảng MongoDB Sharding**](#phần-i-lý-thuyết-nền-tảng-mongodb-sharding-1)
+    - [**Chương 0: Khởi động Nhanh Dành Cho Người Mới**](#chương-0-khởi-động-nhanh-dành-cho-người-mới)
+      - [**Bức tranh tổng quan**](#bức-tranh-tổng-quan)
+      - [**Thuật ngữ cốt lõi nên thuộc lòng**](#thuật-ngữ-cốt-lõi-nên-thuộc-lòng)
+      - [**Một truy vấn đi qua cluster ra sao?**](#một-truy-vấn-đi-qua-cluster-ra-sao)
+      - [**Checklist tự học**](#checklist-tự-học)
     - [**Chương 1: Kiến Trúc MongoDB Sharded Cluster**](#chương-1-kiến-trúc-mongodb-sharded-cluster)
       - [**Các Thành Phần Cốt Lõi:**](#các-thành-phần-cốt-lõi)
     - [**Chương 2: Nguyên Lý Phân Tán Dữ liệu (Data Distribution)**](#chương-2-nguyên-lý-phân-tán-dữ-liệu-data-distribution)
       - [**Shard Key - Chìa Khóa Của Sharding**](#shard-key---chìa-khóa-của-sharding)
+      - [**Chiến lược phân mảnh phổ biến**](#chiến-lược-phân-mảnh-phổ-biến)
+      - [**Vòng đời của một chunk**](#vòng-đời-của-một-chunk)
     - [**Chương 3: Cơ Chế Replica Set và High Availability**](#chương-3-cơ-chế-replica-set-và-high-availability)
       - [**Replica Set Fundamentals**](#replica-set-fundamentals)
     - [**Chương 4: Security Authentication và Authorization Flow**](#chương-4-security-authentication-và-authorization-flow)
@@ -14,6 +21,7 @@
     - [**Chương 5: Backup Strategy và Disaster Recovery**](#chương-5-backup-strategy-và-disaster-recovery)
       - [**Comprehensive Backup Strategy**](#comprehensive-backup-strategy)
   - [**Kiến Trúc Triển Khai Cụ Thể**](#kiến-trúc-triển-khai-cụ-thể)
+    - [**Sơ đồ lộ trình triển khai**](#sơ-đồ-lộ-trình-triển-khai)
     - [**Giai đoạn 1: Chuẩn bị Môi trường (Làm trên CẢ 3 MÁY)**](#giai-đoạn-1-chuẩn-bị-môi-trường-làm-trên-cả-3-máy)
       - [**1. Cấu hình File `/etc/hosts`**](#1-cấu-hình-file-etchosts)
       - [**2. Tắt Transparent Huge Pages (THP)**](#2-tắt-transparent-huge-pages-thp)
@@ -106,6 +114,90 @@
 ---
 
 ## **Phần I: Lý Thuyết Nền Tảng MongoDB Sharding**
+
+### **Chương 0: Khởi động Nhanh Dành Cho Người Mới**
+
+#### **Bức tranh tổng quan**
+
+Trước khi chạm tới lệnh `mongosh`, hãy nhìn toàn cảnh hệ thống: MongoDB thường bắt đầu bằng một replica set để đảm bảo an toàn dữ liệu. Khi kích thước và lưu lượng tăng liên tục, sharding sẽ chia tải sang nhiều nhóm máy thay vì dồn mọi thứ vào một node duy nhất.
+
+- `Replica Set` giải quyết bài toán chịu lỗi và đọc mở rộng nhưng không giúp tháo gỡ điểm nghẽn ghi.
+- `Sharding` tách dữ liệu thành từng phần nhỏ (chunk) theo `shard key`, cho phép mở rộng tuyến tính khi thêm shard.
+- `Mục tiêu cuối` là cân bằng giữa tính sẵn sàng, hiệu năng và chi phí vận hành.
+
+```mermaid
+flowchart TD
+    START[Bắt đầu đánh giá hệ thống] --> DATA{Dữ liệu tăng nhanh?}
+    DATA -->|Có| WRITE{Áp lực đọc/ghi vượt 70% tài nguyên?}
+    WRITE -->|Có| SHARD[Chuẩn bị chiến lược Sharding]
+    WRITE -->|Không| SCALE_UP[Tối ưu & Scale Up]
+    DATA -->|Không| MONITOR[Tiếp tục giám sát]
+    SHARD --> PLAN[Chọn shard key & mô hình triển khai]
+    PLAN --> POC[Thử nghiệm trên môi trường staging]
+    POC --> PROD[Triển khai production]
+    SCALE_UP --> MONITOR
+    MONITOR --> START
+    style SHARD fill:#ffe0b2,stroke:#fb8c00,stroke-width:2px
+    style PLAN fill:#c8e6c9,stroke:#43a047
+    style POC fill:#bbdefb,stroke:#1e88e5
+    style PROD fill:#f8bbd0,stroke:#c2185b
+```
+
+#### **Thuật ngữ cốt lõi nên thuộc lòng**
+
+Năm thuật ngữ dưới đây lặp đi lặp lại xuyên suốt phần thực hành. Hãy chắc rằng bạn nắm được ý nghĩa trước khi bước tiếp.
+
+| Thuật ngữ | Giải thích ngắn | Ghi nhớ nhanh |
+| --- | --- | --- |
+| `Shard key` | Trường/nhóm trường được dùng để phân chia dữ liệu, ảnh hưởng trực tiếp đến cân bằng tải | Chọn sai sẽ rất khó sửa, hãy thử nghiệm kỹ |
+| `Chunk` | Khối dữ liệu logic ~64 MB được balancer di chuyển giữa các shard | Chia nhỏ để cân bằng và tránh hotspot |
+| `Mongos` | Bộ định tuyến truy vấn, không lưu dữ liệu | Luôn triển khai ít nhất 2 instance để chịu lỗi |
+| `Config Server` | Nơi lưu metadata về chunk, shard, version | Mất cụm config là toàn cluster ngừng hoạt động |
+| `Balancer` | Tác vụ nền tự động cân bằng chunk | Chạy định kỳ, có thể tắt khi cần bảo trì |
+
+#### **Một truy vấn đi qua cluster ra sao?**
+
+Hiểu rõ đường đi của một request giúp bạn debug nhanh hơn khi gặp lỗi timeout hoặc kết quả không đồng nhất.
+
+```mermaid
+sequenceDiagram
+    participant Client as Ứng dụng
+    participant Mongos as Mongos (Router)
+    participant Config as Config Server RS
+    participant ShardA as Shard A
+    participant ShardB as Shard B
+    Client->>Mongos: Gửi truy vấn {userId: 123}
+    Mongos->>Config: Tra cứu metadata shard key
+    Config-->>Mongos: Vị trí chunk & phiên bản
+    Mongos->>ShardA: Định tuyến truy vấn đọc/ghi
+    ShardA-->>Mongos: Kết quả/ACK
+    Mongos-->>Client: Trả phản hồi cuối cùng
+    Mongos->>ShardB: (Nếu truy vấn toàn cục) gửi thêm pipeline phụ
+    ShardB-->>Mongos: Trả về partial result
+```
+
+Khi metadata bị lỗi thời, Mongos sẽ đồng bộ lại từ Config Server trước khi tiếp tục; đây là lý do đôi khi bạn thấy độ trễ tăng nhẹ sau các thay đổi lớn.
+
+#### **Checklist tự học**
+
+Để tiến bộ nhanh, hãy xen kẽ đọc tài liệu với thực hành ngắn và nhật ký quan sát.
+
+- Ôn lại sự khác nhau giữa `replication` và `sharding` bằng sơ đồ tự vẽ.
+- Hoàn thành ít nhất một lần lab cài đặt sharding trên môi trường ảo hóa cá nhân.
+- Luôn chạy `sh.status()` sau mỗi thay đổi để kiểm chứng chunk và zone.
+- Theo dõi log của từng thành phần để hiểu rõ trình tự khởi động.
+
+```mermaid
+flowchart LR
+    READ[Đọc tài liệu chính thức] --> NOTE[Liệt kê khái niệm mới]
+    NOTE --> LAB[Triển khai lab nhỏ]
+    LAB --> OBSERVE[Quan sát log & metric]
+    OBSERVE --> REVIEW[Đánh giá lại thiết kế shard key]
+    REVIEW --> READ
+    style LAB fill:#c5e1a5,stroke:#558b2f
+    style OBSERVE fill:#ffe0b2,stroke:#ef6c00
+```
+
 
 ### **Chương 1: Kiến Trúc MongoDB Sharded Cluster**
 
@@ -371,6 +463,53 @@ flowchart TD
     style J fill:#fff3e0
     style Q fill:#c8e6c9
 ```
+
+
+#### **Chiến lược phân mảnh phổ biến**
+
+Việc lựa chọn chiến lược phân mảnh nên dựa trên hành vi truy vấn thực tế thay vì cảm tính. Ba chiến lược dưới đây là nền tảng của mọi cụm MongoDB hiện đại.
+
+```mermaid
+graph LR
+    KEY[Thiết kế shard key] --> RANGE[Range based]
+    KEY --> HASH[Hash based]
+    KEY --> ZONE[Zone/Tag based]
+    RANGE --> RANGE_PLUS[Truy vấn theo khoảng hiệu quả]
+    RANGE --> RANGE_MINUS[Nguy cơ hotspot nếu key tăng tuần tự]
+    HASH --> HASH_PLUS[Cân bằng tự nhiên giữa các shard]
+    HASH --> HASH_MINUS[Không tối ưu cho truy vấn range]
+    ZONE --> ZONE_PLUS[Đặt dữ liệu gần người dùng]
+    ZONE --> ZONE_MINUS[Quản trị zone phức tạp hơn]
+    style KEY fill:#fff3e0,stroke:#fb8c00,stroke-width:2px
+    style RANGE fill:#bbdefb,stroke:#1e88e5
+    style HASH fill:#c8e6c9,stroke:#43a047
+    style ZONE fill:#f8bbd0,stroke:#c2185b
+```
+
+- **Range based**: Phù hợp với dữ liệu thời gian hoặc chuỗi tăng dần; cần kết hợp tiền tố ngẫu nhiên để tránh hotspot.
+- **Hash based**: Giúp phân tán đều dữ liệu nhưng làm mất khả năng quét theo khoảng; thường dùng cho workload ghi mạnh.
+- **Zone based**: Cho phép gom dữ liệu theo vùng (region, tenant) để tuân thủ quy định pháp lý.
+
+#### **Vòng đời của một chunk**
+
+Chunk có chu kỳ riêng từ lúc sinh ra cho tới khi được di chuyển sang shard khác. Hiểu chu kỳ này giúp bạn giải thích các cảnh báo của balancer.
+
+```mermaid
+stateDiagram-v2
+    [*] --> Duoc_Tao
+    Duoc_Tao: Được tạo sau khi insert đầu tiên
+    Duoc_Tao --> Giam_Sat: Theo dõi kích thước chunk
+    Giam_Sat --> Bi_Tach: Vượt ngưỡng cấu hình
+    Bi_Tach --> Can_Bang: Balancer kích hoạt migrate
+    Can_Bang --> On_Dinh: Chunk ổn định ở shard mới
+    Can_Bang --> Loi: Migration thất bại
+    Loi --> Can_Bang: Retry sau khi khắc phục
+    On_Dinh --> Giam_Sat
+```
+
+- Luôn kiểm tra `config.locks` và `config.changelog` khi cần điều tra hoạt động của balancer.
+- Khi migration thất bại, MongoDB sẽ retry sau thời gian trễ; bạn có thể can thiệp thủ công bằng `moveChunk`.
+- Việc thu nhỏ chunk (`mergeChunks`) chỉ nên làm khi chắc chắn shard key hỗ trợ.
 
 ### **Chương 3: Cơ Chế Replica Set và High Availability**
 
@@ -656,6 +795,26 @@ flowchart TD
 ---
 
 ## **Kiến Trúc Triển Khai Cụ Thể**
+
+### **Sơ đồ lộ trình triển khai**
+
+Phần thực hành dài phía sau sẽ hiệu quả hơn khi bạn hình dung rõ các chặng chính. Sơ đồ dưới đây gom toàn bộ hành trình thành những điểm neo dễ nhớ.
+
+```mermaid
+flowchart LR
+    STEP1[Giai đoạn 1<br/>Chuẩn bị hệ điều hành] --> STEP2[Giai đoạn 2<br/>Cài đặt gói & dịch vụ]
+    STEP2 --> STEP3[Giai đoạn 3<br/>Config Server Replica Set]
+    STEP3 --> STEP4[Giai đoạn 4<br/>Shard Replica Set]
+    STEP4 --> STEP5[Giai đoạn 5<br/>Mongos & Kết nối]
+    STEP5 --> STEP6[Giai đoạn 6-15<br/>Vận hành nâng cao]
+    style STEP3 fill:#bbdefb,stroke:#1e88e5
+    style STEP4 fill:#c8e6c9,stroke:#43a047
+    style STEP5 fill:#ffe0b2,stroke:#fb8c00
+```
+
+- Mỗi giai đoạn nên được ghi lại trong nhật ký triển khai để dễ rollback.
+- Ưu tiên hoàn thành phòng lab end-to-end trước khi chạm tới môi trường production.
+- Khi làm việc nhóm, hãy chia rõ vai trò: người cấu hình hệ điều hành, người dựng replica set, người kiểm thử.
 
 
 ```mermaid
