@@ -1216,3 +1216,240 @@ flowchart TD
 ---
 
 Nếu bạn muốn, mình có thể soạn nhanh **một script SQL/RMAN hoàn chỉnh** cho môi trường bcqg\* (đã tối ưu FILESPERSET cho dedupe, thêm `SKIP INACCESSIBLE`) để bạn dán chạy và đối chiếu.
+---
+
+## 2.3. Kiến thức nền tảng cho người mới bắt đầu
+
+### ARCHIVELOG vs NOARCHIVELOG (vì sao quan trọng?)
+- ARCHIVELOG: Cho phép backup khi DB đang chạy và phục hồi tới thời điểm. Phù hợp hệ thống production.
+- NOARCHIVELOG: Chỉ backup khi DB shutdown hoặc offline tablespace; không phục hồi tới thời điểm. Chỉ phù hợp môi trường test/dev.
+
+`mermaid
+graph TD
+    A[Chế độ DB] --> B[ARCHIVELOG]
+    A --> C[NOARCHIVELOG]
+    B --> D[Backup online]
+    B --> E[Point-in-time recovery]
+    C --> F[Backup khi offline]
+    C --> G[Không PITR]
+    style B fill:#c8e6c9
+    style C fill:#ffcdd2
+`
+
+### FRA - Fast Recovery Area (nên bật)
+- Lưu trữ tự động: archive logs, backups, flashback logs, controlfile autobackup.
+- Giới hạn bởi DB_RECOVERY_FILE_DEST_SIZE; cần giám sát tránh đầy.
+
+`mermaid
+graph LR
+    FRA[(FRA)] --> A[Archive Logs]
+    FRA --> B[Backup Pieces]
+    FRA --> C[Flashback Logs]
+    FRA --> D[Controlfile Autobackup]
+    style FRA fill:#e3f2fd
+`
+
+### Chính sách giữ lại (Retention Policy)
+- Recovery Window: ví dụ 7 ngày -> đảm bảo có thể phục hồi tới mọi thời điểm trong 7 ngày qua.
+- Redundancy: giữ N bản backup đầy đủ mới nhất.
+
+`mermaid
+flowchart TD
+    A[Đặt retention] --> B{Window hay Redundancy?}
+    B -->|Window| C[RECOVERY WINDOW OF n DAYS]
+    B -->|Redundancy| D[REDUNDANCY n]
+    C --> E[RMAN tự đánh dấu obsolete]
+    D --> E
+    E --> F[DELETE OBSOLETE]
+`
+
+### Incremental Level 0/1 và Block Change Tracking (BCT)
+- Level 0: nền tảng (giống full cho incremental).
+- Level 1: chỉ phần thay đổi từ Level 0 gần nhất.
+- BCT: tăng tốc incremental bằng file theo dõi block thay đổi (DB_CREATE_FILE_DEST/DB_RECOVERY_FILE_DEST).
+
+`mermaid
+sequenceDiagram
+    participant DB as Oracle DB
+    participant BCT as Block Change Tracking
+    participant RM as RMAN
+    DB->>BCT: Ghi lại block thay đổi
+    RM->>BCT: Hỏi danh sách block thay đổi
+    BCT-->>RM: Trả về map block
+    RM->>DB: Đọc các block cần
+`
+
+### Đích backup: Disk vs SBT (Tape)
+- Disk: nhanh, dễ kiểm tra/khôi phục; phù hợp hàng ngày.
+- SBT/Tape: lưu lâu dài, offsite; thường dùng cho weekly/monthly.
+
+`mermaid
+graph LR
+    RMAN-->|Disk Channel| D[(Disk)]
+    RMAN-->|SBT Channel| T[(Tape/Cloud Gateway)]
+    D --> R[Phục hồi nhanh]
+    T --> A[Lưu trữ dài hạn]
+`
+
+---
+
+## 3) Quy trình restore/recover ở mức cao
+
+`mermaid
+flowchart TD
+    A[Sự cố] --> B[Xác định phạm vi]
+    B --> C{Mất gì?}
+    C -->|Datafile| D[RESTORE DATAFILE]
+    C -->|Controlfile| E[RESTORE CONTROLFILE]
+    C -->|Spfile| F[RESTORE SPFILE]
+    D --> G[RECOVER DATAFILE]
+    E --> H[MOUNT DB]
+    H --> I[CATALOG/STARTUP NOMOUNT]
+    G --> J[OPEN RESETLOGS]
+    I --> D
+`
+
+Ví dụ lệnh căn bản:
+`man
+RUN {
+  ALLOCATE CHANNEL c1 DEVICE TYPE DISK;
+  RESTORE DATABASE;
+  RECOVER DATABASE;
+  ALTER DATABASE OPEN RESETLOGS;
+}
+`
+
+Kiểm tra tính toàn vẹn backup (khuyến nghị chạy định kỳ):
+`man
+VALIDATE BACKUPSET ALL;
+VALIDATE DATABASE;
+`
+
+---
+
+## 4) Lịch backup tham khảo cho người mới
+
+`mermaid
+gantt
+    dateFormat  YYYY-MM-DD
+    title Lịch backup tham khảo
+    section Hàng tuần
+    Full Level 0 : done, des1, 2025-01-05, 1d
+    section Hàng ngày
+    Incremental L1 : active, des2, 2025-01-06, 6d
+    Archive Logs : des3, 2025-01-05, 7d
+`
+
+- Chủ nhật: Level 0 (nền tảng)
+- Thứ 2-7: Level 1 + backup archivelog mỗi 1-2 giờ (tùy RPO)
+
+---
+
+## 5) Theo dõi và KPI cơ bản
+
+`mermaid
+graph TD
+    A[KPI Backup] --> B[Tỉ lệ thành công]
+    A --> C[Thời gian chạy]
+    A --> D[Kích thước backup]
+    A --> E[Thời gian phục hồi thử]
+    A --> F[Mức sử dụng FRA]
+    style A fill:#e3f2fd
+`
+
+SQL nhanh kiểm tra FRA và archive log:
+`sql
+SELECT name, space_limit/1024/1024 AS mb_limit,
+       space_used/1024/1024  AS mb_used,
+       (space_used/space_limit)*100 AS pct
+FROM   v;
+
+SELECT COUNT(*) AS arch_not_backed
+FROM   v
+WHERE  deleted = 'NO' AND BACKED_UP = 'NO';
+`
+
+---
+
+## 6) Cheat sheet RMAN cho người mới
+
+`man
+-- Cấu hình cơ bản
+CONFIGURE RETENTION POLICY TO RECOVERY WINDOW OF 7 DAYS;
+CONFIGURE CONTROLFILE AUTOBACKUP ON;
+CONFIGURE DEVICE TYPE DISK PARALLELISM 2;
+
+-- Backup đầy đủ + archivelog
+BACKUP AS COMPRESSED BACKUPSET DATABASE PLUS ARCHIVELOG;
+
+-- Incremental và BCT (nếu đã bật BCT)
+BACKUP INCREMENTAL LEVEL 0 DATABASE;
+BACKUP INCREMENTAL LEVEL 1 DATABASE;
+
+-- Kiểm tra/validate
+VALIDATE BACKUPSET ALL;
+LIST FAILURE;
+
+-- Xoá theo chính sách
+DELETE NOPROMPT OBSOLETE;
+`
+
+`mermaid
+flowchart LR
+    A[Start] --> B[Cấu hình]
+    B --> C[Thực hiện backup]
+    C --> D[Giám sát/KPI]
+    D --> E[Validate định kỳ]
+    E --> F[Xoá obsolete]
+    F --> C
+    style B fill:#e8f5e9
+    style C fill:#e3f2fd
+    style E fill:#fff8e1
+`
+
+---
+
+## 7) Lưu ý môi trường RAC/Multitenant (CDB/PDB)
+- RAC: xem GV$ thay vì V$; lưu ý channel song song theo instance.
+- Multitenant: khi kiểm tra trạng thái, cần phân biệt CDB vs từng PDB.
+
+`mermaid
+graph TD
+    A[CDB] --> B[PDB1]
+    A --> C[PDB2]
+    A --> D[PDBn]
+    style A fill:#ede7f6
+    style B fill:#e8f5e9
+    style C fill:#e8f5e9
+    style D fill:#e8f5e9
+`
+
+Truy vấn gợi ý:
+`sql
+-- Trong CDB để bao quát toàn hệ thống
+SELECT con_id, start_time, end_time, input_type, status
+FROM   v
+WHERE  start_time >= SYSDATE - 2
+ORDER  BY start_time DESC;
+`
+
+---
+
+## 8) Sơ đồ xử lý sự cố backup cho người mới
+
+`mermaid
+flowchart TD
+    A[Backup FAIL/WARNING] --> B[Đọc v]
+    B --> C{Lỗi tài nguyên? FRA đầy?}
+    C -->|Có| D[Tăng FRA/Xoá obsolete]
+    C -->|Không| E{Lỗi kênh SBT?}
+    E -->|Có| F[Kiểm tra media manager]
+    E -->|Không| G[Xem alert log/trace]
+    D --> H[Chạy lại job]
+    F --> H
+    G --> H
+    H --> I[Theo dõi kết quả]
+`
+
+Mẹo: luôn chạy thử restore/validate định kỳ để tự tin RTO/RPO.
+
